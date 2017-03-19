@@ -31,6 +31,10 @@
 #include "Device.h"
 #endif
 
+#ifndef DX12VIEWPORT_H
+#include "Viewport.h"
+#endif
+
 #include <memory>
 #include <vector>
 
@@ -98,8 +102,7 @@ namespace dx12
         ID3D12CommandQueue* m_commandQueue;
 
 
-        D3D12_VIEWPORT m_viewport;
-        D3D12_RECT m_scissorRect;
+        Viewport m_viewport;
 
     private:
         Renderer(const Renderer& other) = delete;

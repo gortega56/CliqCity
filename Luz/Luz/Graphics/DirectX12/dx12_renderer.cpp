@@ -61,6 +61,9 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
         return false;
     }
 
+    m_viewport.SetViewportRect(0, 0, (float)width, (float)height);
+    m_viewport.SetScissorRect(0, 0, width, height);
+
     return true;
 }
 
@@ -136,8 +139,8 @@ void Renderer::ClearRenderContext()
 
 void Renderer::SetViewport()
 {
-    m_graphicsCommandCtx.CommandList()->RSSetViewports(1, &m_viewport);
-    m_graphicsCommandCtx.CommandList()->RSSetScissorRects(1, &m_scissorRect);
+    m_graphicsCommandCtx.CommandList()->RSSetViewports(1, &m_viewport.ViewportRect());
+    m_graphicsCommandCtx.CommandList()->RSSetScissorRects(1, &m_viewport.ScissorRect());
 }
 
 void Renderer::UpdatePipeline(GraphicsPipeline* pGraphicsPipeline)

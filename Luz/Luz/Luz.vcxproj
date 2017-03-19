@@ -165,6 +165,7 @@
     <ClCompile Include="Graphics\DirectX12\RenderContext.cpp" />
     <ClCompile Include="Graphics\DirectX12\RootSignature.cpp" />
     <ClCompile Include="Graphics\DirectX12\Shader.cpp" />
+    <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
     <ClCompile Include="OSWin.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Window.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="Graphics\DirectX12\RenderContext.h" />
     <ClInclude Include="Graphics\DirectX12\RootSignature.h" />
     <ClInclude Include="Graphics\DirectX12\Shader.h" />
+    <ClInclude Include="Graphics\DirectX12\Viewport.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Graphics\Renderable.h" />
