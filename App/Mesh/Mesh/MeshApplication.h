@@ -7,9 +7,19 @@
 #include "Luz.h"
 #endif
 
+#ifndef CGM_H
+#include "..\..\Library\GraphicsMath\cgm.h"
+#endif
+
 struct Vertex
 {
-    float position[3];
+    vec3f position;
+};
+
+struct ViewProj
+{
+    mat4f view;
+    mat4f proj;
 };
 
 class MeshApplication :

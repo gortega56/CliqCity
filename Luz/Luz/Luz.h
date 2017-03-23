@@ -18,4 +18,10 @@
 #include "TypeDefs.h"
 #endif
 
+#ifndef CGM_H
+//#include "cgm.h"
+#include "..\..\Library\GraphicsMath\cgm.h"
+#endif
+
+
 #endif
