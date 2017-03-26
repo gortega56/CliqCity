@@ -81,7 +81,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\..\Luz\Luz\;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;$(IncludePath)</IncludePath>
     <LibraryPath>..\..\..\Luz\$(Configuration)\$(PlatformTarget)\;$(SolutionDir)$(Configuration)\$(PlatformTarget)\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
@@ -109,7 +109,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>

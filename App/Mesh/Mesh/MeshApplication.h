@@ -8,7 +8,7 @@
 #endif
 
 #ifndef CGM_H
-#include "..\..\Library\GraphicsMath\cgm.h"
+#include "cgm.h"
 #endif
 
 struct Vertex
