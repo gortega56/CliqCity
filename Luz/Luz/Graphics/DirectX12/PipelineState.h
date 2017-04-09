@@ -23,14 +23,16 @@
 
 namespace dx12
 {
-    class Renderer;
     class PixelBuffer;
+    class RenderContext;
+    class Device;
 
     class PipelineState
     {
     public:
         PipelineState() : m_pipelineState(nullptr) {}
-        ~PipelineState() {}
+        ~PipelineState() { SAFE_RELEASE(m_pipelineState) }
+
         ID3D12PipelineState* PSO() { return m_pipelineState; }
 
     protected:
@@ -48,8 +50,8 @@ namespace dx12
 
         void SetPointTopology() { m_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; }
         void SetLineTopology() { m_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; }
-        void SetPatchTopology() { m_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; }
-        void SetTriangleTopology() { m_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH; }
+        void SetPatchTopology() { m_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH; }
+        void SetTriangleTopology() { m_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; }
 
         void SetVS(Shader* pShader) { m_desc.VS = pShader->ByteCode(); }
         void SetHS(Shader* pShader) { m_desc.HS = pShader->ByteCode(); }
@@ -57,20 +59,19 @@ namespace dx12
         void SetGS(Shader* pShader) { m_desc.GS = pShader->ByteCode(); }
         void SetPS(Shader* pShader) { m_desc.PS = pShader->ByteCode(); }
 
-        void SetSampleCount(u32 count) { m_samplerDesc.Count = count; }
-        void SetSampleQuality(u32 quality) { m_samplerDesc.Quality = quality; }
+        void SetSampleCount(u32 count) { m_desc.SampleDesc.Count = count; }
+        void SetSampleQuality(u32 quality) { m_desc.SampleDesc.Quality = quality; }
         void SetSampleMask(u32 mask) { m_desc.SampleMask = mask; }
 
-        void SetRenderTargets(Renderer* pRenderer);
+        void SetRenderTargets(std::shared_ptr<const RenderContext> pRc);
         void SetRasterizerState(RasterizerState* pRS) { m_desc.RasterizerState = pRS->Desc(); }
         void SetDepthStencilState(DepthStencilState* pDSS) { m_desc.DepthStencilState = pDSS->Desc(); }
         void SetBlendState(BlendState* pBS) { m_desc.BlendState = pBS->Desc(); }
 
-        bool Finalize(Renderer* pRenderer);
+        bool Finalize(std::shared_ptr<const Device> pDevice);
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC m_desc;
 
     private:
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC m_desc;
-        DXGI_SAMPLE_DESC m_samplerDesc;
     };
 }
 

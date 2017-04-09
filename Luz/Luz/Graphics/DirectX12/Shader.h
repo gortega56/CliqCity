@@ -23,8 +23,6 @@ namespace dx12
         bool InitializeGS(std::wstring filename) { return Compile(filename, "main", "gs_5_0"); }
         bool InitializePS(std::wstring filename) { return Compile(filename, "main", "ps_5_0"); }
 
-        void Release();
-
         D3D12_SHADER_BYTECODE& ByteCode() { return m_byteCode; }
 
     private:
@@ -40,7 +38,7 @@ namespace dx12
         InputLayout();
         ~InputLayout();
 
-        InputLayout& Append(std::string name, u32 index, DXGI_FORMAT format, u32 slot, u32 byteOffset, D3D12_INPUT_CLASSIFICATION classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, u32 instanceStepRate = 0);
+        InputLayout& Append(LPCSTR name, u32 index, DXGI_FORMAT format, u32 slot, u32 byteOffset, D3D12_INPUT_CLASSIFICATION classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, u32 instanceStepRate = 0);
 
         D3D12_INPUT_LAYOUT_DESC Desc();
 
@@ -60,6 +58,14 @@ namespace dx12
         InputLayout& AppendBlendWeights3();
         InputLayout& AppendBlendWeights4();
 
+        InputLayout& AppendColor4F();
+
+        InputLayout& AppendFloat4(LPCSTR name);
+        InputLayout& AppendFloat3(LPCSTR name);
+        InputLayout& AppendFloat2(LPCSTR name);
+        InputLayout& AppendFloat1(LPCSTR name);
+
+        void Finalize();
     private:
         u32 m_byteOffset;
         D3D12_INPUT_LAYOUT_DESC m_desc;

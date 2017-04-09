@@ -277,7 +277,6 @@ void UpdateBufferResource(
     ID3D12GraphicsCommandList* pCommandList,
     ID3D12Resource* pBufferResource,
     ID3D12Resource* pUploadResource,
-    D3D12_RESOURCE_STATES finalState,
     void* data,
     LONG_PTR rowPitch,
     LONG_PTR slicePitch,
@@ -285,15 +284,34 @@ void UpdateBufferResource(
     UINT firstResource /*= 0*/,
     UINT numResources /*= 1*/)
 {
-    D3D12_SUBRESOURCE_DATA resourceData = {};
-    resourceData.pData = reinterpret_cast<BYTE*>(data);
-    resourceData.RowPitch = rowPitch;
-    resourceData.SlicePitch = slicePitch;
-
+    D3D12_SUBRESOURCE_DATA resourceData = SubResourceData(data, rowPitch, slicePitch);
     UpdateSubresources(pCommandList, pBufferResource, pUploadResource, uploadOffset, firstResource, numResources, &resourceData);
-    pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pBufferResource, D3D12_RESOURCE_STATE_COPY_DEST, finalState));
 }
 
+void UploadVertexOrContantBufferResource(ID3D12GraphicsCommandList* pCommandList,
+    ID3D12Resource* pBufferResource,
+    ID3D12Resource* pUploadResource,
+    void* data,
+    LONG_PTR bufferSize)
+{
+    UpdateBufferResource(pCommandList, pBufferResource, pUploadResource, data, bufferSize, bufferSize);
+    TransitionResource(pCommandList, pBufferResource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+}
+
+void UploadIndexBufferResource(ID3D12GraphicsCommandList* pCommandList,
+    ID3D12Resource* pBufferResource,
+    ID3D12Resource* pUploadResource,
+    void* data,
+    LONG_PTR bufferSize)
+{
+    UpdateBufferResource(pCommandList, pBufferResource, pUploadResource, data, bufferSize, bufferSize);
+    TransitionResource(pCommandList, pBufferResource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER);
+}
+
+void TransitionResource(ID3D12GraphicsCommandList* pCommandList, ID3D12Resource* pResource, D3D12_RESOURCE_STATES initialState, D3D12_RESOURCE_STATES finalState)
+{
+    pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, initialState, finalState));
+}
 
 bool CreateFences(ID3D12Device* pDevice, ID3D12Fence* pFences[], UINT64 pFenceValues[], D3D12_FENCE_FLAGS flags, UINT count)
 {
@@ -311,18 +329,20 @@ bool CreateFences(ID3D12Device* pDevice, ID3D12Fence* pFences[], UINT64 pFenceVa
     return true;
 }
 
-void WaitForPreviousFrame(IDXGISwapChain3* pSwapChain, ID3D12Fence* pFences[], UINT64 pFenceValues[], HANDLE fenceEvent, UINT* frameIndex, bool* pRunning)
+bool WaitForFence(ID3D12Fence* pFence, UINT64* pFenceValue, HANDLE fenceEvent)
 {
-    UINT idx = *frameIndex;
-    
+    bool running = true;
+
+    UINT64 fenceValue = *pFenceValue;
+
     // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
     // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-    if (pFences[idx]->GetCompletedValue() < pFenceValues[idx])
+    if (pFence->GetCompletedValue() < fenceValue)
     {
-        HRESULT hr = pFences[idx]->SetEventOnCompletion(pFenceValues[idx], fenceEvent);
+        HRESULT hr = pFence->SetEventOnCompletion(fenceValue, fenceEvent);
         if (FAILED(hr))
         {
-            *pRunning = false;
+            running = false;
         }
 
         // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
@@ -331,10 +351,42 @@ void WaitForPreviousFrame(IDXGISwapChain3* pSwapChain, ID3D12Fence* pFences[], U
     }
 
     // increment fenceValue for next frame
-    pFenceValues[idx]++;
+    *pFenceValue++;
 
-    // swap the current rtv buffer index so we draw on the correct buffer
-    *frameIndex = pSwapChain->GetCurrentBackBufferIndex();
+    return running;
+}
+
+bool WaitForPreviousFrame(IDXGISwapChain3* pSwapChain, ID3D12Fence* pFences[], UINT64 pFenceValues[], HANDLE fenceEvent, UINT* pFrameIndex)
+{
+    UINT frameIndex = *pFrameIndex;
+
+    bool running = WaitForFence(pFences[frameIndex], &pFenceValues[frameIndex], fenceEvent);
+
+    *pFrameIndex = pSwapChain->GetCurrentBackBufferIndex();
+
+    return running;
+    //UINT idx = *frameIndex;
+    //
+    //// if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
+    //// the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
+    //if (pFences[idx]->GetCompletedValue() < pFenceValues[idx])
+    //{
+    //    HRESULT hr = pFences[idx]->SetEventOnCompletion(pFenceValues[idx], fenceEvent);
+    //    if (FAILED(hr))
+    //    {
+    //        *pRunning = false;
+    //    }
+
+    //    // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
+    //    // has reached "fenceValue", we know the command queue has finished executing
+    //    WaitForSingleObject(fenceEvent, INFINITE);
+    //}
+
+    //// increment fenceValue for next frame
+    //pFenceValues[idx]++;
+
+    //// swap the current rtv buffer index so we draw on the correct buffer
+    //*frameIndex = pSwapChain->GetCurrentBackBufferIndex();
 }
 
 bool ExecuteCommandLists(ID3D12CommandQueue* pCommandQueue, ID3D12Fence* pFence, UINT64* pFenceValue, ID3D12CommandList* ppCommandLists[], UINT count)

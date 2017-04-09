@@ -1,46 +1,51 @@
 #include "stdafx.h"
 #include "RenderContext.h"
-#include "dx12_renderer.h"
+#include "Device.h"
+#include "CommandContext.h"
+#include "DescriptorHeap.h"
+#include "SwapChain.h"
 
 using namespace dx12;
 
-RenderContext::RenderContext(u32 numRtvs) : m_rtvs(numRtvs), m_dsv(1), m_rtvDescriptorHeap(numRtvs), m_dsvDescriptorHeap(1)
+RenderContext::RenderContext() : m_dsv(1), m_rtvDescriptorHeap(nullptr), m_dsvDescriptorHeap(nullptr)
 {
     
 }
 
-bool RenderContext::InitializeWithSwapChain(Renderer* pRenderer, int width, int height)
+bool RenderContext::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<SwapChain> pSwapChain, i32 width, i32 height)
 {
-    IDXGISwapChain3* pSwapChain = pRenderer->m_device.SwapChain3();
+    m_width = width;
+    m_height = height;
 
-    UINT frameIndex = pSwapChain->GetCurrentBackBufferIndex();
-
-    if (!m_rtvDescriptorHeap.InitializeRTV(pRenderer, L"Swap Chain RTV Descriptor Heap"))
+    m_rtvDescriptorHeap = std::make_shared<DescriptorHeap>(pSwapChain->NumFrameBuffers());
+    if (!m_rtvDescriptorHeap->InitializeRTV(pDevice, L"Swap Chain RTV Descriptor Heap"))
     {
         return false;
     }
-
-    // Book keeping. The underlying resources handled by the swap chain
-    m_rtvs.SetWidth(width);
-    m_rtvs.SetHeight(height);
-
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
 
     // Create swap chain rtv resources
-    if (!CreateSwapChainRenderTargetViews(pDevice, m_rtvDescriptorHeap.Native(), pSwapChain, m_rtvs.Resources(), m_rtvs.NumResources()))
+    if (!pSwapChain->InitializeFrameBuffers(pDevice, m_rtvDescriptorHeap))
     {
         return false;
     }
 
-    if (!m_dsvDescriptorHeap.InitializeDSV(pRenderer, L"Main DSV Descriptor Heap"))
+    for (int i = 0, count = pSwapChain->NumFrameBuffers(); i < count; ++i)
+    {
+        auto frameBuffer = pSwapChain->FrameBuffer(i);
+        m_rtvs.emplace_back(ColorBuffer(frameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, pSwapChain->Format(), m_width, m_height));
+    }
+
+    m_dsvDescriptorHeap = std::make_shared<DescriptorHeap>(1);
+    if (!m_dsvDescriptorHeap->InitializeDSV(pDevice, L"Main DSV Descriptor Heap"))
     {
         return false;
     }
 
+    m_dsv.SetFormat(DXGI_FORMAT_D24_UNORM_S8_UINT);
     m_dsv.SetWidth(width);
     m_dsv.SetHeight(height);
 
-    if (!m_dsv.Initialize(pRenderer, &m_dsvDescriptorHeap))
+    if (!m_dsv.Initialize(pDevice, m_dsvDescriptorHeap))
     {
         return false;
     }
@@ -48,15 +53,30 @@ bool RenderContext::InitializeWithSwapChain(Renderer* pRenderer, int width, int 
     return true;
 }
 
-RenderContext::~RenderContext()
+void RenderContext::SetColor(const float* color)
 {
-    Release();
+    for (auto& cb : m_rtvs)
+    {
+        cb.SetColor(color);
+    }
 }
 
-void RenderContext::Release()
+void RenderContext::SetClearDepth(float f) 
+{ 
+    m_dsv.SetClearDepth(f); 
+}
+
+void RenderContext::SetClearStencil(u8 s) 
+{ 
+    m_dsv.SetClearStencil(s); 
+}
+
+void RenderContext::SetClearFlags(D3D12_CLEAR_FLAGS flags) 
+{ 
+    m_dsv.SetClearFlags(flags); 
+}
+
+RenderContext::~RenderContext()
 {
-    m_rtvs.Release();
-    m_dsv.Release();
-    m_rtvDescriptorHeap.Release();
-    m_dsvDescriptorHeap.Release();
+
 }

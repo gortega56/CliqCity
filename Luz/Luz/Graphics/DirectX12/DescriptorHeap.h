@@ -8,7 +8,7 @@
 
 namespace dx12
 {
-    class Renderer;
+    class Device;
 
     class DescriptorHeap
     {
@@ -18,17 +18,17 @@ namespace dx12
 
         void Release();
 
-        ID3D12DescriptorHeap* Native() { return m_descriptorHeap; }
+        ID3D12DescriptorHeap* Native() const { return m_descriptorHeap; }
         ID3D12DescriptorHeap** Address() { return &m_descriptorHeap; }
         u32 Size() { return m_descriptorHeapSize; }
         u32 NumDescriptors() { return m_numDescriptors; }
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE CpuHandle(int i = 0);
 
-        bool InitializeRTV(Renderer* pRenderer, std::wstring name);
-        bool InitializeDSV(Renderer* pRenderer, std::wstring name);
-        bool InitializeMixed(Renderer* pRenderer, std::wstring name);
-        bool InitializeSampler(Renderer* pRenderer, std::wstring name);
+        bool InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name);
+        bool InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name);
+        bool InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name);
+        bool InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name);
 
     private:
         ID3D12DescriptorHeap* m_descriptorHeap;

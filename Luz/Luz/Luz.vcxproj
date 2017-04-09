@@ -71,7 +71,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
-    <IncludePath>$(SolutionDir);C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;..\..\Library\GraphicsMath\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir);C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Windows Kits\10\Lib\10.0.14393.0\um\$(Platform);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -98,7 +98,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -155,6 +155,7 @@
   <ItemGroup>
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
+    <ClCompile Include="Graphics\DirectX12\CommandQueue.cpp" />
     <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp" />
     <ClCompile Include="Graphics\DirectX12\Device.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_renderable.cpp" />
@@ -165,6 +166,7 @@
     <ClCompile Include="Graphics\DirectX12\RenderContext.cpp" />
     <ClCompile Include="Graphics\DirectX12\RootSignature.cpp" />
     <ClCompile Include="Graphics\DirectX12\Shader.cpp" />
+    <ClCompile Include="Graphics\DirectX12\SwapChain.cpp" />
     <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
     <ClCompile Include="OSWin.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -175,6 +177,7 @@
   <ItemGroup>
     <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\CommandContext.h" />
+    <ClInclude Include="Graphics\DirectX12\CommandQueue.h" />
     <ClInclude Include="Graphics\DirectX12\d3dx12.h" />
     <ClInclude Include="Graphics\DirectX12\DescriptorHeap.h" />
     <ClInclude Include="Graphics\DirectX12\Device.h" />
@@ -187,6 +190,7 @@
     <ClInclude Include="Graphics\DirectX12\RenderContext.h" />
     <ClInclude Include="Graphics\DirectX12\RootSignature.h" />
     <ClInclude Include="Graphics\DirectX12\Shader.h" />
+    <ClInclude Include="Graphics\DirectX12\SwapChain.h" />
     <ClInclude Include="Graphics\DirectX12\Viewport.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
@@ -202,11 +206,6 @@
     <ClInclude Include="Window.h" />
     <ClInclude Include="WindowsMessageCenter.h" />
     <ClInclude Include="windows_utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Library\GraphicsMath\GraphicsMath.vcxproj">
-      <Project>{6b0df065-7618-4147-9fff-aa205d7ef02e}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -24,58 +24,50 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CpuHandle(int i)
     return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize);
 }
 
-bool DescriptorHeap::InitializeRTV(Renderer* pRenderer, std::wstring name)
+bool DescriptorHeap::InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
-
-    if (!CreateDescriptorHeap(pDevice, &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_numDescriptors))
+    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_numDescriptors))
     {
         return false;
     }
 
-    m_descriptorHeapSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     return true;
 }
 
-bool DescriptorHeap::InitializeDSV(Renderer* pRenderer, std::wstring name)
+bool DescriptorHeap::InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
-
-    if (!CreateDescriptorHeap(pDevice, &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_numDescriptors))
+    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_numDescriptors))
     {
         return false;
     }
 
-    m_descriptorHeapSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
     return true;
 }
 
-bool DescriptorHeap::InitializeMixed(Renderer* pRenderer, std::wstring name)
+bool DescriptorHeap::InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
-
-    if (!CreateDescriptorHeap(pDevice, &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_numDescriptors))
+    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_numDescriptors))
     {
         return false;
     }
 
-    m_descriptorHeapSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     return true;
 }
 
-bool DescriptorHeap::InitializeSampler(Renderer* pRenderer, std::wstring name)
+bool DescriptorHeap::InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
-
-    if (!CreateDescriptorHeap(pDevice, &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_numDescriptors))
+    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_numDescriptors))
     {
         return false;
     }
 
-    m_descriptorHeapSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     return true;
 }

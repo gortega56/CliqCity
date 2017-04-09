@@ -18,12 +18,12 @@ namespace dx12
         Renderable();
         ~Renderable();
 
-        D3D12_VERTEX_BUFFER_VIEW* VertexBufferView();
-        D3D12_INDEX_BUFFER_VIEW* IndexBufferView();
+        D3D12_VERTEX_BUFFER_VIEW const* VertexBufferView() const;
+        D3D12_INDEX_BUFFER_VIEW const* IndexBufferView() const;
         
-        D3D12_PRIMITIVE_TOPOLOGY Topology() { return m_topology; }
-        u32 NumVertices() { return m_vertexBuffer.NumElements(); }
-        u32 NumIndices() { return m_indexBuffer.NumElements(); }
+        D3D12_PRIMITIVE_TOPOLOGY Topology() const { return m_topology; }
+        u32 NumVertices() const { return m_vertexBuffer.NumElements(); }
+        u32 NumIndices() const { return m_indexBuffer.NumElements(); }
 
         bool LoadMesh(Renderer* pRenderer, IMesh* pMesh);
 

@@ -52,11 +52,19 @@ bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocat
 
 bool CreateGraphicsCommandList(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocator, ID3D12PipelineState* pPipeLineState, ID3D12GraphicsCommandList** ppCommandList);
 
+inline D3D12_SUBRESOURCE_DATA SubResourceData(void* data, LONG_PTR rowPitch, LONG_PTR slicePitch)
+{
+    D3D12_SUBRESOURCE_DATA resourceData = {};
+    resourceData.pData = reinterpret_cast<BYTE*>(data);
+    resourceData.RowPitch = rowPitch;
+    resourceData.SlicePitch = slicePitch;
+    return resourceData;
+}
+
 void UpdateBufferResource(
     ID3D12GraphicsCommandList* pCommandList,
     ID3D12Resource* pBufferResource, 
     ID3D12Resource* pUploadResource, 
-    D3D12_RESOURCE_STATES finalState,
     void* data, 
     LONG_PTR rowPitch, 
     LONG_PTR slicePitch, 
@@ -64,10 +72,24 @@ void UpdateBufferResource(
     UINT firstResource = 0,
     UINT numResources = 1);
 
+void UploadVertexOrContantBufferResource(ID3D12GraphicsCommandList* pCommandList,
+    ID3D12Resource* pBufferResource,
+    ID3D12Resource* pUploadResource,
+    void* data,
+    LONG_PTR bufferSize);
+
+void UploadIndexBufferResource(ID3D12GraphicsCommandList* pCommandList,
+    ID3D12Resource* pBufferResource,
+    ID3D12Resource* pUploadResource,
+    void* data,
+    LONG_PTR bufferSize);
+
+void TransitionResource(ID3D12GraphicsCommandList* pCommandList, ID3D12Resource* pResource, D3D12_RESOURCE_STATES initialState, D3D12_RESOURCE_STATES finalState);
 
 bool CreateFences(ID3D12Device* pDevice, ID3D12Fence* pFences[], UINT64 pFenceValues[], D3D12_FENCE_FLAGS flags, UINT count);
 
-void WaitForPreviousFrame(IDXGISwapChain3* pSwapChain, ID3D12Fence* pFences[], UINT64 pFenceValues[], HANDLE fenceEvent, UINT* pFrameIndex, bool* pRunning);
+bool WaitForPreviousFrame(IDXGISwapChain3* pSwapChain, ID3D12Fence* pFences[], UINT64 pFenceValues[], HANDLE fenceEvent, UINT* pFrameIndex);
+bool WaitForFence(ID3D12Fence* pFence, UINT64* pFenceValue, HANDLE fenceEvent);
 
 bool ExecuteCommandLists(ID3D12CommandQueue* pCommandQueue, ID3D12Fence* pFence, UINT64* pFenceValue, ID3D12CommandList* ppCommandLists[], UINT count);
 bool ExecuteCommandList(ID3D12CommandQueue* pCommandQueue, ID3D12Fence* pFence, UINT64* pFenceValue, ID3D12GraphicsCommandList* pCommandList);

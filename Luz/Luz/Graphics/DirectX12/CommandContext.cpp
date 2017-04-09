@@ -1,99 +1,87 @@
 #include "stdafx.h"
 #include "CommandContext.h"
-#include "dx12_renderer.h"
 #include "PipelineState.h"
+#include "GpuResource.h"
+#include "SwapChain.h"
+#include "Device.h"
+#include "RenderContext.h"
+#include "Viewport.h"
 
 using namespace dx12;
 
 #pragma region CommandContext
 
-CommandContext::CommandContext(u32 numThreads) : 
-    m_commandAllocators(numThreads), 
-    m_fences(numThreads), 
-    m_fenceValues(numThreads), 
+CommandContext::CommandContext(u32 numAllocators) : 
+    m_commandAllocators(numAllocators, nullptr),
+    m_fences(numAllocators, nullptr),
+    m_fenceValues(numAllocators, 0),
     m_fenceEvent(nullptr), 
-    m_numThreads(numThreads)
+    m_device(nullptr)
 {
 
 }
 
 CommandContext::~CommandContext()
 {
+    for (auto& allocator : m_commandAllocators)
+    {
+        SAFE_RELEASE(allocator);
+    }
 
+    for (auto& fence : m_fences)
+    {
+        SAFE_RELEASE(fence);
+    }
 }
 
 bool CommandContext::WaitForFence(int i)
 {
-    HRESULT hr;
-
-    bool result = true;
-
-    // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
-    // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-    if (m_fences[i]->GetCompletedValue() < m_fenceValues[i])
-    {
-        hr = m_fences[i]->SetEventOnCompletion(m_fenceValues[i], m_fenceEvent);
-        if (FAILED(hr))
-        {
-            result = false;
-        }
-
-        // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
-        // has reached "fenceValue", we know the command queue has finished executing
-        WaitForSingleObject(m_fenceEvent, INFINITE);
-    }
-
-    // increment fenceValue for next frame
-    m_fenceValues[i]++;
-
-    return result;
+    return ::WaitForFence(m_fences[i], &m_fenceValues[i], m_fenceEvent);
 }
 
 #pragma endregion CommandContext
 
 #pragma region GraphicsCommandContext
 
-GraphicsCommandContext::GraphicsCommandContext(u32 numFrameBuffers) : CommandContext(numFrameBuffers), m_numFrameBuffers(numFrameBuffers), m_commandList(nullptr)
+GraphicsCommandContext::GraphicsCommandContext(u32 numAllocators, u32 numFrameBuffers) : CommandContext(numAllocators), m_numFrameBuffers(numFrameBuffers), m_commandList(nullptr)
 {
     
 }
 
 GraphicsCommandContext::~GraphicsCommandContext()
 {
-
+    SAFE_RELEASE(m_commandList);
 }
 
-void GraphicsCommandContext::Release(Renderer* pRenderer)
+void GraphicsCommandContext::WaitForAll()
 {
     for (u32 i = 0; i < m_numFrameBuffers; ++i)
     {
         m_frameIndex = i;
-        WaitForFence();
-        m_frameIndex = pRenderer->m_device.SwapChain3()->GetCurrentBackBufferIndex();
+        WaitForPreviousFrame();
     }
-
-    for (u32 i = 0, num = m_numThreads * m_numFrameBuffers; i < num; ++i)
-    {
-        SAFE_RELEASE(m_commandAllocators[i]);
-        SAFE_RELEASE(m_fences[i]);
-    };
 }
 
-bool GraphicsCommandContext::Initialize(Renderer* pRenderer)
+bool GraphicsCommandContext::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const SwapChain> pSwapChain)
 {
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
+    m_device = pDevice;
+    m_swapChain = pSwapChain;
 
-    if (!CreateGraphicsCommandAllocators(pDevice, m_commandAllocators.data(), (UINT)m_numThreads))
+    m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+    ID3D12Device* pDevice1 = m_device->DX();
+
+    if (!CreateGraphicsCommandAllocators(pDevice1, m_commandAllocators.data(), (UINT)m_commandAllocators.size()))
     {
         return false;
     }
 
-    if (!CreateGraphicsCommandList(pDevice, m_commandAllocators[0], nullptr, &m_commandList))
+    if (!CreateGraphicsCommandList(pDevice1, m_commandAllocators[m_frameIndex], nullptr, &m_commandList))
     {
         return false;
     }
 
-    if (!CreateFences(pDevice, m_fences.data(), m_fenceValues.data(), D3D12_FENCE_FLAG_NONE, (UINT)m_numThreads))
+    if (!CreateFences(pDevice1, m_fences.data(), m_fenceValues.data(), D3D12_FENCE_FLAG_NONE, (UINT)m_fences.size()))
     {
         return false;
     }
@@ -103,8 +91,6 @@ bool GraphicsCommandContext::Initialize(Renderer* pRenderer)
     {
         return false;
     }
-
-    m_frameIndex = pRenderer->m_device.SwapChain3()->GetCurrentBackBufferIndex();
 
     //for (int i = 0, num = pCommandList->NumAllocators(); i < num; ++i)
     //{
@@ -145,11 +131,7 @@ bool GraphicsCommandContext::Initialize(Renderer* pRenderer)
 
 bool GraphicsCommandContext::Reset(GraphicsPipeline* pGraphicsPipeline)
 {
-    bool running;
-    if (!WaitForFence())
-    {
-        running = false;
-    }
+    bool running = true;
 
     HRESULT hr = m_commandAllocators[m_frameIndex]->Reset();
     if (FAILED(hr))
@@ -157,13 +139,56 @@ bool GraphicsCommandContext::Reset(GraphicsPipeline* pGraphicsPipeline)
         running = false;
     }
 
-    hr = m_commandList->Reset(m_commandAllocators[m_frameIndex], pGraphicsPipeline->PSO());
+    hr = m_commandList->Reset(m_commandAllocators[m_frameIndex], (pGraphicsPipeline) ? pGraphicsPipeline->PSO() : nullptr);
     if (FAILED(hr))
     {
         running = false;
     }
 
     return running;
+}
+
+void GraphicsCommandContext::Set(GraphicsPipeline* pGraphicsPipeline)
+{
+    m_commandList->SetPipelineState(pGraphicsPipeline->PSO());
+}
+
+void GraphicsCommandContext::SetRootSignature(RootSignature* pRootSignature)
+{
+    m_commandList->SetGraphicsRootSignature(pRootSignature->Signature());
+}
+
+void GraphicsCommandContext::SetRenderContext(RenderContext* pRenderContext)
+{
+    const ColorBuffer* pBuffer = pRenderContext->RTV(m_frameIndex);
+
+    // transition the rtv at the given frameIndex from present state to rtv state so we can draw to it
+    TransitionResource(m_commandList, pBuffer->Resource(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    // get handle the rtv that we want to bind to the output merger
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = pRenderContext->RtvHeap()->CpuHandle(m_frameIndex);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = pRenderContext->DsvHeap()->CpuHandle();
+
+    // Assumes contiguous rtvs if multiple
+    m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+}
+
+void GraphicsCommandContext::ClearRenderContext(RenderContext* pRenderContext)
+{
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = pRenderContext->RtvHeap()->CpuHandle(m_frameIndex);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = pRenderContext->DsvHeap()->CpuHandle();
+
+    const ColorBuffer* pRtv = pRenderContext->RTV(m_frameIndex);
+    const DepthBuffer* pDsv = pRenderContext->DSV();
+
+    m_commandList->ClearRenderTargetView(rtvHandle, pRtv->Color(), 0, nullptr);
+    m_commandList->ClearDepthStencilView(dsvHandle, pDsv->ClearFlags(), pDsv->ClearDepth(), pDsv->ClearStencil(), 0, nullptr);
+}
+
+void GraphicsCommandContext::SetViewport(Viewport* pViewport)
+{
+    m_commandList->RSSetViewports(1, &pViewport->ViewportRect());
+    m_commandList->RSSetScissorRects(1, &pViewport->ScissorRect());
 }
 
 bool GraphicsCommandContext::Close()
@@ -177,25 +202,17 @@ bool GraphicsCommandContext::Close()
     return true;
 }
 
-bool GraphicsCommandContext::Execute(Renderer* pRenderer)
+void GraphicsCommandContext::PrepareBackBuffer()
 {
-    if (!Close())
-    {
-        return false;
-    }
+    TransitionResource(m_commandList, m_swapChain->FrameBuffer(m_frameIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+}
 
-    // Create array of command lists
-    ID3D12CommandList* ppCommandLists[] = { m_commandList };
+void GraphicsCommandContext::SetGraphicsRootConstantBufferView(UploadBuffer* pBuffer, u32 paramIndex /*= 0*/)
+{
+    m_commandList->SetGraphicsRootConstantBufferView(paramIndex, pBuffer->RootConstantBufferView());
+}
 
-    // execute command lists
-    pRenderer->m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-    // add signal to command queue so the fence value gets updated
-    HRESULT hr = pRenderer->m_commandQueue->Signal(m_fences[m_frameIndex], m_fenceValues[m_frameIndex]);
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
-    return true;
+bool GraphicsCommandContext::WaitForPreviousFrame()
+{
+    return ::WaitForPreviousFrame(m_swapChain->GetSwapChain3(), m_fences.data(), m_fenceValues.data(), m_fenceEvent, &m_frameIndex);
 }

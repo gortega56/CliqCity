@@ -42,7 +42,7 @@ public:
     IApplication(Engine* engine) : m_engine(engine) {}
     virtual ~IApplication() { };
 
-    virtual int Initialize() = 0;
+    virtual bool Initialize() = 0;
     virtual int Shutdown() = 0;
 
     virtual void Update(double delta) = 0;

@@ -40,19 +40,39 @@ public:
         engine.m_timer.Reset();
 
         Application app(&engine);
-        app.Initialize();
-        
-        double dt = 0.0;
-
-        while (!engine.m_os->ShouldQuit())
+        if (app.Initialize())
         {
-            engine.m_timer.Tick();
-            dt = engine.m_timer.Delta();
-            
-            engine.Update(dt);
-            app.Update(dt);
-        }
+            double t = 0.0;
+            double dt = 0.01;
 
+            double accumulator = 0.0;
+
+            while (!engine.m_os->ShouldQuit())
+            {
+                engine.m_timer.Tick();
+
+                double frameTime = engine.m_timer.Delta();
+                engine.Update(frameTime);
+
+                if (frameTime > 0.25)
+                {
+                    frameTime = 0.25;
+                }
+
+                accumulator += frameTime;
+
+                while (accumulator >= dt)
+                {
+                    app.FixedUpdate(dt);
+                    t += dt;
+                    accumulator -= dt;
+                }
+
+
+                app.Update(dt);
+            }
+        }
+        
         app.Shutdown();
         engine.Shutdown();
     }

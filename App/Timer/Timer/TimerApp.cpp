@@ -1,7 +1,6 @@
 #include "TimerApp.h"
 #include "Engine.h"
 #include <iostream>
-#include "Renderer.h"
 
 TimerApp::TimerApp()
 {
@@ -13,11 +12,11 @@ TimerApp::~TimerApp()
 {
 }
 
-int TimerApp::Initialize()
+bool TimerApp::Initialize()
 {
     std::cout << "Init" << std::endl;
 
-    return 0;
+    return true;
 }
 
 int TimerApp::Shutdown()
@@ -38,5 +37,7 @@ void TimerApp::Update(double delta)
 
 void TimerApp::FixedUpdate(double delta)
 {
+    double t = m_engine->Total();
 
+    std::cout << "Time: " << t << "\tFixed: " << delta << std::endl;
 }

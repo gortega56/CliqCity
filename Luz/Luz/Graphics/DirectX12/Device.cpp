@@ -3,14 +3,28 @@
 
 using namespace dx12;
 
-Device::Device()
+Device::Device() : 
+    m_factory(nullptr),
+    m_factory1(nullptr),
+    m_factory2(nullptr),
+    m_factory3(nullptr),
+    m_factory4(nullptr),
+    m_device(nullptr),
+    m_device1(nullptr)
 {
 
 }
 
 Device::~Device()
 {
+    SAFE_RELEASE(m_factory);
+    SAFE_RELEASE(m_factory1);
+    SAFE_RELEASE(m_factory2);
+    SAFE_RELEASE(m_factory3);
+    SAFE_RELEASE(m_factory4);
 
+    SAFE_RELEASE(m_device);
+    SAFE_RELEASE(m_device1);
 }
 
 bool Device::Initialize()
@@ -26,20 +40,4 @@ bool Device::Initialize()
     }
 
     return true;
-}
-
-void Device::Shutdown()
-{
-    SAFE_RELEASE(m_swapChain);
-    SAFE_RELEASE(m_swapChain1);
-    SAFE_RELEASE(m_swapChain2);
-    SAFE_RELEASE(m_swapChain3);
-
-    SAFE_RELEASE(m_device);
-    SAFE_RELEASE(m_device1);
-
-    SAFE_RELEASE(m_factory);
-    SAFE_RELEASE(m_factory1);
-    SAFE_RELEASE(m_factory2);
-    SAFE_RELEASE(m_factory3);
 }

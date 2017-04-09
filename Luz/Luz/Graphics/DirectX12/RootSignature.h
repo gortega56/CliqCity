@@ -25,7 +25,7 @@ namespace dx12
         std::vector<CD3DX12_DESCRIPTOR_RANGE1> m_ranges;
     };
 
-    class Renderer;
+    class Device;
 
     class RootSignature
     {
@@ -42,8 +42,17 @@ namespace dx12
         RootSignature& AppendRootDescriptorTable(DescriptorTable& descTable, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
         RootSignature& AppendDefaultSampler(u32 shaderRegister);
 
-        bool Finalize(Renderer* pRenderer);
+        bool Finalize(std::shared_ptr<const Device> pDevice);
 
+        RootSignature& AllowInputLayout() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT); }
+        RootSignature& AllowStreamOutput() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT); }
+        RootSignature& DenyVS() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS); }
+        RootSignature& DenyHS() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS); }
+        RootSignature& DenyDS() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS); }
+        RootSignature& DenyGS() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS); }
+        RootSignature& DenyPS() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS); }
+
+        RootSignature& SetFlag(D3D12_ROOT_SIGNATURE_FLAGS flag);
         void SetFlags(D3D12_ROOT_SIGNATURE_FLAGS flags) { m_flags = flags; }
 
     private:

@@ -10,7 +10,7 @@ Shader::Shader()
 
 Shader::~Shader()
 {
-    Release();
+    SAFE_RELEASE(m_shader);
 }
 
 bool Shader::Compile(std::wstring filename, const char* entryPoint, const char* target)
@@ -23,17 +23,12 @@ bool Shader::Compile(std::wstring filename, const char* entryPoint, const char* 
         return false;
     }
 
-    m_byteCode.BytecodeLength = m_shader->GetBufferSize();
     m_byteCode.pShaderBytecode = m_shader->GetBufferPointer();
+    m_byteCode.BytecodeLength = m_shader->GetBufferSize();
 
     SAFE_RELEASE(pError);
 
     return true;
-}
-
-void Shader::Release()
-{
-    SAFE_RELEASE(m_shader);
 }
 
 InputLayout::InputLayout() : m_byteOffset(0)
@@ -49,37 +44,54 @@ InputLayout::~InputLayout()
 
 D3D12_INPUT_LAYOUT_DESC InputLayout::Desc()
 {
-    D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
-    inputLayoutDesc.NumElements = (UINT)m_elements.size();
-    inputLayoutDesc.pInputElementDescs = m_elements.data();
-    return inputLayoutDesc;
+    return m_desc;
 }
 
-InputLayout& InputLayout::Append(std::string name, u32 index, DXGI_FORMAT format, u32 slot, u32 byteOffset, D3D12_INPUT_CLASSIFICATION classification, u32 instanceStepRate)
+InputLayout& InputLayout::Append(LPCSTR name, u32 index, DXGI_FORMAT format, u32 slot, u32 byteOffset, D3D12_INPUT_CLASSIFICATION classification, u32 instanceStepRate)
 {
-    m_elements.push_back({ name.c_str(), index, format, slot, byteOffset, classification, instanceStepRate });
+    m_elements.push_back({ name, index, format, slot, byteOffset, classification, instanceStepRate });
 
     return *this;
 }
 
+InputLayout& InputLayout::AppendFloat4(LPCSTR name)
+{
+    return Append(name, GetSemanticIndex(name), DXGI_FORMAT_R32G32B32A32_FLOAT, 0, GetByteOffset(16));
+}
+
+InputLayout& InputLayout::AppendFloat3(LPCSTR name)
+{
+    return Append(name, GetSemanticIndex(name), DXGI_FORMAT_R32G32B32_FLOAT, 0, GetByteOffset(12));
+}
+
+InputLayout& InputLayout::AppendFloat2(LPCSTR name)
+{
+    return Append(name, GetSemanticIndex(name), DXGI_FORMAT_R32G32_FLOAT, 0, GetByteOffset(8));
+}
+
+InputLayout& InputLayout::AppendFloat1(LPCSTR name)
+{
+    return Append(name, GetSemanticIndex(name), DXGI_FORMAT_R32_FLOAT, 0, GetByteOffset(4));
+}
+
 InputLayout& InputLayout::AppendPosition3F()
 {
-    return Append("POSITION", GetSemanticIndex("POSITION"), DXGI_FORMAT_R32G32B32_FLOAT, 0, GetByteOffset(12));
+    return AppendFloat3("POSITION");
 }
 
 InputLayout& InputLayout::AppendNormal3F()
 {
-    return Append("NORMAL", GetSemanticIndex("NORMAL"), DXGI_FORMAT_R32G32B32_FLOAT, 0, GetByteOffset(12));
+    return AppendFloat3("NORMAL");
 }
 
 InputLayout& InputLayout::AppendUV2()
 {
-    return Append("TEXCOORD", GetSemanticIndex("TEXCOORD"), DXGI_FORMAT_R32G32_FLOAT, 0, GetByteOffset(8));
+    return AppendFloat2("TEXCOORD");
 }
 
 InputLayout& InputLayout::AppendUV3()
 {
-    return Append("TEXCOORD", GetSemanticIndex("TEXCOORD"), DXGI_FORMAT_R32G32B32_FLOAT, 0, GetByteOffset(12));
+    return AppendFloat3("TEXCOORD");
 }
 
 InputLayout& InputLayout::AppendWorldMatrix()
@@ -112,22 +124,35 @@ InputLayout& InputLayout::AppendBlendIndices4()
 
 InputLayout& InputLayout::AppendBlendWeights1()
 {
-    return Append("BLENDWEIGHTS", GetSemanticIndex("BLENDWEIGHTS"), DXGI_FORMAT_R32_FLOAT, 0, GetByteOffset(4));
+    return AppendFloat1("BLENDWEIGHTS");
 }
 
 InputLayout& InputLayout::AppendBlendWeights2()
 {
-    return Append("BLENDWEIGHTS", GetSemanticIndex("BLENDWEIGHTS"), DXGI_FORMAT_R32G32_FLOAT, 0, GetByteOffset(8));
+    return AppendFloat2("BLENDWEIGHTS");
 }
 
 InputLayout& InputLayout::AppendBlendWeights3()
 {
-    return Append("BLENDWEIGHTS", GetSemanticIndex("BLENDWEIGHTS"), DXGI_FORMAT_R32G32B32_FLOAT, 0, GetByteOffset(12));
+    return AppendFloat3("BLENDWEIGHTS");
 }
 
 InputLayout& InputLayout::AppendBlendWeights4()
 {
-    return Append("BLENDWEIGHTS", GetSemanticIndex("BLENDWEIGHTS"), DXGI_FORMAT_R32G32B32A32_FLOAT, 0, GetByteOffset(16));
+    return AppendFloat4("BLENDWEIGHTS");
+}
+
+InputLayout& InputLayout::AppendColor4F()
+{
+    return AppendFloat4("COLOR");
+}
+
+void InputLayout::Finalize()
+{
+    m_desc = {};
+    m_desc.NumElements = (UINT)m_elements.size();
+    m_desc.pInputElementDescs = m_elements.data();
+    m_desc;
 }
 
 u32 InputLayout::GetByteOffset(size_t size)
@@ -139,13 +164,18 @@ u32 InputLayout::GetByteOffset(size_t size)
 
 u32 InputLayout::GetSemanticIndex(std::string name)
 {
+    
+    u32 idx = 0;
     auto iter = m_semantics.find(name);
     if (iter == m_semantics.end())
     {
         m_semantics.insert({ name, 1 });
     }
-
-    u32 idx = iter->second++;
+    else
+    {
+        idx = iter->second;
+        iter->second += 1;
+    }
 
     return idx;
 }

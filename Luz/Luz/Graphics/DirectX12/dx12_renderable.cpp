@@ -5,7 +5,10 @@
 
 using namespace dx12;
 
-Renderable::Renderable() : m_topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+Renderable::Renderable() : 
+    m_topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST), 
+    m_vertexBuffer(D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER),
+    m_indexBuffer(D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_INDEX_BUFFER)
 {
     ZeroMemory(&m_vertexBufferView, sizeof(D3D12_VERTEX_BUFFER_VIEW));
     ZeroMemory(&m_indexBufferView, sizeof(D3D12_INDEX_BUFFER_VIEW));
@@ -16,32 +19,27 @@ Renderable::~Renderable()
     
 }
 
-D3D12_VERTEX_BUFFER_VIEW* Renderable::VertexBufferView()
+D3D12_VERTEX_BUFFER_VIEW const* Renderable::VertexBufferView() const
 {
     return &m_vertexBufferView;
 }
 
-D3D12_INDEX_BUFFER_VIEW* Renderable::IndexBufferView()
+D3D12_INDEX_BUFFER_VIEW const* Renderable::IndexBufferView() const
 {
     return &m_indexBufferView;
 }
 
 bool Renderable::LoadMesh(Renderer* pRenderer, IMesh* pMesh)
 {
-    auto pDevice = pRenderer->m_device.DX();
+    auto pQueue = pRenderer->GetCommandQueue();
+    auto pCtx = pRenderer->GetGraphicsContext();
 
-    m_vertexBuffer.SetBufferSize(pMesh->VertexDataSize());
-    m_vertexBuffer.SetElementSize(pMesh->VertexStride());
-
-    if (!m_vertexBuffer.Initialize(pRenderer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, pMesh->VertexData()))
+    if (!m_vertexBuffer.Initialize(pQueue, pCtx, pMesh->VertexDataSize(), pMesh->VertexStride(), pMesh->NumVertices(), pMesh->VertexData()))
     {
         return false;
     }
 
-    m_indexBuffer.SetBufferSize(pMesh->IndexDataSize());
-    m_indexBuffer.SetElementSize(pMesh->IndexStride());
-
-    if (!m_indexBuffer.Initialize(pRenderer, D3D12_RESOURCE_STATE_INDEX_BUFFER, pMesh->IndexData()))
+    if (!m_indexBuffer.Initialize(pQueue, pCtx, pMesh->IndexDataSize(), pMesh->IndexStride(), pMesh->NumIndices(), pMesh->IndexData()))
     {
         return false;
     }

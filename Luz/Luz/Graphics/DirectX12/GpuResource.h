@@ -10,41 +10,49 @@ namespace dx12
 {
     class Renderer;
     class DescriptorHeap;
+    class CommandQueue;
+    class GraphicsCommandContext;
+    class Device;
 
     class GpuResource
     {
     public:
-        GpuResource(u32 numResources = 1);
+        GpuResource(ID3D12Resource* pResource, D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
+        GpuResource(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
         ~GpuResource();
 
-        void Release();
+        ID3D12Resource* Resource() const { return m_resource; }
+        D3D12_RESOURCE_STATES ResourceState() const { return m_resourceState; }
 
-        ID3D12Resource* Resource(int i = 0) { return m_resources[i]; }
-        ID3D12Resource** Resources() { return m_resources.data(); }
-        ID3D12Resource** ResourceAddress(int i = 0) { return &m_resources[i]; }
-        u32 NumResources() { return (u32)m_resources.size(); }
-
+        GpuResource(GpuResource&& other);
     protected:
-        std::vector<ID3D12Resource*> m_resources;
+        ID3D12Resource* m_resource;
+        D3D12_RESOURCE_STATES m_resourceState;
+
+        GpuResource(const GpuResource& other) = delete;
     };
 
     class GpuBuffer : public GpuResource
     {
     public:
-        GpuBuffer(u32 numResources = 1, u64 bufferSize = 0, u32 elementSize = 0);
+        using GpuResource::GpuResource;
+
+        GpuBuffer();
         ~GpuBuffer();
 
-        bool Initialize(Renderer* pRenderer, D3D12_RESOURCE_STATES state, void* data = nullptr);
+        bool Initialize(std::shared_ptr<const CommandQueue> pQueue, 
+            std::shared_ptr<GraphicsCommandContext> pDevice, 
+            const u64 bufferSize, u32 elementSize, u32 numElements, 
+            void* data = nullptr);
 
-        void SetBufferSize(u64 bufferSize) { m_bufferSize = bufferSize; }
-        void SetElementSize(u32 elementSize) { m_elementSize = elementSize; }
-
-        u64 BufferSize() { return m_bufferSize; }
-        u32 ElementSize() { return m_elementSize; }
-        u32 NumElements() { return m_numElements; }
+        u64 BufferSize() const { return m_bufferSize; }
+        u32 ElementSize() const { return m_elementSize; }
+        u32 NumElements() const { return m_numElements; }
 
         D3D12_VERTEX_BUFFER_VIEW VertexBufferView();
         D3D12_INDEX_BUFFER_VIEW IndexBufferView();
+
+        D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() { return m_resource->GetGPUVirtualAddress(); }
 
     protected:
         u64 m_bufferSize;
@@ -52,15 +60,15 @@ namespace dx12
         u32 m_numElements;
     };
 
-    class DynamicBuffer : public GpuBuffer
+    class UploadBuffer : public GpuBuffer
     {
     public:
-        DynamicBuffer(u32 numResources = 1, u64 bufferSize = 0, u32 elementSize = 0);
-        ~DynamicBuffer();
+        UploadBuffer();
+        ~UploadBuffer();
 
-        bool Initialize(Renderer* pRenderer, void* data = nullptr);
+        bool Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data);
 
-        void ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i = 0);
+        //void ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i = 0);
 
         bool Map(void* data);
         void Unmap();
@@ -72,40 +80,57 @@ namespace dx12
     class PixelBuffer : public GpuResource
     {
     public:
-        PixelBuffer(u32 numResources = 1, u32 width = 0, u32 height = 0);
+        PixelBuffer(ID3D12Resource* pResource, 
+            D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
+            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
+            u32 width = 0, 
+            u32 height = 0);
+        PixelBuffer(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
+            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
+            u32 width = 0, 
+            u32 height = 0);
         ~PixelBuffer();
 
-        void SetWidth(u32 width) { m_width.assign(m_resources.size(), width); }
-        void SetHeight(u32 height) { m_height.assign(m_resources.size(), height); }
+        void SetWidth(u32 width) { m_width = width; }
+        void SetHeight(u32 height) { m_height = height; }
+        void SetFormat(DXGI_FORMAT format) { m_format = format; }
 
-        void SetWidth(u32 width, int i) { m_width[i] = width; }
-        void SetHeight(u32 height, int i) { m_height[i] = height; }
+        u32 Width() const { return m_width; }
+        u32 Height() const { return m_height; }
+        DXGI_FORMAT Format() const { return m_format; }
 
-        u32 Width(int i = 0) { return m_width[i]; }
-        u32 Height(int i = 0) { return m_height[i]; }
-
-        void SetFormat(DXGI_FORMAT format) { m_formats.assign(m_resources.size(), format); }
-        void SetFormat(DXGI_FORMAT format, int i) { m_formats[i] = format; }
-        DXGI_FORMAT Format(int i = 0) { return m_formats[i]; }
+        PixelBuffer(PixelBuffer&& other);
 
     protected:
-        std::vector<u32> m_width;
-        std::vector<u32> m_height;
-        std::vector<DXGI_FORMAT> m_formats;
+        DXGI_FORMAT m_format;
+        u32 m_width;
+        u32 m_height;
     };
 
     class ColorBuffer : public PixelBuffer
     {
     public:
-        ColorBuffer(u32 numResources = 1, u32 width = 0, u32 height = 0, float clearColor[4] = { 0 });
+        ColorBuffer(ID3D12Resource* pResource, 
+            D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
+            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
+            u32 width = 0, 
+            u32 height = 0, 
+            const float* color = nullptr);
+        ColorBuffer(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON,
+            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN,
+            u32 width = 0,
+            u32 height = 0,
+            const float* color = nullptr);
         ~ColorBuffer();
 
-        void SetColor(float color[4]);
-        void SetColor(float color[4], int i);
-        float* Color(int i = 0) { return m_colors[i]; }
+        void SetColor(const float* color);
+        void SetColor(float r, float g, float b, float a);
+        float const* Color() const { return m_color; }
+
+        ColorBuffer(ColorBuffer&& other);
 
     protected:
-        std::vector<float[4]> m_colors;
+        float m_color[4];
     };
 
     class DepthBuffer : public PixelBuffer
@@ -114,11 +139,11 @@ namespace dx12
         DepthBuffer(u32 width = 0, u32 height = 0);
         ~DepthBuffer();
 
-        bool Initialize(Renderer* pRenderer, DescriptorHeap* pDescriptorHeap);
+        bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap);
 
-        float ClearDepth() { return m_clearDepth; }
-        u8 ClearStencil() { return m_clearStencil; }
-        D3D12_CLEAR_FLAGS ClearFlags() { return m_clearFlags; }
+        float ClearDepth() const { return m_clearDepth; }
+        u8 ClearStencil() const { return m_clearStencil; }
+        D3D12_CLEAR_FLAGS ClearFlags() const { return m_clearFlags; }
 
         void SetClearDepth(float f) { m_clearDepth = f; }
         void SetClearStencil(u8 s) { m_clearStencil = s; }

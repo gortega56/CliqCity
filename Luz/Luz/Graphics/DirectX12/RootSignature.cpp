@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "RootSignature.h"
-#include "dx12_renderer.h"
+#include "Device.h"
 
 using namespace dx12;
 
@@ -42,7 +42,7 @@ DescriptorTable& DescriptorTable::AppendRangeSampler(UINT numDescriptors, u32 sh
     return *this;
 }
 
-RootSignature::RootSignature(int numParams)
+RootSignature::RootSignature(int numParams) : m_flags(D3D12_ROOT_SIGNATURE_FLAG_NONE)
 {
     m_rootParameters.reserve((size_t)numParams);
 }
@@ -94,7 +94,13 @@ RootSignature& RootSignature::AppendDefaultSampler(u32 shaderRegister)
     return *this;
 }
 
-bool RootSignature::Finalize(Renderer* pRenderer)
+RootSignature& RootSignature::SetFlag(D3D12_ROOT_SIGNATURE_FLAGS flag)
+{
+    m_flags |= flag;
+    return *this;
+}
+
+bool RootSignature::Finalize(std::shared_ptr<const Device> pDevice)
 {
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC desc;
     desc.Init_1_1((UINT)m_rootParameters.size(), m_rootParameters.data(), (UINT)m_staticSamplers.size(), m_staticSamplers.data(), m_flags);
@@ -107,7 +113,7 @@ bool RootSignature::Finalize(Renderer* pRenderer)
         return false;
     }
 
-    hr = pRenderer->m_device.DX()->CreateRootSignature(0, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&m_signature));
+    hr = pDevice->DX()->CreateRootSignature(0, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&m_signature));
     if (FAILED(hr))
     {
         return false;

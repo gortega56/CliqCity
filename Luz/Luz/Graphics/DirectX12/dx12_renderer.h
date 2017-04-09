@@ -42,6 +42,9 @@ class OSWin;
 
 namespace dx12
 {
+    class CommandQueue;
+    class SwapChain;
+
     class Renderer
     {
     public:
@@ -57,7 +60,7 @@ namespace dx12
         friend class GraphicsCommandContext;
         friend class GpuResource;
         friend class GpuBuffer;
-        friend class DynamicBuffer;
+        friend class UploadBuffer;
         friend class PixelBuffer;
         friend class DepthBuffer;
         friend class Pipeline;
@@ -65,19 +68,10 @@ namespace dx12
         friend class RootSignature;
         friend class RenderContext;
 
-        void SetGraphicsPipeline(GraphicsPipeline* pGraphicsPipeline);
-
-        void SetRootSignature(RootSignature* pRootSignature);
-
-        void SetRenderContext(RenderContext* pRenderContext);
         void SetRenderContext();
-
-        void ClearRenderContext(RenderContext* pRenderContext);
         void ClearRenderContext();
-
         void SetViewport();
 
-        void UpdatePipeline(GraphicsPipeline* pGraphicsPipeline);
 
         void Prepare(Renderable* pRenderable);
 
@@ -85,29 +79,43 @@ namespace dx12
 
         void Present();
 
-        void ExecuteGraphicsCommandContext(GraphicsCommandContext* pGraphicsCommandCtx);
+        void SetGraphicsRootConstantBuffer(GraphicsCommandContext* pContext, UploadBuffer* pUploadBuffer, u32 paramIndex = 0);
+        void SetGraphicsRootConstantBuffer(UploadBuffer* pUploadBuffer, u32 paramIndex = 0);
+
+        void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
         void ExecuteGraphicsCommandContext();
 
-        u32 NumThreads() { return m_graphicsCommandCtx.NumThreads(); }
-        u32 NumFrameBuffers() { return m_graphicsCommandCtx.NumFrameBuffers(); }
+        std::shared_ptr<const Device> GetDevice() const { return m_device; };
+        std::shared_ptr<const CommandQueue> GetCommandQueue() const { return m_commandQueue; }
+        std::shared_ptr<GraphicsCommandContext> GetGraphicsContext() const { return m_graphicsCommandCtx; }
+        std::shared_ptr<RenderContext> GetRenderContext() const { return m_renderContext; }
+
+        u32 NumThreads() { return m_numThreads; }
+        u32 NumFrameBuffers() { return m_graphicsCommandCtx->NumFrameBuffers(); }
+
+        u32 Width() const { return m_renderContext->Width(); }
+        u32 Height() const { return m_renderContext->Height(); }
+        float AspectRatio() const { return m_renderContext->AspectRatio(); }
 
     protected:
         HWND m_hwnd;
 
-        Device m_device;
-        GraphicsCommandContext m_graphicsCommandCtx;
-
-        RenderContext m_renderContext;
-        
-        ID3D12CommandQueue* m_commandQueue;
-
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<CommandQueue> m_commandQueue;
+        std::shared_ptr<GraphicsCommandContext> m_graphicsCommandCtx;
+        std::shared_ptr<RenderContext> m_renderContext;
+        std::shared_ptr<SwapChain> m_swapChain;
 
         Viewport m_viewport;
 
+        ID3D12Debug* m_debug;
+
     private:
+        u32 m_numThreads;
+        bool m_running;
+
         Renderer(const Renderer& other) = delete;
         Renderer& operator=(const Renderer& other) = delete;
-        bool m_running;
     };
 }
 

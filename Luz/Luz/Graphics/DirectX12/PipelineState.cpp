@@ -1,7 +1,8 @@
 #include "stdafx.h"
 #include "PipelineState.h"
-#include "dx12_renderer.h"
 #include "GpuResource.h"
+#include "RenderContext.h"
+#include "Device.h"
 
 using namespace dx12;
 
@@ -12,23 +13,24 @@ GraphicsPipeline::GraphicsPipeline()
 
 GraphicsPipeline::~GraphicsPipeline()
 {
+
 }
 
-void GraphicsPipeline::SetRenderTargets(Renderer* pRenderer)
+void GraphicsPipeline::SetRenderTargets(std::shared_ptr<const RenderContext> pRenderContext)
 {
-    ColorBuffer* pRtvs = pRenderer->m_renderContext.RTV();
-
-    m_desc.NumRenderTargets = pRtvs->NumResources();
+    m_desc.NumRenderTargets = 1;//pRenderContext->NumRTVs();
 
     for (UINT i = 0; i < m_desc.NumRenderTargets; ++i)
     {
-        m_desc.RTVFormats[i] = pRtvs->Format(i);
+        m_desc.RTVFormats[i] = DXGI_FORMAT_R8G8B8A8_UNORM;// pRenderContext->RTV(i)->Format();
     }
+
+    m_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 }
 
-bool GraphicsPipeline::Finalize(Renderer* pRenderer)
+bool GraphicsPipeline::Finalize(std::shared_ptr<const Device> pDevice)
 {
-    HRESULT hr = pRenderer->m_device.DX()->CreateGraphicsPipelineState(&m_desc, IID_PPV_ARGS(&m_pipelineState));
+    HRESULT hr = pDevice->DX()->CreateGraphicsPipelineState(&m_desc, IID_PPV_ARGS(&m_pipelineState));
     if (FAILED(hr))
     {
         return false;

@@ -1,35 +1,44 @@
 #include "stdafx.h"
 #include "GpuResource.h"
-#include "dx12_renderer.h"
+#include "CommandContext.h"
+#include "Device.h"
 #include "DescriptorHeap.h"
+#include "CommandQueue.h"
 
 using namespace dx12;
 
 #pragma region GpuResource
 
-GpuResource::GpuResource(u32 numResources) : m_resources(numResources)
+GpuResource::GpuResource(ID3D12Resource* pResource, D3D12_RESOURCE_STATES resourceState) : m_resource(pResource), m_resourceState(resourceState)
 {
 
+}
+
+
+GpuResource::GpuResource(D3D12_RESOURCE_STATES resourceState) : GpuResource(nullptr, resourceState)
+{
+
+}
+
+GpuResource::GpuResource(GpuResource&& other)
+{
+    m_resource = other.m_resource;
+    m_resourceState = other.m_resourceState;
+    
+    other.m_resource = nullptr;
+    other.m_resourceState = (D3D12_RESOURCE_STATES)-1;
 }
 
 GpuResource::~GpuResource()
 {
-    Release();
-}
-
-void GpuResource::Release() 
-{ 
-    for (ID3D12Resource* resource : m_resources)
-    {
-        SAFE_RELEASE(resource); 
-    }
+    SAFE_RELEASE(m_resource);
 }
 
 #pragma endregion
 
 #pragma region GpuBuffer
 
-GpuBuffer::GpuBuffer(u32 numResources, u64 bufferSize, u32 elementSize) : GpuResource(numResources), m_bufferSize(bufferSize), m_elementSize(elementSize), m_numElements((u32)bufferSize / elementSize)
+GpuBuffer::GpuBuffer() : m_bufferSize(0), m_elementSize(0), m_numElements(0)
 {
 
 }
@@ -39,27 +48,31 @@ GpuBuffer::~GpuBuffer()
 
 }
 
-bool GpuBuffer::Initialize(Renderer* pRenderer, D3D12_RESOURCE_STATES state, void* data)
+bool GpuBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data /* = nullptr*/)
 {
-    auto pDevice = pRenderer->m_device.DX();
+    m_bufferSize = bufferSize;
+    m_elementSize = elementSize;
+    m_numElements = numElements;
 
-    if (!CreateDestinationBufferResource(pDevice, ResourceAddress(), m_bufferSize))
+    auto pDxDevice = pCtx->GetDevice()->DX();
+
+    if (!CreateDestinationBufferResource(pDxDevice, &m_resource, m_bufferSize))
     {
         return false;
     }
 
+    ID3D12Resource* uploadBuffer;
+
     if (data)
     {
-        ID3D12Resource* uploadHeap;
-        if (!CreateUploadBufferResource(pDevice, &uploadHeap, m_bufferSize))
+        if (!CreateUploadBufferResource(pDxDevice, &uploadBuffer, m_bufferSize))
         {
             return false;
         }
 
-        UpdateBufferResource(pRenderer->m_graphicsCommandCtx.CommandList(), Resource(), uploadHeap, state, data, (LONG_PTR)m_bufferSize, (LONG_PTR)m_bufferSize);
-
-        pRenderer->m_graphicsCommandCtx.IncrementFenceValue();
-        pRenderer->ExecuteGraphicsCommandContext();
+        UpdateBufferResource(pCtx->CommandList(), m_resource, uploadBuffer, data, (LONG_PTR)m_bufferSize, (LONG_PTR)m_bufferSize);
+        TransitionResource(pCtx->CommandList(), m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
+        pQueue->Execute(pCtx, true);
     }
 
     return true;
@@ -87,51 +100,49 @@ D3D12_INDEX_BUFFER_VIEW GpuBuffer::IndexBufferView()
 
 #pragma region DynamicBuffer
 
-DynamicBuffer::DynamicBuffer(u32 numResources, u64 bufferSize, u32 elementSize) : GpuBuffer(numResources, bufferSize, elementSize), m_gpuAddress(nullptr)
+UploadBuffer::UploadBuffer() : GpuBuffer(D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON)
 {
 
 }
 
-DynamicBuffer::~DynamicBuffer()
+UploadBuffer::~UploadBuffer()
 {
 
 }
 
-bool DynamicBuffer::Initialize(Renderer* pRenderer, void* data)
+bool UploadBuffer::Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data)
 {
-    auto pDevice = pRenderer->m_device.DX();
+    m_bufferSize = bufferSize;
+    m_elementSize = elementSize;
+    m_numElements = numElements;
 
-    for (auto& res : m_resources)
+    auto pDevice = pCtx->GetDevice()->DX();
+
+    if (!CreateUploadBufferResource(pDevice, &m_resource, m_bufferSize))
     {
-        if (!CreateUploadBufferResource(pDevice, &res, m_bufferSize))
-        {
-            return false;
-        }
-
-        if (data)
-        {
-            Map(data);
-        }
-
-        Unmap();
+        return false;
     }
 
-    
+    if (data)
+    {
+        Map(data);
+        Unmap();
+    }
 
     return true;
 }
 
 
-void DynamicBuffer::ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i)
-{
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-    cbvDesc.BufferLocation = m_resources[i]->GetGPUVirtualAddress();
-    cbvDesc.SizeInBytes = (m_bufferSize + 255) & ~255; // CB size is required to be 256-byte aligned.
+//void UploadBuffer::ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i)
+//{
+//    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+//    cbvDesc.BufferLocation = m_resources[i]->GetGPUVirtualAddress();
+//    cbvDesc.SizeInBytes = (m_bufferSize + 255) & ~255; // CB size is required to be 256-byte aligned.
+//
+//    pRenderer->m_device.DX()->CreateConstantBufferView(&cbvDesc, pCBVHeap->Native()->GetCPUDescriptorHandleForHeapStart());
+//}
 
-    pRenderer->m_device.DX()->CreateConstantBufferView(&cbvDesc, pCBVHeap->Native()->GetCPUDescriptorHandleForHeapStart());
-}
-
-bool DynamicBuffer::Map(void* data)
+bool UploadBuffer::Map(void* data)
 {
     CD3DX12_RANGE readRange(0, 0);
     HRESULT hr = Resource()->Map(0, &readRange, reinterpret_cast<void**>(&m_gpuAddress));
@@ -145,7 +156,7 @@ bool DynamicBuffer::Map(void* data)
     return true;
 }
 
-void DynamicBuffer::Unmap()
+void UploadBuffer::Unmap()
 {
     CD3DX12_RANGE readRange(0, 0);
     Resource()->Unmap(0, &readRange);
@@ -153,8 +164,19 @@ void DynamicBuffer::Unmap()
 
 #pragma endregion
 
+PixelBuffer::PixelBuffer(ID3D12Resource* pResource, 
+    D3D12_RESOURCE_STATES resourceState, 
+    DXGI_FORMAT format, u32 width, u32 height) : 
+    GpuResource(pResource, resourceState), 
+    m_format(format), 
+    m_width(width), 
+    m_height(height)
+{
 
-PixelBuffer::PixelBuffer(u32 numResources, u32 width, u32 height) : GpuResource(numResources), m_width(numResources, width), m_height(numResources, height)
+}
+
+PixelBuffer::PixelBuffer(D3D12_RESOURCE_STATES resourceState, DXGI_FORMAT format, u32 width, u32 height) : 
+    PixelBuffer(nullptr, resourceState, format, width, height)
 {
 
 }
@@ -164,36 +186,83 @@ PixelBuffer::~PixelBuffer()
 
 }
 
-ColorBuffer::ColorBuffer(u32 numResources, u32 width, u32 height, float clearColor[4]) : PixelBuffer(numResources, width, height)
+PixelBuffer::PixelBuffer(PixelBuffer&& other)
 {
-    SetColor(clearColor);
+    m_resource = other.m_resource;
+    m_resourceState = other.m_resourceState;
+    m_format = other.m_format;
+    m_width = other.m_width;
+    m_height = other.m_height;
+
+    other.m_resource = nullptr;
+    other.m_resourceState = (D3D12_RESOURCE_STATES)-1;
+    other.m_format = DXGI_FORMAT_UNKNOWN;
+    other.m_width = 0;
+    other.m_height = 0;
+}
+
+ColorBuffer::ColorBuffer(ID3D12Resource* pResource,
+    D3D12_RESOURCE_STATES resourceState,
+    DXGI_FORMAT format, u32 width, u32 height, 
+    const float* color) : 
+    PixelBuffer(pResource, resourceState, format, width, height)
+{
+    SetColor(color);
+}
+ColorBuffer::ColorBuffer(D3D12_RESOURCE_STATES resourceState,
+    DXGI_FORMAT format, u32 width, u32 height,
+    const float* color) : 
+    ColorBuffer(nullptr, resourceState, format, width, height)
+{
+
 }
 
 ColorBuffer::~ColorBuffer()
 {
-
+    
 }
 
-void ColorBuffer::SetColor(float color[4])
+ColorBuffer::ColorBuffer(ColorBuffer&& other)
 {
-    for (auto c : m_colors)
+    m_resource = other.m_resource;
+    m_resourceState = other.m_resourceState;
+    m_format = other.m_format;
+    m_width = other.m_width;
+    m_height = other.m_height;
+    m_color[0] = other.m_color[0];
+    m_color[1] = other.m_color[1];
+    m_color[2] = other.m_color[2];
+    m_color[3] = other.m_color[3];
+
+    other.m_resource = nullptr;
+    other.m_resourceState = (D3D12_RESOURCE_STATES)-1;
+    other.m_format = DXGI_FORMAT_UNKNOWN;
+    other.m_width = 0;
+    other.m_height = 0;
+    other.m_color[0] = 1;
+    other.m_color[1] = 0;
+    other.m_color[2] = 0;
+    other.m_color[3] = 0;
+}
+
+void ColorBuffer::SetColor(const float* color)
+{
+    if (color)
     {
-        c[0] = color[0];
-        c[1] = color[1];
-        c[2] = color[2];
-        c[3] = color[3];
+        SetColor(color[0], color[1], color[2], color[3]);
     }
 }
 
-void ColorBuffer::SetColor(float color[4], int i)
+
+void ColorBuffer::SetColor(float r, float g, float b, float a)
 {
-    m_colors[i][0] = color[0];
-    m_colors[i][1] = color[1];
-    m_colors[i][2] = color[2];
-    m_colors[i][3] = color[3];
+    m_color[0] = r;
+    m_color[1] = g;
+    m_color[2] = b;
+    m_color[3] = a;
 }
 
-DepthBuffer::DepthBuffer(u32 width, u32 height) : PixelBuffer(4, width, height)
+DepthBuffer::DepthBuffer(u32 width, u32 height) : PixelBuffer(nullptr)
 {
 
 }
@@ -203,16 +272,14 @@ DepthBuffer::~DepthBuffer()
 
 }
 
-bool DepthBuffer::Initialize(Renderer* pRenderer, DescriptorHeap* pDescriptorHeap)
+bool DepthBuffer::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap)
 {
-    ID3D12Device* pDevice = pRenderer->m_device.DX();
-
-    if (!CreateDepthStencilResource(pDevice, &m_resources[0], m_width[0], m_height[0], 1, 0, 1, 0))
+    if (!CreateDepthStencilResource(pDevice->DX(), &m_resource, m_width, m_height, 1, 0, 1, 0))
     {
         return false;
     }
 
-    CreateDepthStencilViews(pDevice, pDescriptorHeap->Native(), &m_resources[0], 1);
+    CreateDepthStencilViews(pDevice->DX(), pHeap->Native(), &m_resource, 1);
 
     return true;
 }

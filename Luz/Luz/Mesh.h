@@ -44,7 +44,7 @@ public:
             
     }
 
-    Mesh(const Mesh<Vertex, Index>&& other) : m_vertices(std::move(other.m_vertices), std::move(other.m_indices))
+    Mesh(Mesh<Vertex, Index>&& other) : m_vertices(std::move(other.m_vertices), std::move(other.m_indices))
     {
 
     }

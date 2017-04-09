@@ -1,5 +1,11 @@
 #pragma once
+#ifndef IAPPLICATION_H
 #include "IApplication.h"
+#endif
+
+#ifndef LUZ_H
+#include "Luz.h"
+#endif
 
 class TimerApp :
 	public IApplication
@@ -10,7 +16,7 @@ public:
 	TimerApp();
 	virtual ~TimerApp();
 
-    int Initialize() override;
+    bool Initialize() override;
     int Shutdown() override;
 
     void Update(double delta) override;

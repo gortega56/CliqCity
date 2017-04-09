@@ -7,11 +7,11 @@ using namespace cliqCity::graphicsMath;
 
 // Matrix2
 
-inline Matrix2::Matrix2(const Vector2& u, const Vector2& v) : u(u), v(v)
+Matrix2::Matrix2(const Vector2& u, const Vector2& v) : u(u), v(v)
 {
 }
 
-inline Matrix2::Matrix2(
+Matrix2::Matrix2(
 	const float& u1, const float& u2,
 	const float& v1, const float& v2) :
 	u(u1, u2),
@@ -19,29 +19,29 @@ inline Matrix2::Matrix2(
 {
 }
 
-inline Matrix2::Matrix2(float m[2][2]) :
+Matrix2::Matrix2(float m[2][2]) :
 	Matrix2(
 		m[0][0], m[0][1],
 		m[1][0], m[1][1])
 {
 }
 
-inline Matrix2::Matrix2(float s) :
+Matrix2::Matrix2(float s) :
 	Matrix2(
 		s, 0.0f,
 		0.0f, s)
 {
 }
 
-inline Matrix2::Matrix2(const Matrix2& other) : Matrix2(other.u.x, other.u.y, other.v.x, other.v.y)
+Matrix2::Matrix2(const Matrix2& other) : Matrix2(other.u.x, other.u.y, other.v.x, other.v.y)
 {
 }
 
-inline Matrix2::Matrix2() : Matrix2(1.0f)
+Matrix2::Matrix2() : Matrix2(1.0f)
 {
 }
 
-inline Matrix2 Matrix2::transpose() const
+Matrix2 Matrix2::transpose() const
 {
 	return Matrix2(
 		u.x, v.x,
@@ -49,64 +49,64 @@ inline Matrix2 Matrix2::transpose() const
 		);
 }
 
-inline Matrix2 Matrix2::inverse() const
+Matrix2 Matrix2::inverse() const
 {
 	return Matrix2(v.y, -u.y, -v.x, u.x) *= (1.0f / determinant());	// Transpose of Cofactors
 }
 
-inline float Matrix2::determinant() const
+float Matrix2::determinant() const
 {
 	return (u.x * v.y) - (u.y * v.x);
 }
 
-inline Matrix2& Matrix2::operator+=(const Matrix2& rhs)
+Matrix2& Matrix2::operator+=(const Matrix2& rhs)
 {
 	u += rhs.u;
 	v += rhs.v;
 	return *this;
 }
 
-inline Matrix2& Matrix2::operator-=(const Matrix2& rhs)
+Matrix2& Matrix2::operator-=(const Matrix2& rhs)
 {
 	u -= rhs.u;
 	v -= rhs.v;
 	return *this;
 }
 
-inline Matrix2& Matrix2::operator*=(const float& rhs)
+Matrix2& Matrix2::operator*=(const float& rhs)
 {
 	u *= rhs;
 	v *= rhs;
 	return *this;
 }
 
-inline Matrix2& Matrix2::operator=(const Matrix2& rhs)
+Matrix2& Matrix2::operator=(const Matrix2& rhs)
 {
 	u = rhs.u;
 	v = rhs.v;
 	return *this;
 }
 
-inline Matrix2 Matrix2::operator-()
+Matrix2 Matrix2::operator-()
 {
 	u = -u;
 	v = -v;
 	return *this;
 }
 
-inline Vector2& Matrix2::operator[](const unsigned int& index)
+Vector2& Matrix2::operator[](const unsigned int& index)
 {
 	return pRows[index];
 }
 
-inline float Matrix2::operator()(const unsigned int& row, const unsigned int& column)
+float Matrix2::operator()(const unsigned int& row, const unsigned int& column)
 {
 	return pRows[row].pCols[column];
 }
 
 // Matrix3
 
-inline Matrix3 Matrix3::scale(const Vector3& s)
+Matrix3 Matrix3::scale(const Vector3& s)
 {
 	return Matrix3(
 		s.x, 0.0f, 0.0f,
@@ -114,7 +114,7 @@ inline Matrix3 Matrix3::scale(const Vector3& s)
 		0.0f, 0.0f, s.z);
 }
 
-inline Matrix3 Matrix3::rotate(const float& angle, const Vector3& a)
+Matrix3 Matrix3::rotate(const float& angle, const Vector3& a)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -125,7 +125,7 @@ inline Matrix3 Matrix3::rotate(const float& angle, const Vector3& a)
 		((1 - c) * a.x * a.z) + (s * a.y), ((1 - c) * a.y * a.z) - (s * a.x), c + ((1 - c) * a.z * a.z));
 }
 
-inline Matrix3 Matrix3::rotateX(const float& angle)
+Matrix3 Matrix3::rotateX(const float& angle)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -135,7 +135,7 @@ inline Matrix3 Matrix3::rotateX(const float& angle)
 		0.0f, -s, c);
 }
 
-inline Matrix3 Matrix3::rotateY(const float& angle)
+Matrix3 Matrix3::rotateY(const float& angle)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -145,7 +145,7 @@ inline Matrix3 Matrix3::rotateY(const float& angle)
 		s, 0.0f, c);
 }
 
-inline Matrix3 Matrix3::rotateZ(const float& angle)
+Matrix3 Matrix3::rotateZ(const float& angle)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -155,11 +155,11 @@ inline Matrix3 Matrix3::rotateZ(const float& angle)
 		0.0f, 0.0f, 1.0f);
 }
 
-inline Matrix3::Matrix3(const Vector3& u, const Vector3& v, const Vector3& w) : u(u), v(v), w(w)
+Matrix3::Matrix3(const Vector3& u, const Vector3& v, const Vector3& w) : u(u), v(v), w(w)
 {
 };
 
-inline Matrix3::Matrix3(
+Matrix3::Matrix3(
 	const float& u1, const float& u2, const float& u3,
 	const float& v1, const float& v2, const float& v3,
 	const float& w1, const float& w2, const float& w3) :
@@ -169,7 +169,7 @@ inline Matrix3::Matrix3(
 {
 };
 
-inline Matrix3::Matrix3(float m[3][3]) :
+Matrix3::Matrix3(float m[3][3]) :
 	Matrix3(
 		m[0][0], m[0][1], m[0][2],
 		m[1][0], m[1][1], m[1][2],
@@ -178,7 +178,7 @@ inline Matrix3::Matrix3(float m[3][3]) :
 {
 };
 
-inline Matrix3::Matrix3(float s) :
+Matrix3::Matrix3(float s) :
 	Matrix3(
 		s, 0.0f, 0.0f,
 		0.0f, s, 0.0f,
@@ -187,15 +187,15 @@ inline Matrix3::Matrix3(float s) :
 {
 };
 
-inline Matrix3::Matrix3(const Matrix3& other) : Matrix3(other.u.x, other.u.y, other.u.z, other.v.x, other.v.y, other.v.z, other.w.x, other.w.y, other.w.z)
+Matrix3::Matrix3(const Matrix3& other) : Matrix3(other.u.x, other.u.y, other.u.z, other.v.x, other.v.y, other.v.z, other.w.x, other.w.y, other.w.z)
 {
 }
 
-inline Matrix3::Matrix3() : Matrix3(1.0f)
+Matrix3::Matrix3() : Matrix3(1.0f)
 {
 };
 
-inline Matrix3 Matrix3::transpose() const
+Matrix3 Matrix3::transpose() const
 {
 	return Matrix3(
 		u.x, v.x, w.x,
@@ -234,7 +234,7 @@ Matrix3 Matrix3::inverse() const
 		c13, c23, c33) *= (1.0f / determinant());	// Transpose of cofactors
 }
 
-inline float Matrix3::determinant() const
+float Matrix3::determinant() const
 {
 	// ((u x v) * w)
 	return
@@ -246,7 +246,7 @@ inline float Matrix3::determinant() const
 }
 // Compound Assignment
 
-inline Matrix3& Matrix3::operator+=(const Matrix3& rhs)
+Matrix3& Matrix3::operator+=(const Matrix3& rhs)
 {
 	u += rhs.u;
 	v += rhs.v;
@@ -254,7 +254,7 @@ inline Matrix3& Matrix3::operator+=(const Matrix3& rhs)
 	return *this;
 }
 
-inline Matrix3& Matrix3::operator-=(const Matrix3& rhs)
+Matrix3& Matrix3::operator-=(const Matrix3& rhs)
 {
 	u -= rhs.u;
 	v -= rhs.v;
@@ -262,7 +262,7 @@ inline Matrix3& Matrix3::operator-=(const Matrix3& rhs)
 	return *this;
 }
 
-inline Matrix3& Matrix3::operator*=(const float& rhs)
+Matrix3& Matrix3::operator*=(const float& rhs)
 {
 	u *= rhs;
 	v *= rhs;
@@ -272,7 +272,7 @@ inline Matrix3& Matrix3::operator*=(const float& rhs)
 
 // Unary
 
-inline Matrix3& Matrix3::operator=(const Matrix3& rhs)
+Matrix3& Matrix3::operator=(const Matrix3& rhs)
 {
 	u = rhs.u;
 	v = rhs.v;
@@ -280,7 +280,7 @@ inline Matrix3& Matrix3::operator=(const Matrix3& rhs)
 	return *this;
 }
 
-inline Matrix3& Matrix3::operator-()
+Matrix3& Matrix3::operator-()
 {
 	u = -u;
 	v = -v;
@@ -288,12 +288,12 @@ inline Matrix3& Matrix3::operator-()
 	return *this;
 }
 
-inline Vector3& Matrix3::operator[](const unsigned int& index)
+Vector3& Matrix3::operator[](const unsigned int& index)
 {
 	return pRows[index];
 }
 
-inline float Matrix3::operator()(const unsigned int& row, const unsigned int& column)
+float Matrix3::operator()(const unsigned int& row, const unsigned int& column)
 {
 	return pRows[row].pCols[column];
 }
@@ -490,7 +490,7 @@ Matrix4 Matrix4::lookAtLH(const Vector3& target, const Vector3& position, const 
 	return Matrix4(s, u, f, t).inverse();
 }
 
-inline Matrix4 Matrix4::scale(const Vector3& s)
+Matrix4 Matrix4::scale(const Vector3& s)
 {
 	return Matrix4(
 		s.x, 0.0f, 0.0f, 0.0f,
@@ -499,7 +499,7 @@ inline Matrix4 Matrix4::scale(const Vector3& s)
 		0.0f, 0.0f, 0.0, 1.0f);
 }
 
-inline Matrix4 Matrix4::rotate(const float& angle, const Vector3& a)
+Matrix4 Matrix4::rotate(const float& angle, const Vector3& a)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -512,7 +512,7 @@ inline Matrix4 Matrix4::rotate(const float& angle, const Vector3& a)
 		0.0f, 0.0f, 0.0, 1.0f);
 }
 
-inline Matrix4 Matrix4::rotateX(const float& angle)
+Matrix4 Matrix4::rotateX(const float& angle)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -523,7 +523,7 @@ inline Matrix4 Matrix4::rotateX(const float& angle)
 		0.0f, 0.0f, 0.0, 1.0f);
 }
 
-inline Matrix4 Matrix4::rotateY(const float& angle)
+Matrix4 Matrix4::rotateY(const float& angle)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -534,7 +534,7 @@ inline Matrix4 Matrix4::rotateY(const float& angle)
 		0.0f, 0.0f, 0.0, 1.0f);
 }
 
-inline Matrix4 Matrix4::rotateZ(const float& angle)
+Matrix4 Matrix4::rotateZ(const float& angle)
 {
 	float s = sin(angle);
 	float c = cos(angle);
@@ -545,7 +545,7 @@ inline Matrix4 Matrix4::rotateZ(const float& angle)
 		0.0f, 0.0f, 0.0, 1.0f);
 }
 
-inline Matrix4 Matrix4::translate(const Vector3& t)
+Matrix4 Matrix4::translate(const Vector3& t)
 {
 	return Matrix4(
 		1.0f, 0.0f, 0.0f, 0.0f,
@@ -555,11 +555,11 @@ inline Matrix4 Matrix4::translate(const Vector3& t)
 }
 
 
-inline Matrix4::Matrix4(const Vector4& u, const Vector4& v, const Vector4& w, const Vector4& t) : u(u), v(v), w(w), t(t)
+Matrix4::Matrix4(const Vector4& u, const Vector4& v, const Vector4& w, const Vector4& t) : u(u), v(v), w(w), t(t)
 {
 };
 
-inline Matrix4::Matrix4(
+Matrix4::Matrix4(
 	const float& u1, const float& u2, const float& u3, const float& u4,
 	const float& v1, const float& v2, const float& v3, const float& v4,
 	const float& w1, const float& w2, const float& w3, const float& w4,
@@ -571,7 +571,7 @@ inline Matrix4::Matrix4(
 {
 };
 
-inline Matrix4::Matrix4(float m[4][4]) :
+Matrix4::Matrix4(float m[4][4]) :
 	Matrix4::Matrix4(
 		m[0][0], m[0][1], m[0][2], m[0][3],
 		m[1][0], m[1][1], m[1][2], m[1][3],
@@ -580,7 +580,7 @@ inline Matrix4::Matrix4(float m[4][4]) :
 {
 };
 
-inline Matrix4::Matrix4(float s) :
+Matrix4::Matrix4(float s) :
 	Matrix4(
 		s, 0.0f, 0.0f, 0.0f,
 		0.0f, s, 0.0f, 0.0f,
@@ -589,11 +589,11 @@ inline Matrix4::Matrix4(float s) :
 {
 };
 
-inline Matrix4::Matrix4() : Matrix4(1.0f)
+Matrix4::Matrix4() : Matrix4(1.0f)
 {
 };
 
-inline Matrix4::Matrix4(const Matrix4& other) :
+Matrix4::Matrix4(const Matrix4& other) :
 	Matrix4(
 		other.u.x, other.u.y, other.u.z, other.u.w,
 		other.v.x, other.v.y, other.v.z, other.v.w,
@@ -605,7 +605,7 @@ inline Matrix4::Matrix4(const Matrix4& other) :
 
 // Matrix4 operations
 
-inline Matrix4 Matrix4::transpose() const
+Matrix4 Matrix4::transpose() const
 {
 	return Matrix4(
 		u.x, v.x, w.x, t.x,
@@ -663,7 +663,7 @@ float Matrix4::determinant() const
 
 // Compound Assignment
 
-inline Matrix4 Matrix4::operator+=(const Matrix4& rhs)
+Matrix4 Matrix4::operator+=(const Matrix4& rhs)
 {
 	u += rhs.u;
 	v += rhs.v;
@@ -672,7 +672,7 @@ inline Matrix4 Matrix4::operator+=(const Matrix4& rhs)
 	return *this;
 }
 
-inline Matrix4 Matrix4::operator-=(const Matrix4& rhs)
+Matrix4 Matrix4::operator-=(const Matrix4& rhs)
 {
 	u -= rhs.u;
 	v -= rhs.v;
@@ -681,7 +681,7 @@ inline Matrix4 Matrix4::operator-=(const Matrix4& rhs)
 	return *this;
 }
 
-inline Matrix4 Matrix4::operator*=(const float& rhs)
+Matrix4 Matrix4::operator*=(const float& rhs)
 {
 	u *= rhs;
 	v *= rhs;
@@ -692,7 +692,7 @@ inline Matrix4 Matrix4::operator*=(const float& rhs)
 
 // Unary
 
-inline Matrix4& Matrix4::operator=(const Matrix4& rhs)
+Matrix4& Matrix4::operator=(const Matrix4& rhs)
 {
 	u = rhs.u;
 	v = rhs.v;
@@ -701,7 +701,7 @@ inline Matrix4& Matrix4::operator=(const Matrix4& rhs)
 	return *this;
 }
 
-inline Matrix4 Matrix4::operator-()
+Matrix4 Matrix4::operator-()
 {
 	u = -u;
 	v = -v;
@@ -710,26 +710,26 @@ inline Matrix4 Matrix4::operator-()
 	return *this;
 }
 
-inline Vector4& Matrix4::operator[](const unsigned int& index)
+Vector4& Matrix4::operator[](const unsigned int& index)
 {
 	return pRows[index];
 }
 
-inline float Matrix4::operator()(const unsigned int& row, const unsigned int& column)
+float Matrix4::operator()(const unsigned int& row, const unsigned int& column)
 {
 	return pRows[row].pCols[column];
 }
 
 // Typecast
 
-inline Matrix4::operator Matrix3()
+Matrix4::operator Matrix3()
 {
 	return Matrix3(u, v, w);
 }
 
 // Matrix2 Binary Operators
 
-inline Matrix2 cliqCity::graphicsMath::operator+(const Matrix2& lhs, const Matrix2& rhs)
+Matrix2 cliqCity::graphicsMath::operator+(const Matrix2& lhs, const Matrix2& rhs)
 {
 	return
 	{
@@ -738,7 +738,7 @@ inline Matrix2 cliqCity::graphicsMath::operator+(const Matrix2& lhs, const Matri
 	};
 }
 
-inline Matrix2 cliqCity::graphicsMath::operator-(const Matrix2& lhs, const Matrix2& rhs)
+Matrix2 cliqCity::graphicsMath::operator-(const Matrix2& lhs, const Matrix2& rhs)
 {
 	return
 	{
@@ -747,7 +747,7 @@ inline Matrix2 cliqCity::graphicsMath::operator-(const Matrix2& lhs, const Matri
 	};
 }
 
-inline Matrix2 cliqCity::graphicsMath::operator*(const Matrix2& lhs, const Matrix2& rhs)
+Matrix2 cliqCity::graphicsMath::operator*(const Matrix2& lhs, const Matrix2& rhs)
 {
 	return Matrix2(
 		lhs.pRows[0].pCols[0] * rhs.pRows[0].pCols[0] + lhs.pRows[0].pCols[1] * rhs.pRows[1].pCols[0], lhs.pRows[0].pCols[0] * rhs.pRows[0].pCols[1] + lhs.pRows[0].pCols[1] * rhs.pRows[1].pCols[1],
@@ -763,12 +763,12 @@ Vector2 cliqCity::graphicsMath::operator*(const Vector2& lhs, const Matrix2& rhs
 		);
 }
 
-inline Matrix2 cliqCity::graphicsMath::operator*(const float& lhs, const Matrix2& rhs)
+Matrix2 cliqCity::graphicsMath::operator*(const float& lhs, const Matrix2& rhs)
 {
 	return rhs * lhs;
 }
 
-inline Matrix2 cliqCity::graphicsMath::operator*(const Matrix2& lhs, const float& rhs)
+Matrix2 cliqCity::graphicsMath::operator*(const Matrix2& lhs, const float& rhs)
 {
 	return
 	{
@@ -779,7 +779,7 @@ inline Matrix2 cliqCity::graphicsMath::operator*(const Matrix2& lhs, const float
 
 // Matrix3 Binary Operators
 
-inline Matrix3 cliqCity::graphicsMath::operator+(const Matrix3& lhs, const Matrix3& rhs)
+Matrix3 cliqCity::graphicsMath::operator+(const Matrix3& lhs, const Matrix3& rhs)
 {
 	return
 	{
@@ -789,7 +789,7 @@ inline Matrix3 cliqCity::graphicsMath::operator+(const Matrix3& lhs, const Matri
 	};
 }
 
-inline Matrix3 cliqCity::graphicsMath::operator-(const Matrix3& lhs, const Matrix3& rhs)
+Matrix3 cliqCity::graphicsMath::operator-(const Matrix3& lhs, const Matrix3& rhs)
 {
 	return
 	{
@@ -799,7 +799,7 @@ inline Matrix3 cliqCity::graphicsMath::operator-(const Matrix3& lhs, const Matri
 	};
 }
 
-inline Matrix3 cliqCity::graphicsMath::operator*(const Matrix3& lhs, const Matrix3& rhs)
+Matrix3 cliqCity::graphicsMath::operator*(const Matrix3& lhs, const Matrix3& rhs)
 {
 	return
 	{
@@ -817,7 +817,7 @@ inline Matrix3 cliqCity::graphicsMath::operator*(const Matrix3& lhs, const Matri
 	//	);
 }
 
-inline Vector3 cliqCity::graphicsMath::operator*(const Vector3& lhs, const Matrix3& rhs)
+Vector3 cliqCity::graphicsMath::operator*(const Vector3& lhs, const Matrix3& rhs)
 {
 	return Vector3(
 		(lhs.pCols[0] * rhs.pRows[0].pCols[0]) + (lhs.pCols[1] * rhs.pRows[1].pCols[0]) + (lhs.pCols[2] * rhs.pRows[2].pCols[0]),
@@ -826,12 +826,12 @@ inline Vector3 cliqCity::graphicsMath::operator*(const Vector3& lhs, const Matri
 		);
 }
 
-inline Matrix3 cliqCity::graphicsMath::operator*(const float& lhs, const Matrix3& rhs)
+Matrix3 cliqCity::graphicsMath::operator*(const float& lhs, const Matrix3& rhs)
 {
 	return rhs * lhs;
 }
 
-inline Matrix3 cliqCity::graphicsMath::operator*(const Matrix3& lhs, const float& rhs)
+Matrix3 cliqCity::graphicsMath::operator*(const Matrix3& lhs, const float& rhs)
 {
 	return
 	{
@@ -843,7 +843,7 @@ inline Matrix3 cliqCity::graphicsMath::operator*(const Matrix3& lhs, const float
 
 // Matrix4 Binary Operators
 
-inline Matrix4 cliqCity::graphicsMath::operator+(const Matrix4& lhs, const Matrix4& rhs)
+Matrix4 cliqCity::graphicsMath::operator+(const Matrix4& lhs, const Matrix4& rhs)
 {
 	return
 	{
@@ -854,7 +854,7 @@ inline Matrix4 cliqCity::graphicsMath::operator+(const Matrix4& lhs, const Matri
 	};
 }
 
-inline Matrix4 cliqCity::graphicsMath::operator-(const Matrix4& lhs, const Matrix4& rhs)
+Matrix4 cliqCity::graphicsMath::operator-(const Matrix4& lhs, const Matrix4& rhs)
 {
 	return
 	{
@@ -865,7 +865,7 @@ inline Matrix4 cliqCity::graphicsMath::operator-(const Matrix4& lhs, const Matri
 	};
 }
 
-inline Matrix4 cliqCity::graphicsMath::operator*(const Matrix4& lhs, const Matrix4& rhs)
+Matrix4 cliqCity::graphicsMath::operator*(const Matrix4& lhs, const Matrix4& rhs)
 {
 	/*
 	(lhs00 * rhs00) + (lhs01 * rhs10) + (lhs02 * rhs20) + (lhs03 * rhs30),	(lhs00 * rhs01) + (lhs01 * rhs11) + (lhs02 * rhs21) + (lhs03 * rhs31),	(lhs00 * rhs02) + (lhs01 * rhs12) + (lhs02 * rhs22) + (lhs03 * rhs32),	(lhs00 * rhs03) + (lhs01 * rhs13) + (lhs02 * rhs23) + (lhs03 * rhs33),
@@ -894,7 +894,7 @@ inline Matrix4 cliqCity::graphicsMath::operator*(const Matrix4& lhs, const Matri
 	//};
 }
 
-inline Vector4 cliqCity::graphicsMath::operator*(const Vector4& lhs, const Matrix4& rhs)
+Vector4 cliqCity::graphicsMath::operator*(const Vector4& lhs, const Matrix4& rhs)
 {
 	return
 	{
@@ -905,12 +905,12 @@ inline Vector4 cliqCity::graphicsMath::operator*(const Vector4& lhs, const Matri
 	};
 }
 
-inline Matrix4 cliqCity::graphicsMath::operator*(const float& lhs, const Matrix4& rhs)
+Matrix4 cliqCity::graphicsMath::operator*(const float& lhs, const Matrix4& rhs)
 {
 	return rhs * lhs;
 }
 
-inline Matrix4 cliqCity::graphicsMath::operator*(const Matrix4& lhs, const float& rhs)
+Matrix4 cliqCity::graphicsMath::operator*(const Matrix4& lhs, const float& rhs)
 {
 	return
 	{
