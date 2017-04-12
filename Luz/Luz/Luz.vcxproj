@@ -161,6 +161,7 @@
     <ClCompile Include="Graphics\DirectX12\dx12_renderable.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_renderer.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp" />
+    <ClCompile Include="Graphics\DirectX12\FenceContext.cpp" />
     <ClCompile Include="Graphics\DirectX12\GpuResource.cpp" />
     <ClCompile Include="Graphics\DirectX12\PipelineState.cpp" />
     <ClCompile Include="Graphics\DirectX12\RenderContext.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="Graphics\DirectX12\dx12_renderer.h" />
     <ClInclude Include="Graphics\DirectX12\dx12_internal.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="Graphics\DirectX12\FenceContext.h" />
     <ClInclude Include="Graphics\DirectX12\GpuResource.h" />
     <ClInclude Include="Graphics\DirectX12\GpuState.h" />
     <ClInclude Include="Graphics\DirectX12\RenderContext.h" />

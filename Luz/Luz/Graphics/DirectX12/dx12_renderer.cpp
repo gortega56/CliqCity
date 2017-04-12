@@ -11,7 +11,7 @@ Renderer::Renderer(OSWin* pOS, u32 numThreads, u32 numFrameBuffers) :
     m_hwnd(pOS->RootWindowHandle()),
     m_device(std::make_shared<Device>()),
     m_commandQueue(std::make_shared<CommandQueue>()),
-    m_graphicsCommandCtx(std::make_shared<GraphicsCommandContext>(numThreads * numFrameBuffers, numFrameBuffers)),
+    m_graphicsCommandCtx(std::make_shared<GraphicsCommandContext>(numThreads * numFrameBuffers)),
     m_renderContext(std::make_shared<RenderContext>()),
     m_swapChain(nullptr),
     m_numThreads(numThreads),
@@ -96,7 +96,7 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
     }
 
     m_swapChain = std::make_shared<SwapChain>(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_USAGE_RENDER_TARGET_OUTPUT, DXGI_SWAP_EFFECT_FLIP_DISCARD);
-    if (!m_swapChain->Initialize(m_device, m_commandQueue, m_hwnd, m_graphicsCommandCtx->NumFrameBuffers(), width, height, fullscreen))
+    if (!m_swapChain->Initialize(m_device, m_commandQueue, m_hwnd, m_graphicsCommandCtx->NumAllocators() / m_numThreads, width, height, fullscreen))
     {
         return false;
     }
@@ -168,7 +168,7 @@ void Renderer::DrawIndexedInstanced(Renderable* pRenderable, u32 instanceCount, 
 void Renderer::Present()
 {
     // Transition back buffer to present
-    m_graphicsCommandCtx->PrepareBackBuffer();
+    m_graphicsCommandCtx->FinalizeSwapChain();
 
     // Close / Execute / Signal
     m_running = m_commandQueue->Execute(m_graphicsCommandCtx);
@@ -179,6 +179,8 @@ void Renderer::Present()
     {
         m_running = false;
     }
+
+    m_commandQueue->Signal(m_swapChain);
 }
 
 void Renderer::SetGraphicsRootConstantBuffer(GraphicsCommandContext* pContext, UploadBuffer* pUploadBuffer, u32 paramIndex)
@@ -199,4 +201,9 @@ void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandCont
 void Renderer::ExecuteGraphicsCommandContext()
 {
     m_running = m_commandQueue->Execute(m_graphicsCommandCtx);
+}
+
+void Renderer::WaitForPreviousFrame()
+{
+    m_swapChain->WaitForPreviousFrame();
 }

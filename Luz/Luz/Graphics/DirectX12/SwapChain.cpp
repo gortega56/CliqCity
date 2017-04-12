@@ -19,6 +19,7 @@ SwapChain::SwapChain(DXGI_FORMAT format,
     m_hwnd(nullptr),
     m_width(0),
     m_height(0),
+    m_frameIndex(0),
     m_fullScreen(false)
 {
 
@@ -56,6 +57,11 @@ bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_pt
         return false;
     }
 
+    if (!FenceContext::Initialize(pDevice, numFrameBuffers))
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -68,4 +74,14 @@ bool SwapChain::InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, st
     }
 
     return true;
+}
+
+bool SwapChain::WaitForPreviousFrame()
+{
+    return ::WaitForPreviousFrame(m_swapChain3, m_fences.data(), m_fenceValues.data(), m_fenceEvent, &m_frameIndex);
+}
+
+void SwapChain::Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const
+{
+    TransitionResource(pGraphicsCommandList, m_frameBuffers[GetCurrentBackBufferIndex()], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }

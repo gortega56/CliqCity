@@ -11,12 +11,11 @@ using namespace dx12;
 
 #pragma region CommandContext
 
-CommandContext::CommandContext(u32 numAllocators) : 
+CommandContext::CommandContext(u32 numAllocators) :
+    m_allocatorIndex(0),
     m_commandAllocators(numAllocators, nullptr),
-    m_fences(numAllocators, nullptr),
-    m_fenceValues(numAllocators, 0),
-    m_fenceEvent(nullptr), 
-    m_device(nullptr)
+    m_device(nullptr),
+    m_swapChain(nullptr)
 {
 
 }
@@ -27,23 +26,25 @@ CommandContext::~CommandContext()
     {
         SAFE_RELEASE(allocator);
     }
-
-    for (auto& fence : m_fences)
-    {
-        SAFE_RELEASE(fence);
-    }
 }
 
-bool CommandContext::WaitForFence(int i)
+bool CommandContext::WaitForNextAllocator()
 {
-    return ::WaitForFence(m_fences[i], &m_fenceValues[i], m_fenceEvent);
-}
+    bool running = WaitForFence(m_allocatorIndex);
 
+    m_allocatorIndex++;
+    if (m_allocatorIndex > m_commandAllocators.size() - 1)
+    {
+        m_allocatorIndex = 0;
+    }
+
+    return running;
+}
 #pragma endregion CommandContext
 
 #pragma region GraphicsCommandContext
 
-GraphicsCommandContext::GraphicsCommandContext(u32 numAllocators, u32 numFrameBuffers) : CommandContext(numAllocators), m_numFrameBuffers(numFrameBuffers), m_commandList(nullptr)
+GraphicsCommandContext::GraphicsCommandContext(u32 numAllocators) : CommandContext(numAllocators), m_commandList(nullptr)
 {
     
 }
@@ -55,10 +56,11 @@ GraphicsCommandContext::~GraphicsCommandContext()
 
 void GraphicsCommandContext::WaitForAll()
 {
-    for (u32 i = 0; i < m_numFrameBuffers; ++i)
+    int idx;
+    for (u32 i = 0, count = NumAllocators(); i < count; ++i)
     {
-        m_frameIndex = i;
-        WaitForPreviousFrame();
+        idx = i;
+        WaitForFence(idx);
     }
 }
 
@@ -67,8 +69,6 @@ bool GraphicsCommandContext::Initialize(std::shared_ptr<const Device> pDevice, s
     m_device = pDevice;
     m_swapChain = pSwapChain;
 
-    m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-
     ID3D12Device* pDevice1 = m_device->DX();
 
     if (!CreateGraphicsCommandAllocators(pDevice1, m_commandAllocators.data(), (UINT)m_commandAllocators.size()))
@@ -76,21 +76,12 @@ bool GraphicsCommandContext::Initialize(std::shared_ptr<const Device> pDevice, s
         return false;
     }
 
-    if (!CreateGraphicsCommandList(pDevice1, m_commandAllocators[m_frameIndex], nullptr, &m_commandList))
+    if (!CreateGraphicsCommandList(pDevice1, m_commandAllocators[0], nullptr, &m_commandList))
     {
         return false;
     }
 
-    if (!CreateFences(pDevice1, m_fences.data(), m_fenceValues.data(), D3D12_FENCE_FLAG_NONE, (UINT)m_fences.size()))
-    {
-        return false;
-    }
-
-    m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    if (m_fenceEvent == nullptr)
-    {
-        return false;
-    }
+    FenceContext::Initialize(pDevice, (u32)m_commandAllocators.size());
 
     //for (int i = 0, num = pCommandList->NumAllocators(); i < num; ++i)
     //{
@@ -133,13 +124,15 @@ bool GraphicsCommandContext::Reset(GraphicsPipeline* pGraphicsPipeline)
 {
     bool running = true;
 
-    HRESULT hr = m_commandAllocators[m_frameIndex]->Reset();
+    running = WaitForNextAllocator();
+
+    HRESULT hr = m_commandAllocators[m_allocatorIndex]->Reset();
     if (FAILED(hr))
     {
         running = false;
     }
 
-    hr = m_commandList->Reset(m_commandAllocators[m_frameIndex], (pGraphicsPipeline) ? pGraphicsPipeline->PSO() : nullptr);
+    hr = m_commandList->Reset(m_commandAllocators[m_allocatorIndex], (pGraphicsPipeline) ? pGraphicsPipeline->PSO() : nullptr);
     if (FAILED(hr))
     {
         running = false;
@@ -160,13 +153,14 @@ void GraphicsCommandContext::SetRootSignature(RootSignature* pRootSignature)
 
 void GraphicsCommandContext::SetRenderContext(RenderContext* pRenderContext)
 {
-    const ColorBuffer* pBuffer = pRenderContext->RTV(m_frameIndex);
+    u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+    const ColorBuffer* pBuffer = pRenderContext->RTV(frameIndex);
 
     // transition the rtv at the given frameIndex from present state to rtv state so we can draw to it
     TransitionResource(m_commandList, pBuffer->Resource(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     // get handle the rtv that we want to bind to the output merger
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = pRenderContext->RtvHeap()->CpuHandle(m_frameIndex);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = pRenderContext->RtvHeap()->CpuHandle(frameIndex);
     CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = pRenderContext->DsvHeap()->CpuHandle();
 
     // Assumes contiguous rtvs if multiple
@@ -175,10 +169,11 @@ void GraphicsCommandContext::SetRenderContext(RenderContext* pRenderContext)
 
 void GraphicsCommandContext::ClearRenderContext(RenderContext* pRenderContext)
 {
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = pRenderContext->RtvHeap()->CpuHandle(m_frameIndex);
+    u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = pRenderContext->RtvHeap()->CpuHandle(frameIndex);
     CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = pRenderContext->DsvHeap()->CpuHandle();
 
-    const ColorBuffer* pRtv = pRenderContext->RTV(m_frameIndex);
+    const ColorBuffer* pRtv = pRenderContext->RTV(frameIndex);
     const DepthBuffer* pDsv = pRenderContext->DSV();
 
     m_commandList->ClearRenderTargetView(rtvHandle, pRtv->Color(), 0, nullptr);
@@ -202,17 +197,12 @@ bool GraphicsCommandContext::Close()
     return true;
 }
 
-void GraphicsCommandContext::PrepareBackBuffer()
+void GraphicsCommandContext::FinalizeSwapChain()
 {
-    TransitionResource(m_commandList, m_swapChain->FrameBuffer(m_frameIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    m_swapChain->Finalize(m_commandList);
 }
 
 void GraphicsCommandContext::SetGraphicsRootConstantBufferView(UploadBuffer* pBuffer, u32 paramIndex /*= 0*/)
 {
     m_commandList->SetGraphicsRootConstantBufferView(paramIndex, pBuffer->RootConstantBufferView());
-}
-
-bool GraphicsCommandContext::WaitForPreviousFrame()
-{
-    return ::WaitForPreviousFrame(m_swapChain->GetSwapChain3(), m_fences.data(), m_fenceValues.data(), m_fenceEvent, &m_frameIndex);
 }

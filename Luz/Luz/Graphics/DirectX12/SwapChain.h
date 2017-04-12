@@ -6,13 +6,17 @@
 #include "dx12_internal.h"
 #endif
 
+#ifndef DX12_FENCECONTEXT_H
+#include "FenceContext.h"
+#endif
+
 namespace dx12
 {
     class Device;
     class CommandQueue;
     class DescriptorHeap;
 
-    class SwapChain
+    class SwapChain : public FenceContext
     {
     public:
         SwapChain(DXGI_FORMAT format, 
@@ -22,6 +26,7 @@ namespace dx12
 
         bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen);
         bool InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap);
+        bool WaitForPreviousFrame();
 
         inline IDXGISwapChain* GetSwapChain() const { return m_swapChain; }
         inline IDXGISwapChain1* GetSwapChain1() const { return m_swapChain1; }
@@ -40,7 +45,15 @@ namespace dx12
         inline ID3D12Resource** FrameBuffers() { return m_frameBuffers.data(); }
         inline u32 NumFrameBuffers() const { return (u32)m_frameBuffers.size(); }
 
-        inline u32 GetCurrentBackBufferIndex() const { return m_swapChain3->GetCurrentBackBufferIndex(); }
+        inline u32 GetCurrentBackBufferIndex() const { return m_frameIndex; }
+
+    protected:
+        friend class CommandQueue;
+        friend class GraphicsCommandContext;
+
+        ID3D12Fence* Fence() const { return FenceContext::Fence(m_frameIndex); }
+        UINT64 FenceValue() const { return FenceContext::FenceValue(m_frameIndex); }
+        void Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const;
 
     private:
         IDXGISwapChain* m_swapChain;
@@ -55,6 +68,7 @@ namespace dx12
 
         u32 m_width;
         u32 m_height;
+        u32 m_frameIndex;
 
         bool m_fullScreen;
 

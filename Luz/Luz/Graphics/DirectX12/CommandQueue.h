@@ -11,6 +11,7 @@
 namespace dx12
 {
     class Device;
+    class SwapChain;
     class CommandContext;
     class GraphicsCommandContext;
 
@@ -25,6 +26,7 @@ namespace dx12
 
         bool Initialize(std::shared_ptr<const Device> pDevice);
 
+        bool Signal(std::shared_ptr<SwapChain> pSwapChain, bool wait = false) const;
         bool Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
         bool Execute(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
 

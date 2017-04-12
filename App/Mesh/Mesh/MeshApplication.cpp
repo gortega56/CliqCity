@@ -120,7 +120,7 @@ void MeshApplication::Update(double dt)
     m_gpuBuffer.Map(&m_cbvData);
     m_gpuBuffer.Unmap();
 
-    pRenderer->GetGraphicsContext()->WaitForPreviousFrame();
+    pRenderer->WaitForPreviousFrame();
     pRenderer->GetGraphicsContext()->Reset(&m_pipeline);
 
     pRenderer->SetRenderContext();
@@ -141,8 +141,8 @@ void MeshApplication::Update(double dt)
 void MeshApplication::FixedUpdate(double dt)
 {
     double time = m_engine->Total();
-    float st = sin(time);
-    float ct = cos(time);
+    float st = (float)sin(time);
+    float ct = (float)cos(time);
 
     mat4f trn = mat4f::translate(vec3f(ct, st, ct) * 6.0f);
     mat4f rot = quatf::rollPitchYaw(st, ct, st).toMatrix4();

@@ -32,6 +32,23 @@ bool CommandQueue::Initialize(std::shared_ptr<const Device> pDevice)
     return true;
 }
 
+bool CommandQueue::Signal(std::shared_ptr<SwapChain> pSwapChain, bool wait /*= false*/) const
+{
+    HRESULT hr = m_graphicsCommandQueue->Signal(pSwapChain->Fence(), pSwapChain->FenceValue());
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    if (wait)
+    {
+        pSwapChain->WaitForPreviousFrame();
+    }
+
+    return true;
+}
+
+
 bool CommandQueue::Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait /*= false*/) const
 {
     // add signal to command queue so the fence value gets updated
@@ -43,7 +60,7 @@ bool CommandQueue::Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wai
 
     if (wait)
     {
-        pCtx->WaitForFence(pCtx->FrameIndex());
+        pCtx->WaitForFence(pCtx->AllocatorIndex());
         pCtx->Reset();
     }
 

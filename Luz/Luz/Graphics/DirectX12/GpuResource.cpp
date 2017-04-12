@@ -61,10 +61,9 @@ bool GpuBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shar
         return false;
     }
 
-    ID3D12Resource* uploadBuffer;
-
     if (data)
     {
+        ID3D12Resource* uploadBuffer;
         if (!CreateUploadBufferResource(pDxDevice, &uploadBuffer, m_bufferSize))
         {
             return false;
@@ -73,6 +72,7 @@ bool GpuBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shar
         UpdateBufferResource(pCtx->CommandList(), m_resource, uploadBuffer, data, (LONG_PTR)m_bufferSize, (LONG_PTR)m_bufferSize);
         TransitionResource(pCtx->CommandList(), m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
         pQueue->Execute(pCtx, true);
+        SAFE_RELEASE(uploadBuffer);
     }
 
     return true;

@@ -31,6 +31,10 @@
 #include "Device.h"
 #endif
 
+#ifndef DX12_SWAPCHAIN_H
+#include "SwapChain.h"
+#endif
+
 #ifndef DX12VIEWPORT_H
 #include "Viewport.h"
 #endif
@@ -85,13 +89,15 @@ namespace dx12
         void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
         void ExecuteGraphicsCommandContext();
 
+        void WaitForPreviousFrame();
+
         std::shared_ptr<const Device> GetDevice() const { return m_device; };
         std::shared_ptr<const CommandQueue> GetCommandQueue() const { return m_commandQueue; }
         std::shared_ptr<GraphicsCommandContext> GetGraphicsContext() const { return m_graphicsCommandCtx; }
         std::shared_ptr<RenderContext> GetRenderContext() const { return m_renderContext; }
 
         u32 NumThreads() { return m_numThreads; }
-        u32 NumFrameBuffers() { return m_graphicsCommandCtx->NumFrameBuffers(); }
+        u32 NumFrameBuffers() { return m_swapChain->NumFrameBuffers(); }
 
         u32 Width() const { return m_renderContext->Width(); }
         u32 Height() const { return m_renderContext->Height(); }
