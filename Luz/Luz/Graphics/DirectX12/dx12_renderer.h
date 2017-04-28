@@ -72,32 +72,24 @@ namespace dx12
         friend class RootSignature;
         friend class RenderContext;
 
-        void SetRenderContext();
-        void ClearRenderContext();
-        void SetViewport();
+        void SetRenderContext(std::shared_ptr<GraphicsCommandContext>& pCtx);
+        void ClearRenderContext(std::shared_ptr<GraphicsCommandContext>& pCtx);
+        void SetViewport(std::shared_ptr<GraphicsCommandContext>& pCtx);
 
-
-        void Prepare(Renderable* pRenderable);
-
-        void DrawIndexedInstanced(Renderable* pRenderable, u32 instanceCount = 1, u32 startIndex = 0, i32 baseVertex = 0, u32 startInstance = 0);
-
-        void Present();
-
-        void SetGraphicsRootConstantBuffer(GraphicsCommandContext* pContext, UploadBuffer* pUploadBuffer, u32 paramIndex = 0);
-        void SetGraphicsRootConstantBuffer(UploadBuffer* pUploadBuffer, u32 paramIndex = 0);
+        void Present(std::shared_ptr<GraphicsCommandContext> pCtx);
 
         void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
-        void ExecuteGraphicsCommandContext();
 
         void WaitForPreviousFrame();
 
+        std::shared_ptr<GraphicsCommandContext> GetFrameContext();
+
         std::shared_ptr<const Device> GetDevice() const { return m_device; };
         std::shared_ptr<const CommandQueue> GetCommandQueue() const { return m_commandQueue; }
-        std::shared_ptr<GraphicsCommandContext> GetGraphicsContext() const { return m_graphicsCommandCtx; }
         std::shared_ptr<RenderContext> GetRenderContext() const { return m_renderContext; }
 
         u32 NumThreads() { return m_numThreads; }
-        u32 NumFrameBuffers() { return m_swapChain->NumFrameBuffers(); }
+        u32 NumFrameBuffers() { return m_numFrameBuffers; }
 
         u32 Width() const { return m_renderContext->Width(); }
         u32 Height() const { return m_renderContext->Height(); }
@@ -108,7 +100,6 @@ namespace dx12
 
         std::shared_ptr<Device> m_device;
         std::shared_ptr<CommandQueue> m_commandQueue;
-        std::shared_ptr<GraphicsCommandContext> m_graphicsCommandCtx;
         std::shared_ptr<RenderContext> m_renderContext;
         std::shared_ptr<SwapChain> m_swapChain;
 
@@ -116,7 +107,10 @@ namespace dx12
 
         ID3D12Debug* m_debug;
 
+        std::vector<std::shared_ptr<GraphicsCommandContext>> m_graphicsCommandContexts;
+
     private:
+        u32 m_numFrameBuffers;
         u32 m_numThreads;
         bool m_running;
 

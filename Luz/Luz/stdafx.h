@@ -19,6 +19,9 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <map>
 #include <iostream>
+#include <future>
+#include <thread>
 
 #include "TypeDefs.h"

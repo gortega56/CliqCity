@@ -2,6 +2,7 @@
 #include "dx12_renderable.h"
 #include "dx12_renderer.h"
 #include "Mesh.h"
+#include "CommandContext.h"
 
 using namespace dx12;
 
@@ -32,14 +33,14 @@ D3D12_INDEX_BUFFER_VIEW const* Renderable::IndexBufferView() const
 bool Renderable::LoadMesh(Renderer* pRenderer, IMesh* pMesh)
 {
     auto pQueue = pRenderer->GetCommandQueue();
-    auto pCtx = pRenderer->GetGraphicsContext();
+    auto pCtx = pRenderer->GetFrameContext();
 
-    if (!m_vertexBuffer.Initialize(pQueue, pCtx, pMesh->VertexDataSize(), pMesh->VertexStride(), pMesh->NumVertices(), pMesh->VertexData()))
+    if (!m_vertexBuffer.Initialize(pQueue, pCtx, pMesh->VertexDataSize(), (u32)pMesh->VertexStride(), pMesh->NumVertices(), pMesh->VertexData()))
     {
         return false;
     }
 
-    if (!m_indexBuffer.Initialize(pQueue, pCtx, pMesh->IndexDataSize(), pMesh->IndexStride(), pMesh->NumIndices(), pMesh->IndexData()))
+    if (!m_indexBuffer.Initialize(pQueue, pCtx, pMesh->IndexDataSize(), (u32)pMesh->IndexStride(), pMesh->NumIndices(), pMesh->IndexData()))
     {
         return false;
     }
@@ -48,4 +49,16 @@ bool Renderable::LoadMesh(Renderer* pRenderer, IMesh* pMesh)
     m_indexBufferView = m_indexBuffer.IndexBufferView();
 
     return true;
+}
+
+void Renderable::Prepare(GraphicsCommandContext* pCtx)
+{
+    pCtx->CommandList()->IASetPrimitiveTopology(m_topology);
+    pCtx->CommandList()->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+    pCtx->CommandList()->IASetIndexBuffer(&m_indexBufferView);
+}
+
+void Renderable::DrawIndexedInstanced(GraphicsCommandContext* pCtx, u32 instanceCount, u32 startIndex, i32 baseVertex, u32 startInstance)
+{
+    pCtx->CommandList()->DrawIndexedInstanced(NumIndices(), instanceCount, startIndex, baseVertex, startInstance);
 }

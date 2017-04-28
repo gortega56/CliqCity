@@ -129,6 +129,35 @@ private:
 
 typedef TEngine<OSWin, dx12::Renderer> Engine;
 
+typedef dx12::Renderer Renderer;
+
+#ifndef DX12SHADER_H
+#include "DirectX12\Shader.h"
+#endif
+
+typedef dx12::Shader Shader;
+typedef dx12::InputLayout InputLayout;
+
+#ifndef DX12PIPELINESTATE_H
+#include "DirectX12\PipelineState.h"
+#endif
+
+typedef dx12::GraphicsPipeline GraphicsPipeline;
+
+#ifndef DX12ROOTSIGNATURE_H
+#include "DirectX12\RootSignature.h"
+#endif
+
+typedef dx12::RootSignature RootSignature;
+
+#ifndef DX12GPUSTATE_H
+#include "DirectX12\GpuState.h"
+#endif
+
+typedef dx12::RasterizerState RasterizerState;
+typedef dx12::DepthStencilState DepthStencilState;
+typedef dx12::BlendState BlendState;
+
 #elif _WIN32
 
 #ifndef OSWIN_H

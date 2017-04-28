@@ -1,4 +1,5 @@
 #include "MeshApplication.h"
+#include <functional>
 
 MeshApplication::MeshApplication() : m_rs(1)
 {
@@ -50,6 +51,22 @@ bool MeshApplication::Initialize()
         return false;
     }
 
+    m_material = std::make_shared<Material>();
+
+    ResourceManager rm;
+    rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<Texture2D> pTexture)
+    {
+        if (!pTexture)
+        {
+            return;
+        }
+
+        if (auto shared = weakMaterial.lock())
+        {
+            shared->SetTexture2D((ParamID)1, pTexture);
+        }
+    });    
+
     if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
     {
         return false;
@@ -99,7 +116,8 @@ bool MeshApplication::Initialize()
     m_cbvData.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
 
-    if (!m_gpuBuffer.Initialize(pRenderer->GetGraphicsContext(), sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData))
+    auto ctx = pRenderer->GetFrameContext();
+    if (!m_gpuBuffer.Initialize(ctx, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData))
     {
         return false;
     }
@@ -114,28 +132,30 @@ int MeshApplication::Shutdown()
 
 void MeshApplication::Update(double dt)
 {
-    Renderer* pRenderer = m_engine->Graphics().get();
-
     // Rendering
     m_gpuBuffer.Map(&m_cbvData);
     m_gpuBuffer.Unmap();
 
+    Renderer* pRenderer = m_engine->Graphics().get();
+
     pRenderer->WaitForPreviousFrame();
-    pRenderer->GetGraphicsContext()->Reset(&m_pipeline);
 
-    pRenderer->SetRenderContext();
-    pRenderer->ClearRenderContext();
+    auto pCtx = pRenderer->GetFrameContext();
+    pCtx->Reset(&m_pipeline);
 
-    pRenderer->GetGraphicsContext()->SetRootSignature(&m_rs);
-    pRenderer->SetViewport();
+    pRenderer->SetRenderContext(pCtx);
+    pRenderer->ClearRenderContext(pCtx);
 
-    pRenderer->Prepare(m_renderable.get());
+    pCtx->SetRootSignature(&m_rs);
 
-    pRenderer->SetGraphicsRootConstantBuffer(&m_gpuBuffer);
+    pRenderer->SetViewport(pCtx);
 
-    pRenderer->DrawIndexedInstanced(m_renderable.get());
+    pCtx->SetGraphicsRootConstantBufferView(&m_gpuBuffer);
 
-    pRenderer->Present();
+    m_renderable->Prepare(pCtx.get());
+    m_renderable->DrawIndexedInstanced(pCtx.get());
+
+    pRenderer->Present(pCtx);
 }
 
 void MeshApplication::FixedUpdate(double dt)

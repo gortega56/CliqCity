@@ -57,9 +57,13 @@ bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_pt
         return false;
     }
 
-    if (!FenceContext::Initialize(pDevice, numFrameBuffers))
+    for (u32 i = 0; i < numFrameBuffers; ++i)
     {
-        return false;
+        m_fences.emplace_back(Fence());
+        if (!m_fences.back().Initialize(pDevice))
+        {
+            return false;
+        }
     }
 
     return true;
@@ -78,10 +82,13 @@ bool SwapChain::InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, st
 
 bool SwapChain::WaitForPreviousFrame()
 {
-    return ::WaitForPreviousFrame(m_swapChain3, m_fences.data(), m_fenceValues.data(), m_fenceEvent, &m_frameIndex);
+    bool running = m_fences[m_frameIndex].Wait();
+    m_frameIndex = m_swapChain3->GetCurrentBackBufferIndex();
+
+    return running;
 }
 
 void SwapChain::Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const
 {
-    TransitionResource(pGraphicsCommandList, m_frameBuffers[GetCurrentBackBufferIndex()], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    TransitionResource(pGraphicsCommandList, m_frameBuffers[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }

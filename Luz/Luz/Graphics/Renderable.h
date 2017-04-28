@@ -6,14 +6,6 @@
 #include "TypeDefs.h"
 #endif
 
-#ifdef _WIN64
-
-#elif _WIN32
-
-#elif __APPLE__
-/*Not implemented*/
-#endif
-
 template<typename Enum>
 bool IsSet(Enum lhs, Enum rhs) 
 {
@@ -55,7 +47,7 @@ protected:
 #ifdef _WIN64
 
 #ifndef DX12RENDERABLE_H
-#include "dx12_renderable.h"
+#include "DirectX12\dx12_renderable.h"
 #endif
 
 namespace dx12 { class Renderable; }

@@ -158,7 +158,7 @@ void InputLayout::Finalize()
 u32 InputLayout::GetByteOffset(size_t size)
 {
     u32 offset = m_byteOffset;
-    m_byteOffset += size;
+    m_byteOffset += (u32)size;
     return offset;
 }
 

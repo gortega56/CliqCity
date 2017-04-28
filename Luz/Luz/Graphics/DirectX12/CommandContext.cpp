@@ -11,9 +11,8 @@ using namespace dx12;
 
 #pragma region CommandContext
 
-CommandContext::CommandContext(u32 numAllocators) :
-    m_allocatorIndex(0),
-    m_commandAllocators(numAllocators, nullptr),
+CommandContext::CommandContext() :
+    m_commandAllocator(nullptr),
     m_device(nullptr),
     m_swapChain(nullptr)
 {
@@ -22,29 +21,14 @@ CommandContext::CommandContext(u32 numAllocators) :
 
 CommandContext::~CommandContext()
 {
-    for (auto& allocator : m_commandAllocators)
-    {
-        SAFE_RELEASE(allocator);
-    }
+    SAFE_RELEASE(m_commandAllocator);
 }
 
-bool CommandContext::WaitForNextAllocator()
-{
-    bool running = WaitForFence(m_allocatorIndex);
-
-    m_allocatorIndex++;
-    if (m_allocatorIndex > m_commandAllocators.size() - 1)
-    {
-        m_allocatorIndex = 0;
-    }
-
-    return running;
-}
 #pragma endregion CommandContext
 
 #pragma region GraphicsCommandContext
 
-GraphicsCommandContext::GraphicsCommandContext(u32 numAllocators) : CommandContext(numAllocators), m_commandList(nullptr)
+GraphicsCommandContext::GraphicsCommandContext() : CommandContext(), m_commandList(nullptr)
 {
     
 }
@@ -54,16 +38,6 @@ GraphicsCommandContext::~GraphicsCommandContext()
     SAFE_RELEASE(m_commandList);
 }
 
-void GraphicsCommandContext::WaitForAll()
-{
-    int idx;
-    for (u32 i = 0, count = NumAllocators(); i < count; ++i)
-    {
-        idx = i;
-        WaitForFence(idx);
-    }
-}
-
 bool GraphicsCommandContext::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const SwapChain> pSwapChain)
 {
     m_device = pDevice;
@@ -71,17 +45,20 @@ bool GraphicsCommandContext::Initialize(std::shared_ptr<const Device> pDevice, s
 
     ID3D12Device* pDevice1 = m_device->DX();
 
-    if (!CreateGraphicsCommandAllocators(pDevice1, m_commandAllocators.data(), (UINT)m_commandAllocators.size()))
+    if (!CreateGraphicsCommandAllocators(pDevice1, &m_commandAllocator, 1))
     {
         return false;
     }
 
-    if (!CreateGraphicsCommandList(pDevice1, m_commandAllocators[0], nullptr, &m_commandList))
+    if (!CreateGraphicsCommandList(pDevice1, m_commandAllocator, nullptr, &m_commandList))
     {
         return false;
     }
 
-    FenceContext::Initialize(pDevice, (u32)m_commandAllocators.size());
+    if (!m_fence.Initialize(pDevice))
+    {
+        return false;
+    }
 
     //for (int i = 0, num = pCommandList->NumAllocators(); i < num; ++i)
     //{
@@ -124,15 +101,16 @@ bool GraphicsCommandContext::Reset(GraphicsPipeline* pGraphicsPipeline)
 {
     bool running = true;
 
-    running = WaitForNextAllocator();
+    // TODO: this gets done externally
+    //running = WaitForNextAllocator();
 
-    HRESULT hr = m_commandAllocators[m_allocatorIndex]->Reset();
+    HRESULT hr = m_commandAllocator->Reset();
     if (FAILED(hr))
     {
         running = false;
     }
 
-    hr = m_commandList->Reset(m_commandAllocators[m_allocatorIndex], (pGraphicsPipeline) ? pGraphicsPipeline->PSO() : nullptr);
+    hr = m_commandList->Reset(m_commandAllocator, (pGraphicsPipeline) ? pGraphicsPipeline->PSO() : nullptr);
     if (FAILED(hr))
     {
         running = false;

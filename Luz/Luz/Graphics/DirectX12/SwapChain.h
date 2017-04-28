@@ -6,8 +6,8 @@
 #include "dx12_internal.h"
 #endif
 
-#ifndef DX12_FENCECONTEXT_H
-#include "FenceContext.h"
+#ifndef DX12_FENCE_H
+#include "Fence.h"
 #endif
 
 namespace dx12
@@ -16,7 +16,7 @@ namespace dx12
     class CommandQueue;
     class DescriptorHeap;
 
-    class SwapChain : public FenceContext
+    class SwapChain
     {
     public:
         SwapChain(DXGI_FORMAT format, 
@@ -51,8 +51,8 @@ namespace dx12
         friend class CommandQueue;
         friend class GraphicsCommandContext;
 
-        ID3D12Fence* Fence() const { return FenceContext::Fence(m_frameIndex); }
-        UINT64 FenceValue() const { return FenceContext::FenceValue(m_frameIndex); }
+        ID3D12Fence* GetFence() const { return m_fences[m_frameIndex].Ptr(); }
+        UINT64 GetFenceValue() const { return m_fences[m_frameIndex].Signal(); }
         void Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const;
 
     private:
@@ -73,6 +73,7 @@ namespace dx12
         bool m_fullScreen;
 
         std::vector<ID3D12Resource*> m_frameBuffers;
+        std::vector<Fence> m_fences;
 
         SwapChain(const SwapChain& other) = delete;
         SwapChain& operator=(const SwapChain& other) = delete;

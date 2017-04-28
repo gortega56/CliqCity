@@ -33,7 +33,7 @@ namespace dx12
         RootSignature(int numParams = 0);
         ~RootSignature();
 
-        ID3D12RootSignature* Signature() { return m_signature; }
+        ID3D12RootSignature* Signature() const { return m_signature; }
 
         RootSignature& AppendRootConstant(u32 num32BitVals, u32 shaderRegister, u32 registerSpace = 0U, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
         RootSignature& AppendRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);

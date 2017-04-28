@@ -13,7 +13,7 @@ class TEngine;
 #endif
 
 #ifndef DX12RENDERER_H
-#include "DirectX12\dx12_renderer.h"
+#include "Graphics\DirectX12\dx12_renderer.h"
 #endif
 
 typedef TEngine<OSWin, dx12::Renderer> Engine;

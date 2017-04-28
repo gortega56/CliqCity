@@ -52,7 +52,7 @@ namespace dx12
         D3D12_VERTEX_BUFFER_VIEW VertexBufferView();
         D3D12_INDEX_BUFFER_VIEW IndexBufferView();
 
-        D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() { return m_resource->GetGPUVirtualAddress(); }
+        D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() const { return m_resource->GetGPUVirtualAddress(); }
 
     protected:
         u64 m_bufferSize;

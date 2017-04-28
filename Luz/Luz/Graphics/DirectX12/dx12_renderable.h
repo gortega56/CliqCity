@@ -27,6 +27,9 @@ namespace dx12
 
         bool LoadMesh(Renderer* pRenderer, IMesh* pMesh);
 
+        void Prepare(GraphicsCommandContext* pCtx);
+        void DrawIndexedInstanced(GraphicsCommandContext* pCtx, u32 instanceCount = 1, u32 startIndex = 0, i32 baseVertex = 0, u32 startInstance = 0);
+
     private:
         GpuBuffer m_vertexBuffer;
         GpuBuffer m_indexBuffer;

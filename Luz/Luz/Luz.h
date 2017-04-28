@@ -10,6 +10,19 @@
 #include "Graphics\Renderable.h"
 #endif
 
+#ifndef MATERIAL_H
+#include "Graphics\Material.h"
+#endif
+
+#ifndef RESOURCEMANAGER_H
+#include "Resource\ResourceManager.h"
+#endif
+
+#ifndef TEXTURE_H
+#include "Resource\Texture.h"
+#endif
+
+
 #ifndef MESH_H
 #include "Mesh.h"
 #endif

@@ -11,10 +11,10 @@ Renderer::Renderer(OSWin* pOS, u32 numThreads, u32 numFrameBuffers) :
     m_hwnd(pOS->RootWindowHandle()),
     m_device(std::make_shared<Device>()),
     m_commandQueue(std::make_shared<CommandQueue>()),
-    m_graphicsCommandCtx(std::make_shared<GraphicsCommandContext>(numThreads * numFrameBuffers)),
     m_renderContext(std::make_shared<RenderContext>()),
     m_swapChain(nullptr),
     m_numThreads(numThreads),
+    m_numFrameBuffers(numFrameBuffers),
     m_running(true)
 {
 
@@ -96,14 +96,18 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
     }
 
     m_swapChain = std::make_shared<SwapChain>(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_USAGE_RENDER_TARGET_OUTPUT, DXGI_SWAP_EFFECT_FLIP_DISCARD);
-    if (!m_swapChain->Initialize(m_device, m_commandQueue, m_hwnd, m_graphicsCommandCtx->NumAllocators() / m_numThreads, width, height, fullscreen))
+    if (!m_swapChain->Initialize(m_device, m_commandQueue, m_hwnd, m_numFrameBuffers, width, height, fullscreen))
     {
         return false;
     }
     
-    if (!m_graphicsCommandCtx->Initialize(m_device, m_swapChain))
+    for (u32 i = 0; i < m_numFrameBuffers; ++i)
     {
-        return false;
+        m_graphicsCommandContexts.emplace_back(std::make_shared<GraphicsCommandContext>());
+        if (!m_graphicsCommandContexts.back()->Initialize(m_device, m_swapChain))
+        {
+            return false;
+        }
     }
 
     if (!m_renderContext->Initialize(m_device, m_swapChain, width, height))
@@ -132,46 +136,33 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
 bool Renderer::Shutdown()
 {
     // wait for the gpu to finish all frames
-    m_graphicsCommandCtx->WaitForAll(); 
+    CommandContext::WaitForAll(m_graphicsCommandContexts);
 
     return true;
 }
 
-void Renderer::SetRenderContext()
+void Renderer::SetRenderContext(std::shared_ptr<GraphicsCommandContext>& pCtx)
 {
-    m_graphicsCommandCtx->SetRenderContext(m_renderContext.get());
+    pCtx->SetRenderContext(m_renderContext.get());
 }
 
-void Renderer::ClearRenderContext()
+void Renderer::ClearRenderContext(std::shared_ptr<GraphicsCommandContext>& pCtx)
 {
-    m_graphicsCommandCtx->ClearRenderContext(m_renderContext.get());
+    pCtx->ClearRenderContext(m_renderContext.get());
 }
 
-void Renderer::SetViewport()
+void Renderer::SetViewport(std::shared_ptr<GraphicsCommandContext>& pCtx)
 {
-    m_graphicsCommandCtx->SetViewport(&m_viewport);
+    pCtx->SetViewport(&m_viewport);
 }
 
-void Renderer::Prepare(Renderable* pRenderable)
-{
-    m_graphicsCommandCtx->CommandList()->IASetPrimitiveTopology(pRenderable->Topology());
-    m_graphicsCommandCtx->CommandList()->IASetVertexBuffers(0, 1, pRenderable->VertexBufferView());
-    m_graphicsCommandCtx->CommandList()->IASetIndexBuffer(pRenderable->IndexBufferView());
-}
-
-
-void Renderer::DrawIndexedInstanced(Renderable* pRenderable, u32 instanceCount, u32 startIndex, i32 baseVertex, u32 startInstance)
-{
-    m_graphicsCommandCtx->CommandList()->DrawIndexedInstanced(pRenderable->NumIndices(), instanceCount, startIndex, baseVertex, startInstance);
-}
-
-void Renderer::Present()
+void Renderer::Present(std::shared_ptr<GraphicsCommandContext> pCtx)
 {
     // Transition back buffer to present
-    m_graphicsCommandCtx->FinalizeSwapChain();
+    pCtx->FinalizeSwapChain();
 
     // Close / Execute / Signal
-    m_running = m_commandQueue->Execute(m_graphicsCommandCtx);
+    m_running = m_commandQueue->Execute(pCtx);
     
     // Present
     HRESULT hr = m_swapChain->GetSwapChain3()->Present(0, 0);
@@ -183,27 +174,18 @@ void Renderer::Present()
     m_commandQueue->Signal(m_swapChain);
 }
 
-void Renderer::SetGraphicsRootConstantBuffer(GraphicsCommandContext* pContext, UploadBuffer* pUploadBuffer, u32 paramIndex)
-{
-    pContext->SetGraphicsRootConstantBufferView(pUploadBuffer, paramIndex);
-}
-
-void Renderer::SetGraphicsRootConstantBuffer(UploadBuffer* pUploadBuffer, u32 paramIndex)
-{
-    SetGraphicsRootConstantBuffer(m_graphicsCommandCtx.get(), pUploadBuffer, paramIndex);
-}
-
 void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx)
 {
     m_running = m_commandQueue->Execute(pGraphicsCommandCtx);
 }
 
-void Renderer::ExecuteGraphicsCommandContext()
-{
-    m_running = m_commandQueue->Execute(m_graphicsCommandCtx);
-}
-
 void Renderer::WaitForPreviousFrame()
 {
     m_swapChain->WaitForPreviousFrame();
+}
+
+std::shared_ptr<GraphicsCommandContext> Renderer::GetFrameContext()
+{
+    u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+    return m_graphicsCommandContexts[frameIndex];
 }
