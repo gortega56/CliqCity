@@ -51,8 +51,7 @@ namespace dx12
         friend class CommandQueue;
         friend class GraphicsCommandContext;
 
-        ID3D12Fence* GetFence() const { return m_fences[m_frameIndex].Ptr(); }
-        UINT64 GetFenceValue() const { return m_fences[m_frameIndex].Signal(); }
+        Fence* GetFence() { return &m_fences[m_frameIndex]; }
         void Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const;
 
     private:

@@ -337,9 +337,6 @@ bool WaitForFence(ID3D12Fence* pFence, UINT64* pFenceValue, HANDLE fenceEvent)
 
     // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
     // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-    
-    if (!pFence) __debugbreak();
-
     UINT64 completedValue = pFence->GetCompletedValue();
     if (completedValue < fenceValue)
     {
@@ -353,9 +350,6 @@ bool WaitForFence(ID3D12Fence* pFence, UINT64* pFenceValue, HANDLE fenceEvent)
         // has reached "fenceValue", we know the command queue has finished executing
         WaitForSingleObject(fenceEvent, INFINITE);
     }
-
-    // increment fenceValue for next frame
-    *pFenceValue = fenceValue + 1;
 
     return running;
 }

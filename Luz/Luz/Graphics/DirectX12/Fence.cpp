@@ -35,12 +35,9 @@ bool Fence::Initialize(std::shared_ptr<const Device> pDevice)
 }
 
 bool Fence::Wait()
-{
-    UINT64 signal = m_signal;
-    
-    bool result = ::WaitForFence(m_fence, &signal, m_event);
-    m_completed = m_signal;
-    m_signal = signal;
+{    
+    bool result = ::WaitForFence(m_fence, &m_signal, m_event);
+    m_completed = m_fence->GetCompletedValue();
 
     return result;
 }

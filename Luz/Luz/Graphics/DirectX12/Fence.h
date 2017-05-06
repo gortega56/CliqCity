@@ -20,7 +20,7 @@ namespace dx12
         bool Wait();
         bool IsAvailable() const
         {
-            return m_completed == m_fence->GetCompletedValue();
+            return m_signal == m_completed;
         }
 
         ID3D12Fence* Ptr() const { return m_fence; }
@@ -36,6 +36,8 @@ namespace dx12
         UINT64 m_completed;
         HANDLE m_event;
         ID3D12Fence* m_fence;
+
+        void IncrementSignal() { m_signal++; }
     };
 }
 
