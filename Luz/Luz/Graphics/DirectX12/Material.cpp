@@ -3,7 +3,6 @@
 #include "RootSignature.h"
 #include "CommandContext.h"
 #include "DescriptorHeap.h"
-#include "GpuResource.h"
 #include "Resource\ResourceManager.h"
 
 using namespace dx12;

@@ -68,6 +68,8 @@ namespace dx12
 
         bool Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data);
 
+        template<class DataType>
+        bool Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, DataType* data);
         //void ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i = 0);
 
         bool Map(void* data);
@@ -76,6 +78,12 @@ namespace dx12
     private:
         UINT8* m_gpuAddress;
     };
+
+    template<class DataType>
+    bool UploadBuffer::Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, DataType* data)
+    {
+        return Initialize(pCtx, sizeof(DataType), sizeof(DataType), 1, data);
+    }
 
     class PixelBuffer : public GpuResource
     {

@@ -2,6 +2,10 @@
 #ifndef DX12_MATERIAL_H
 #define DX12_MATERIAL_H
 
+#ifndef GPURESOURCE_H
+#include "GpuResource.h"
+#endif
+
 #include <map>
 
 class Texture2D;
@@ -10,8 +14,6 @@ enum class ParamID : int32_t;
 
 namespace dx12
 {
-    class PixelBuffer;
-    class UploadBuffer;
     class DescriptorHeap;
     class RootSignature;
     class GraphicsCommandContext;
@@ -22,14 +24,18 @@ namespace dx12
         Material();
         ~Material();
 
-        template <class PARAM>
+        template<class PARAM>
         void SetParam(const ParamID& paramID, std::shared_ptr<PARAM> param, std::map<const ParamID, std::shared_ptr<PARAM>>& map);
-       // void SetDescriptorTable(const ParamID& paramID, std::shared_ptr<const DescriptorHeap> param) {  SetParam<const DescriptorHeap>(paramID, param, m_descriptorMap); }
+
+        void SetDescriptorTable(const ParamID& paramID, std::shared_ptr<const DescriptorHeap> param) {  SetParam<const DescriptorHeap>(paramID, param, m_descriptorMap); }
         void SetPixelBuffer(const ParamID& paramID, std::shared_ptr<const PixelBuffer> param) { SetParam<const PixelBuffer>(paramID, param, m_pixelBufferMap); }
-      //  void SetConstantBuffer(const ParamID& paramID, std::shared_ptr<const UploadBuffer> param) { SetParam<const UploadBuffer>(paramID, param, m_constantBufferMap); }
-        
         void SetTexture2D(const ParamID& paramID, std::shared_ptr<const Texture2D> pTexture);
         
+        void SetConstantBuffer(const ParamID& paramID, std::shared_ptr<const UploadBuffer> param) { SetParam<const UploadBuffer>(paramID, param, m_constantBufferMap); }
+        
+        template<class PARAM>
+        void SetConstantBuffer(const ParamID& paramID, std::shared_ptr<PARAM> param);
+
         bool Prepare(GraphicsCommandContext* pCtx);
 
     private:
@@ -50,6 +56,13 @@ namespace dx12
         {
             map[paramID] = std::move(param);
         }
+    }
+
+    template<class PARAM>
+    void Material::SetConstantBuffer(const ParamID& paramID, std::shared_ptr<PARAM> param)
+    {
+        auto uploadBuffer = std::make_shared<UploadBuffer>();
+        uploadBuffer->Initialize()
     }
 }
 
