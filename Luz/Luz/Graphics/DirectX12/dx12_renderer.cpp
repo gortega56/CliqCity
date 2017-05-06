@@ -186,6 +186,8 @@ void Renderer::WaitForPreviousFrame()
 
 std::shared_ptr<GraphicsCommandContext> Renderer::GetFrameContext()
 {
-    u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-    return m_graphicsCommandContexts[frameIndex];
+    //u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+    //return m_graphicsCommandContexts[frameIndex];
+    return CommandContext::GetNextAvailable(m_graphicsCommandContexts);
+
 }

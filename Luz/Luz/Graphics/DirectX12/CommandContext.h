@@ -45,7 +45,6 @@ namespace dx12
     protected:
         friend class CommandQueue;
 
-        UINT64 m_lastFenceValue;
         Fence m_fence;
         
         ID3D12CommandAllocator* m_commandAllocator;
@@ -92,56 +91,47 @@ namespace dx12
     template<class CONTEXT>
     std::shared_ptr<CONTEXT> CommandContext::GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts)
     {
-        // Context with the lowest fence value should be the one closest to finishing
-        //std::sort(contexts.begin(), contexts.end(), [](const std::shared_ptr<CONTEXT>& lhs, const std::shared_ptr<CONTEXT>& rhs)
+        // Round robin
+        //static u32 numContexts = (u32)contexts.size();
+        //static u32 idx = 0;
+
+        //if (idx >= numContexts)
         //{
-        //    return (lhs->GetFence()->Value() > rhs->GetFence()->Value());
-        //});
+        //    idx = 0;
+        //}
 
-        static u32 numContexts = (u32)contexts.size();
-        static u32 idx = 0;
+        //return contexts[idx++];
 
-        if (idx >= numContexts)
+        // Just look for any ctx that we aren't waiting for
+        for (auto& ctx : contexts)
         {
-            idx = 0;
+            if (!ctx->GetFence()->IsWaiting())
+            {
+                return ctx;
+            }
         }
 
-        return contexts[idx++];
+        // look for the one with the lowest signal;
+        UINT64 min = UINT64_MAX;
+        int idx = 0;
+        for (int i = 0, count = (int)contexts.size(); i < count; ++i)
+        {
+            UINT64 sig = contexts[i]->GetFence()->Signal();
+            if (sig < min)
+            {
+                min = sig;
+                idx = i;
+            }
+        }
 
-        //for (u32 i = 0; i < (u32)contexts.size(); ++i)
-        //{
-        //    Fence* pFence = contexts[i]->GetFence();
-        //    if (pFence->IsAvailable())
-        //    {
-        //       // std::cout << "GfxCtx: " << i << std::endl;
+        contexts[idx]->GetFence()->Wait();
 
-        //        return contexts[i];
-        //    }
-        //}
-
-        //u32 idx = 0; u64 min = UINT64_MAX;
-        //for (u32 i = 0; i < (u32)contexts.size(); ++i)
-        //{
-        //    Fence* pFence = contexts[i]->GetFence();
-        //    u64 val = pFence->Signal();
-        //    if (val < min)
-        //    {
-        //        min = val;
-        //        idx = i;
-        //    }
-        //}
-
-        //std::cout << "WAIT GfxCtx: " << idx << std::endl;
-        //contexts[idx]->GetFence()->Wait();
-
-        //return contexts[idx];
+        return contexts[idx];
     }
 
     template<class CONTEXT>
     void CommandContext::WaitForAll(std::vector<std::shared_ptr<CONTEXT>>& contexts)
     {
-        // Context with the lowest fence value should be the one closest to finishing
-
         for (auto& ctx : contexts)
         {
             ctx->GetFence()->Wait();

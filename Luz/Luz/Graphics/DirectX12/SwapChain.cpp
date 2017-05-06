@@ -57,10 +57,11 @@ bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_pt
         return false;
     }
 
+    m_fences.resize(numFrameBuffers);
+
     for (u32 i = 0; i < numFrameBuffers; ++i)
     {
-        m_fences.emplace_back(Fence());
-        if (!m_fences.back().Initialize(pDevice))
+        if (!m_fences[i].Initialize(pDevice))
         {
             return false;
         }

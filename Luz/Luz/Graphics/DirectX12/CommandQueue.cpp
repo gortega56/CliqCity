@@ -37,6 +37,7 @@ bool CommandQueue::Signal(std::shared_ptr<SwapChain> pSwapChain, bool wait /*= f
     auto pFence = pSwapChain->GetFence();
     pFence->IncrementSignal();
 
+    // Updates fence to specified value
     HRESULT hr = m_graphicsCommandQueue->Signal(pFence->Ptr(), pFence->Signal());
     if (FAILED(hr))
     {

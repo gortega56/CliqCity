@@ -60,49 +60,12 @@ bool GraphicsCommandContext::Initialize(std::shared_ptr<const Device> pDevice, s
         return false;
     }
 
-    //for (int i = 0, num = pCommandList->NumAllocators(); i < num; ++i)
-    //{
-    //    hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCommandList->m_commandAllocators[i]));
-    //    if (FAILED(hr))
-    //    {
-    //        return false;
-    //    }
-    //}
-
-    //// Create command list using first allocator
-    //hr = pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandList->m_commandAllocators[0], nullptr, IID_PPV_ARGS(&pCommandList->m_commandList));
-    //if (FAILED(hr))
-    //{
-    //    return false;
-    //}
-
-    //// Create fence
-    //for (int i = 0, num = pCommandList->NumAllocators(); i < num; ++i)
-    //{
-    //    hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pCommandList->m_fences[i]));
-    //    if (FAILED(hr))
-    //    {
-    //        return false;
-    //    }
-
-    //    pCommandList->m_fenceValues[i] = 0;
-    //}
-
-    //pCommandList->m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    //if (pCommandList->m_fenceEvent == nullptr)
-    //{
-    //    return false;
-    //}
-
     return true;
 }
 
 bool GraphicsCommandContext::Reset(GraphicsPipeline* pGraphicsPipeline)
 {
     bool running = true;
-
-    // TODO: this gets done externally
-    //running = WaitForNextAllocator();
 
     HRESULT hr = m_commandAllocator->Reset();
     if (FAILED(hr))
