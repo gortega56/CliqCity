@@ -32,27 +32,6 @@ bool CommandQueue::Initialize(std::shared_ptr<const Device> pDevice)
     return true;
 }
 
-bool CommandQueue::Signal(std::shared_ptr<SwapChain> pSwapChain, bool wait /*= false*/) const
-{
-    auto pFence = pSwapChain->GetFence();
-    pFence->IncrementSignal();
-
-    // Updates fence to specified value
-    HRESULT hr = m_graphicsCommandQueue->Signal(pFence->Ptr(), pFence->Signal());
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
-    if (wait)
-    {
-        pSwapChain->WaitForPreviousFrame();
-    }
-
-    return true;
-}
-
-
 bool CommandQueue::Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait /*= false*/) const
 {
     // add signal to command queue so the fence value gets updated

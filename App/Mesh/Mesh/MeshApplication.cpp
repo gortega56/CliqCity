@@ -138,8 +138,6 @@ void MeshApplication::Update(double dt)
 
     Renderer* pRenderer = m_engine->Graphics().get();
 
-    pRenderer->WaitForPreviousFrame();
-
     auto pCtx = pRenderer->GetFrameContext();
     pCtx->Reset(&m_pipeline);
 

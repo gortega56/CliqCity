@@ -26,7 +26,7 @@ namespace dx12
 
         bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen);
         bool InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap);
-        bool WaitForPreviousFrame();
+        bool Present();
 
         inline IDXGISwapChain* GetSwapChain() const { return m_swapChain; }
         inline IDXGISwapChain1* GetSwapChain1() const { return m_swapChain1; }

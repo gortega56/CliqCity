@@ -37,7 +37,7 @@ namespace dx12
         std::shared_ptr<const SwapChain> GetSwapChain() const { return m_swapChain; }
 
         template<class CONTEXT>
-        static std::shared_ptr<CONTEXT> GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts);
+        static int GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts);
     
         template<class CONTEXT>
         static void WaitForAll(std::vector<std::shared_ptr<CONTEXT>>& contexts);
@@ -89,44 +89,32 @@ namespace dx12
     };
 
     template<class CONTEXT>
-    std::shared_ptr<CONTEXT> CommandContext::GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts)
+    int CommandContext::GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts)
     {
-        // Round robin
-        //static u32 numContexts = (u32)contexts.size();
-        //static u32 idx = 0;
-
-        //if (idx >= numContexts)
-        //{
-        //    idx = 0;
-        //}
-
-        //return contexts[idx++];
-
-        // Just look for any ctx that we aren't waiting for
-        for (auto& ctx : contexts)
-        {
-            if (!ctx->GetFence()->IsWaiting())
-            {
-                return ctx;
-            }
-        }
-
-        // look for the one with the lowest signal;
         UINT64 min = UINT64_MAX;
         int idx = 0;
+
+        // Just look for any ctx that we aren't waiting for
         for (int i = 0, count = (int)contexts.size(); i < count; ++i)
         {
-            UINT64 sig = contexts[i]->GetFence()->Signal();
-            if (sig < min)
+            if (!contexts[i]->GetFence()->IsWaiting())
             {
-                min = sig;
-                idx = i;
+                return i;
+            }
+            else
+            {
+                UINT64 sig = contexts[i]->GetFence()->Signal();
+                if (sig < min)
+                {
+                    min = sig;
+                    idx = i;
+                }
             }
         }
 
         contexts[idx]->GetFence()->Wait();
 
-        return contexts[idx];
+        return idx;
     }
 
     template<class CONTEXT>

@@ -80,8 +80,6 @@ namespace dx12
 
         void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
 
-        void WaitForPreviousFrame();
-
         std::shared_ptr<GraphicsCommandContext> GetFrameContext();
 
         std::shared_ptr<const Device> GetDevice() const { return m_device; };

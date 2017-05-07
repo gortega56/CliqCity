@@ -81,12 +81,17 @@ bool SwapChain::InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, st
     return true;
 }
 
-bool SwapChain::WaitForPreviousFrame()
+bool SwapChain::Present()
 {
-    bool running = m_fences[m_frameIndex].Wait();
+    HRESULT hr = m_swapChain3->Present(0, 0);
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
     m_frameIndex = m_swapChain3->GetCurrentBackBufferIndex();
 
-    return running;
+    return true;
 }
 
 void SwapChain::Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const

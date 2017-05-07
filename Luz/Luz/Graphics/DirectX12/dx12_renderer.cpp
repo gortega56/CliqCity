@@ -165,13 +165,7 @@ void Renderer::Present(std::shared_ptr<GraphicsCommandContext> pCtx)
     m_running = m_commandQueue->Execute(pCtx);
     
     // Present
-    HRESULT hr = m_swapChain->GetSwapChain3()->Present(0, 0);
-    if (FAILED(hr))
-    {
-        m_running = false;
-    }
-
-    m_commandQueue->Signal(m_swapChain);
+    m_swapChain->Present();
 }
 
 void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx)
@@ -179,15 +173,12 @@ void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandCont
     m_running = m_commandQueue->Execute(pGraphicsCommandCtx);
 }
 
-void Renderer::WaitForPreviousFrame()
-{
-    m_swapChain->WaitForPreviousFrame();
-}
-
 std::shared_ptr<GraphicsCommandContext> Renderer::GetFrameContext()
 {
-    //u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-    //return m_graphicsCommandContexts[frameIndex];
-    return CommandContext::GetNextAvailable(m_graphicsCommandContexts);
+    int idx = CommandContext::GetNextAvailable(m_graphicsCommandContexts);
 
+    u32 i = m_swapChain->GetCurrentBackBufferIndex();
+    std::cout << "Frame: " << i << "Ctx: " << idx << std::endl;
+
+    return m_graphicsCommandContexts[idx];
 }
