@@ -1,12 +1,12 @@
 #pragma once
-#ifndef DX12GPUSTATE_H
-#define DX12GPUSTATE_H
+#ifndef DX12_GPUSTATE_H
+#define DX12_GPUSTATE_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     template<class DESC>
     class GpuState

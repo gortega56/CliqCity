@@ -1,6 +1,6 @@
 #pragma once
-#ifndef DX12SHADER_H
-#define DX12SHADER_H
+#ifndef DX12_SHADER_H
+#define DX12_SHADER_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
@@ -9,7 +9,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace dx12
+namespace Dx12
 {
     class Shader
     {

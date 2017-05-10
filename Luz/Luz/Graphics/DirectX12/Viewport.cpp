@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Viewport.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 Viewport::Viewport()
 {

@@ -161,9 +161,6 @@
     <ClInclude Include="Graphics\DirectX12\Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\GpuResource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Luz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -210,6 +207,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Resource\Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX12\GpuResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

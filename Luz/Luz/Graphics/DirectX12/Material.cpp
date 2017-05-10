@@ -3,11 +3,13 @@
 #include "RootSignature.h"
 #include "CommandContext.h"
 #include "DescriptorHeap.h"
+#include "Resource\Texture.h"
+#include "dx12_renderer.h"
 #include "Resource\ResourceManager.h"
 
-using namespace dx12;
+using namespace Dx12;
 
-Material::Material() : m_rootSignature(nullptr)
+Material::Material(std::shared_ptr<const Renderer> pRenderer) : m_renderer(pRenderer), m_rootSignature(nullptr)
 {
 
 }
@@ -19,11 +21,15 @@ Material::~Material()
 
 void Material::SetTexture2D(const ParamID& paramID, std::shared_ptr<const Texture2D> pTexture)
 {
-    auto gpuResource = std::make_shared<PixelBuffer>();
-    
-    // TODO: Initialize buffer with texture data
+    if (auto renderer = m_renderer.lock())
+    {
+        auto gpuResource = std::make_shared<PixelBuffer>();
 
-    SetPixelBuffer(paramID, gpuResource);
+        if (gpuResource->Initialize(renderer->GetCommandQueue(), renderer->GetContext(), (u32)pTexture->Width(), pTexture->Height(), pTexture->GetDXGI(), (void*)pTexture->Data()))
+        {
+            SetPixelBuffer(paramID, gpuResource);
+        }
+    }
 }
 
 bool Material::Prepare(GraphicsCommandContext* pCtx)

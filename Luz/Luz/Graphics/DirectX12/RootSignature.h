@@ -1,12 +1,12 @@
 #pragma once
-#ifndef DX12ROOTSIGNATURE_H
-#define DX12ROOTSIGNATURE_H
+#ifndef DX12_ROOTSIGNATURE_H
+#define DX12_ROOTSIGNATURE_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     class DescriptorTable
     {

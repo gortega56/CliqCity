@@ -24,8 +24,8 @@ public:
 #include "DirectX12\Material.h"
 #endif
 
-namespace dx12 { class Material; }
-typedef TMaterial<dx12::Material> Material;
+namespace Dx12 { class Material; }
+typedef TMaterial<Dx12::Material> Material;
 
 #elif _WIN32
 
@@ -33,8 +33,8 @@ typedef TMaterial<dx12::Material> Material;
 #include "DirectX12\Material.h"
 #endif
 
-namespace dx12 { class Material; }
-typedef TMaterial<dx12::Material> Material;
+namespace Dx12 { class Material; }
+typedef TMaterial<Dx12::Material> Material;
 
 #elif __APPLE__
 #endif

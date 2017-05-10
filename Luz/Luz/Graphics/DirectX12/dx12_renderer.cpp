@@ -5,7 +5,7 @@
 #include "CommandQueue.h"
 #include "SwapChain.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 Renderer::Renderer(OSWin* pOS, u32 numThreads, u32 numFrameBuffers) : 
     m_hwnd(pOS->RootWindowHandle()),
@@ -173,12 +173,12 @@ void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandCont
     m_running = m_commandQueue->Execute(pGraphicsCommandCtx);
 }
 
-std::shared_ptr<GraphicsCommandContext> Renderer::GetFrameContext()
+std::shared_ptr<GraphicsCommandContext> Renderer::GetContext() const
 {
     int idx = CommandContext::GetNextAvailable(m_graphicsCommandContexts);
 
-    u32 i = m_swapChain->GetCurrentBackBufferIndex();
-    std::cout << "Frame: " << i << "Ctx: " << idx << std::endl;
+    //u32 i = m_swapChain->GetCurrentBackBufferIndex();
+    //std::cout << "Frame: " << i << "Ctx: " << idx << std::endl;
 
     return m_graphicsCommandContexts[idx];
 }

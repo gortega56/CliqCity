@@ -50,8 +50,8 @@ protected:
 #include "DirectX12\dx12_renderable.h"
 #endif
 
-namespace dx12 { class Renderable; }
-typedef TRenderable<dx12::Renderable> Renderable;
+namespace Dx12 { class Renderable; }
+typedef TRenderable<Dx12::Renderable> Renderable;
 
 #elif _WIN32
 
@@ -59,8 +59,8 @@ typedef TRenderable<dx12::Renderable> Renderable;
 #include "DirectX12\dx12_renderable.h"
 #endif
 
-namespace dx12 { class Renderable; }
-typedef TRenderable<dx12::Renderable> Renderable;
+namespace Dx12 { class Renderable; }
+typedef TRenderable<Dx12::Renderable> Renderable;
 
 #elif __APPLE__
 #endif

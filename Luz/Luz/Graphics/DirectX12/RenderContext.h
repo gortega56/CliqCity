@@ -1,16 +1,16 @@
 #pragma once
-#ifndef DX12RENDERCONTEXT_H
-#define DX12RENDERCONTEXT_H
+#ifndef DX12_RENDERCONTEXT_H
+#define DX12_RENDERCONTEXT_H
 
-#ifndef GPURESOURCE_H
+#ifndef DX12_GPURESOURCE_H
 #include "GpuResource.h"
 #endif
 
-#ifndef DESCRIPTORHEAP_H
+#ifndef DX12_DESCRIPTORHEAP_H
 #include "DescriptorHeap.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     class Device;
     class SwapChain;
@@ -51,5 +51,5 @@ namespace dx12
     };
 }
 
-#endif // !DX12RENDERCONTEXT_H
+#endif // !DX12_RENDERCONTEXT_H
 

@@ -16,7 +16,7 @@ class TEngine;
 #include "Graphics\DirectX12\dx12_renderer.h"
 #endif
 
-typedef TEngine<OSWin, dx12::Renderer> Engine;
+typedef TEngine<OSWin, Dx12::Renderer> Engine;
 
 #elif _WIN32
 
@@ -28,7 +28,7 @@ typedef TEngine<OSWin, dx12::Renderer> Engine;
 #include "Graphics\DirectX12\dx12_renderer.h"
 #endif
 
-typedef TEngine<OSWin, dx12::Renderer> Engine;
+typedef TEngine<OSWin, Dx12::Renderer> Engine;
 
 #elif __APPLE__
 #endif

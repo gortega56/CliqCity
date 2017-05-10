@@ -6,15 +6,15 @@
 #include "TypeDefs.h"
 #endif
 
-#ifndef DESCRIPTORHEAP_H
+#ifndef DX12_DESCRIPTORHEAP_H
 #include "DescriptorHeap.h"
 #endif
 
-#ifndef DX12COMMANDCONTEXT_H
+#ifndef DX12_COMMANDCONTEXT_H
 #include "CommandContext.h"
 #endif
 
-#ifndef GPURESOURCE_H
+#ifndef DX12_GPURESOURCE_H
 #include "GpuResource.h"
 #endif
 
@@ -22,7 +22,7 @@
 #include "PipelineState.h"
 #endif
 
-#ifndef DX12RENDERCONTEXT_H
+#ifndef DX12_RENDERCONTEXT_H
 #include "RenderContext.h"
 #endif 
 
@@ -35,7 +35,7 @@
 #include "SwapChain.h"
 #endif
 
-#ifndef DX12VIEWPORT_H
+#ifndef DX12_VIEWPORT_H
 #include "Viewport.h"
 #endif
 
@@ -44,7 +44,7 @@
 
 class OSWin;
 
-namespace dx12
+namespace Dx12
 {
     class CommandQueue;
     class SwapChain;
@@ -80,7 +80,7 @@ namespace dx12
 
         void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
 
-        std::shared_ptr<GraphicsCommandContext> GetFrameContext();
+        std::shared_ptr<GraphicsCommandContext> GetContext() const;
 
         std::shared_ptr<const Device> GetDevice() const { return m_device; };
         std::shared_ptr<const CommandQueue> GetCommandQueue() const { return m_commandQueue; }
@@ -110,6 +110,7 @@ namespace dx12
     private:
         u32 m_numFrameBuffers;
         u32 m_numThreads;
+        
         bool m_running;
 
         Renderer(const Renderer& other) = delete;

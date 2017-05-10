@@ -1,27 +1,27 @@
 #pragma once
-#ifndef DX12PIPELINESTATE_H
-#define DX12PIPELINESTATE_H
+#ifndef DX12_PIPELINESTATE_H
+#define DX12_PIPELINESTATE_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
 #endif
 
-#ifndef DX12ROOTSIGNATURE_H
+#ifndef DX12_ROOTSIGNATURE_H
 #include "RootSignature.h"
 #endif
 
-#ifndef DX12GPUSTATE_H
+#ifndef DX12_GPUSTATE_H
 #include "GpuState.h"
 #endif
 
-#ifndef DX12SHADER_H
+#ifndef DX12_SHADER_H
 #include "Shader.h"
 #endif
 
 #include <string>
 #include <vector>
 
-namespace dx12
+namespace Dx12
 {
     class PixelBuffer;
     class RenderContext;

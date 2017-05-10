@@ -13,6 +13,20 @@
 
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
+namespace Dx12
+{
+    struct ResourceParams
+    {
+        D3D12_HEAP_PROPERTIES HeapProperties;
+        D3D12_HEAP_FLAGS HeapFlags;
+        D3D12_RESOURCE_STATES InitialState;
+    };
+
+    static const ResourceParams DefaultParams = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON };
+    static const ResourceParams UploadParams = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ };
+    static const ResourceParams DestinationParams = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_STATE_COPY_DEST };
+}
+
 bool InitDXGIFactory(IDXGIFactory4** ppFactory);
 
 bool InitD3D12Device(IDXGIFactory4* pFactory, ID3D12Device** ppDevice);
@@ -44,9 +58,15 @@ bool CreateDepthStencilResource(
     FLOAT clearDepth = 1.0f,
     UINT8 clearStencil = 0);
 
-bool CreateDestinationBufferResource(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment = 0);
+bool CreateResource(ID3D12Device* pDevice, D3D12_RESOURCE_DESC* pDesc, ID3D12Resource** ppResource, Dx12::ResourceParams const* pParams);
 
-bool CreateUploadBufferResource(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment = 0);
+bool CreateBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, Dx12::ResourceParams const* pParams, UINT64 width, UINT64 alignment = 0);
+bool CreateUploadBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment = 0);
+bool CreateDestinationBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment = 0);
+
+bool CreateTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, Dx12::ResourceParams const* pParams, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount = 1, UINT sampleQuality = 0, D3D12_TEXTURE_LAYOUT layout = D3D12_TEXTURE_LAYOUT_UNKNOWN);
+bool CreateUploadTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount = 1, UINT sampleQuality = 0, D3D12_TEXTURE_LAYOUT layout = D3D12_TEXTURE_LAYOUT_UNKNOWN);
+bool CreateDestinationTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount = 1, UINT sampleQuality = 0, D3D12_TEXTURE_LAYOUT layout = D3D12_TEXTURE_LAYOUT_UNKNOWN);
 
 bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count);
 
@@ -95,5 +115,7 @@ bool ExecuteCommandLists(ID3D12CommandQueue* pCommandQueue, ID3D12Fence* pFence,
 bool ExecuteCommandList(ID3D12CommandQueue* pCommandQueue, ID3D12Fence* pFence, UINT64* pFenceValue, ID3D12GraphicsCommandList* pCommandList);
 
 DXGI_FORMAT IndexFormat(unsigned size);
+
+int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
 
 #endif // !DX12_INTERNAL_H

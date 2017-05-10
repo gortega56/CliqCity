@@ -1,17 +1,17 @@
 #include "stdafx.h"
+#include "DirectX12\dx12_internal.h"
 #include "Texture.h"
 #include <wincodec.h>
 
 static DXGI_FORMAT GetDXGIFormatFromWICFormat(WICPixelFormatGUID& wicFormatGUID);
 static WICPixelFormatGUID GetConvertToWICFormat(WICPixelFormatGUID& wicFormatGUID);
-static int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
 
-Texture2D::Texture2D(u64 width, u32 height, u32 imageSize, u8* data) : m_width(width), m_height(height), m_size(imageSize), m_data(data)
+Texture2D::Texture2D(u64 width, u32 height, u32 imageSize, u8* data, DXGI_FORMAT format) : m_width(width), m_height(height), m_size(imageSize), m_data(data)
 {
-
+    m_format.asDXGI = format;
 }
 
-Texture2D::Texture2D() : Texture2D(0, 0, 0, nullptr)
+Texture2D::Texture2D() : Texture2D(0, 0, 0, nullptr, DXGI_FORMAT_UNKNOWN)
 {
 
 }
@@ -135,7 +135,7 @@ std::shared_ptr<Texture2D> Texture2D::Load(const std::wstring& filename)
         if (FAILED(hr)) return 0;
     }
 
-    return std::make_shared<Texture2D>(textureWidth, textureHeight, imageSize, imageData);
+    return std::make_shared<Texture2D>(textureWidth, textureHeight, imageSize, imageData, dxgiFormat);
 }
 
 // get the dxgi format equivilent of a wic format
@@ -208,27 +208,4 @@ WICPixelFormatGUID GetConvertToWICFormat(WICPixelFormatGUID& wicFormatGUID)
 #endif
 
     else return GUID_WICPixelFormatDontCare;
-}
-
-// get the number of bits per pixel for a dxgi format
-int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
-{
-    if (dxgiFormat == DXGI_FORMAT_R32G32B32A32_FLOAT) return 128;
-    else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_FLOAT) return 64;
-    else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_UNORM) return 64;
-    else if (dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM) return 32;
-    else if (dxgiFormat == DXGI_FORMAT_B8G8R8A8_UNORM) return 32;
-    else if (dxgiFormat == DXGI_FORMAT_B8G8R8X8_UNORM) return 32;
-    else if (dxgiFormat == DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM) return 32;
-
-    else if (dxgiFormat == DXGI_FORMAT_R10G10B10A2_UNORM) return 32;
-    else if (dxgiFormat == DXGI_FORMAT_B5G5R5A1_UNORM) return 16;
-    else if (dxgiFormat == DXGI_FORMAT_B5G6R5_UNORM) return 16;
-    else if (dxgiFormat == DXGI_FORMAT_R32_FLOAT) return 32;
-    else if (dxgiFormat == DXGI_FORMAT_R16_FLOAT) return 16;
-    else if (dxgiFormat == DXGI_FORMAT_R16_UNORM) return 16;
-    else if (dxgiFormat == DXGI_FORMAT_R8_UNORM) return 8;
-    else if (dxgiFormat == DXGI_FORMAT_A8_UNORM) return 8;
-
-    return -1;
 }

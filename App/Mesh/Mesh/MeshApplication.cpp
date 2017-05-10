@@ -12,7 +12,7 @@ MeshApplication::~MeshApplication()
 
 bool MeshApplication::Initialize()
 {
-    Renderer* pRenderer = m_engine->Graphics().get();
+    auto pRenderer = m_engine->Graphics();
 
     Vertex verts[] =
     {
@@ -46,12 +46,12 @@ bool MeshApplication::Initialize()
     
     m_renderable = std::make_shared<Renderable>();
 
-    if (!m_renderable->LoadMesh(pRenderer, &mesh))
+    if (!m_renderable->LoadMesh(pRenderer.get(), &mesh))
     {
         return false;
     }
 
-    m_material = std::make_shared<Material>();
+    m_material = std::make_shared<Material>(pRenderer);
 
     ResourceManager rm;
     rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<Texture2D> pTexture)
@@ -116,7 +116,7 @@ bool MeshApplication::Initialize()
     m_cbvData.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
 
-    auto ctx = pRenderer->GetFrameContext();
+    auto ctx = pRenderer->GetContext();
     if (!m_gpuBuffer.Initialize(ctx, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData))
     {
         return false;
@@ -138,7 +138,7 @@ void MeshApplication::Update(double dt)
 
     Renderer* pRenderer = m_engine->Graphics().get();
 
-    auto pCtx = pRenderer->GetFrameContext();
+    auto pCtx = pRenderer->GetContext();
     pCtx->Reset(&m_pipeline);
 
     pRenderer->SetRenderContext(pCtx);

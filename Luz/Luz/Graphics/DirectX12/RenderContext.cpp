@@ -5,7 +5,7 @@
 #include "DescriptorHeap.h"
 #include "SwapChain.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 RenderContext::RenderContext() : m_dsv(1), m_rtvDescriptorHeap(nullptr), m_dsvDescriptorHeap(nullptr)
 {

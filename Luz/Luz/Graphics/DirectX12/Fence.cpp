@@ -2,7 +2,7 @@
 #include "Fence.h"
 #include "Device.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 Fence::Fence() : 
     m_signal(0),

@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Device.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 Device::Device() : 
     m_factory(nullptr),

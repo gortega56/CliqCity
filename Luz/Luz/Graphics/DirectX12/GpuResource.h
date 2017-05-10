@@ -1,12 +1,12 @@
 #pragma once
-#ifndef GPURESOURCE_H
-#define GPURESOURCE_H
+#ifndef DX12_GPURESOURCE_H
+#define DX12_GPURESOURCE_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     class Renderer;
     class DescriptorHeap;
@@ -99,6 +99,8 @@ namespace dx12
             u32 height = 0);
         ~PixelBuffer();
 
+        bool Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shared_ptr<GraphicsCommandContext> pDevice, const u32 width, const u32 height, const DXGI_FORMAT format, void* data);
+
         void SetWidth(u32 width) { m_width = width; }
         void SetHeight(u32 height) { m_height = height; }
         void SetFormat(DXGI_FORMAT format) { m_format = format; }
@@ -110,9 +112,11 @@ namespace dx12
         PixelBuffer(PixelBuffer&& other);
 
     protected:
-        DXGI_FORMAT m_format;
         u32 m_width;
         u32 m_height;
+        u16 m_mipLevels;
+        u16 m_arraySize;
+        DXGI_FORMAT m_format;
     };
 
     class ColorBuffer : public PixelBuffer

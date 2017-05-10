@@ -4,7 +4,7 @@
 #include "CommandQueue.h"
 #include "DescriptorHeap.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 SwapChain::SwapChain(DXGI_FORMAT format,
     DXGI_USAGE usage,

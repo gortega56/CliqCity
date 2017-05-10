@@ -4,7 +4,7 @@
 #include "CommandContext.h"
 #include "SwapChain.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 CommandQueue::CommandQueue() : m_graphicsCommandQueue(nullptr), m_computeCommandQueue(nullptr)
 {

@@ -4,7 +4,7 @@
 #include "Mesh.h"
 #include "CommandContext.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 Renderable::Renderable() : 
     m_topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST), 
@@ -33,7 +33,7 @@ D3D12_INDEX_BUFFER_VIEW const* Renderable::IndexBufferView() const
 bool Renderable::LoadMesh(Renderer* pRenderer, IMesh* pMesh)
 {
     auto pQueue = pRenderer->GetCommandQueue();
-    auto pCtx = pRenderer->GetFrameContext();
+    auto pCtx = pRenderer->GetContext();
 
     if (!m_vertexBuffer.Initialize(pQueue, pCtx, pMesh->VertexDataSize(), (u32)pMesh->VertexStride(), pMesh->NumVertices(), pMesh->VertexData()))
     {

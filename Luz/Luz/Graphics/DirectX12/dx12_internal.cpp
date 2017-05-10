@@ -225,9 +225,9 @@ void CreateDepthStencilViews(ID3D12Device* pDevice, ID3D12DescriptorHeap* pDescr
     }
 }
 
-bool CreateDestinationBufferResource(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment /*= 0*/)
+bool CreateResource(ID3D12Device* pDevice, D3D12_RESOURCE_DESC* pDesc, ID3D12Resource** ppResource, Dx12::ResourceParams const* pParams)
 {
-    HRESULT hr = pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(width, D3D12_RESOURCE_FLAG_NONE, alignment), D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(ppResource));
+    HRESULT hr = pDevice->CreateCommittedResource(&pParams->HeapProperties, pParams->HeapFlags, pDesc, pParams->InitialState, nullptr, IID_PPV_ARGS(ppResource));
     if (FAILED(hr))
     {
         return false;
@@ -236,17 +236,42 @@ bool CreateDestinationBufferResource(ID3D12Device* pDevice, ID3D12Resource** ppR
     return true;
 }
 
-bool CreateUploadBufferResource(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment /*= 0*/)
+bool CreateBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, const Dx12::ResourceParams* pParams, UINT64 width, UINT64 alignment /*= 0*/)
 {
-    HRESULT hr = pDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(width, D3D12_RESOURCE_FLAG_NONE, alignment), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(ppResource));
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
-    return true;
+    return CreateResource(pDevice, &CD3DX12_RESOURCE_DESC::Buffer(width, D3D12_RESOURCE_FLAG_NONE, alignment), ppResource, pParams);
 }
 
+bool CreateUploadBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment /*= 0*/)
+{
+    return CreateBuffer(pDevice, ppResource, &Dx12::UploadParams, width, alignment);
+}
+
+bool CreateDestinationBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT64 alignment /*= 0*/)
+{
+    return CreateBuffer(pDevice, ppResource, &Dx12::DestinationParams, width, alignment);
+}
+
+bool CreateTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, const Dx12::ResourceParams* pParams, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount /*= 1*/, UINT sampleQuality /*= 0*/, D3D12_TEXTURE_LAYOUT layout /*= D3D12_TEXTURE_LAYOUT_UNKNOWN*/)
+{
+    return CreateResource(pDevice, &CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mipLevels, sampleCount, sampleQuality, D3D12_RESOURCE_FLAG_NONE, layout), ppResource, pParams);
+}
+
+bool CreateUploadTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount /*= 1*/, UINT sampleQuality /*= 0*/, D3D12_TEXTURE_LAYOUT layout /*= D3D12_TEXTURE_LAYOUT_UNKNOWN*/)
+{
+    UINT64 textureUploadBufferSize;
+    // this function gets the size an upload buffer needs to be to upload a texture to the gpu.
+    // each row must be 256 byte aligned except for the last row, which can just be the size in bytes of the row
+    // eg. textureUploadBufferSize = ((((width * numBytesPerPixel) + 255) & ~255) * (height - 1)) + (width * numBytesPerPixel);
+    //textureUploadBufferSize = (((imageBytesPerRow + 255) & ~255) * (textureDesc.Height - 1)) + imageBytesPerRow;
+    pDevice->GetCopyableFootprints(&CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mipLevels, sampleCount, sampleQuality, D3D12_RESOURCE_FLAG_NONE, layout), 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
+
+    return CreateUploadBuffer(pDevice, ppResource, textureUploadBufferSize);
+}
+
+bool CreateDestinationTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount /*= 1*/, UINT sampleQuality /*= 0*/, D3D12_TEXTURE_LAYOUT layout /*= D3D12_TEXTURE_LAYOUT_UNKNOWN*/)
+{
+    return CreateTexture2D(pDevice, ppResource, &Dx12::DestinationParams, width, height, mipLevels, format, sampleCount, sampleQuality, layout);
+}
 
 bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count)
 {
@@ -426,4 +451,27 @@ DXGI_FORMAT IndexFormat(unsigned size)
     }
 
     return DXGI_FORMAT_UNKNOWN;
+}
+
+// get the number of bits per pixel for a dxgi format
+int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
+{
+    if (dxgiFormat == DXGI_FORMAT_R32G32B32A32_FLOAT) return 128;
+    else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_FLOAT) return 64;
+    else if (dxgiFormat == DXGI_FORMAT_R16G16B16A16_UNORM) return 64;
+    else if (dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B8G8R8A8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B8G8R8X8_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM) return 32;
+
+    else if (dxgiFormat == DXGI_FORMAT_R10G10B10A2_UNORM) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_B5G5R5A1_UNORM) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_B5G6R5_UNORM) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R32_FLOAT) return 32;
+    else if (dxgiFormat == DXGI_FORMAT_R16_FLOAT) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R16_UNORM) return 16;
+    else if (dxgiFormat == DXGI_FORMAT_R8_UNORM) return 8;
+    else if (dxgiFormat == DXGI_FORMAT_A8_UNORM) return 8;
+
+    return -1;
 }

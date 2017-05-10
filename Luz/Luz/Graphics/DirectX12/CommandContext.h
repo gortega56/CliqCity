@@ -1,6 +1,6 @@
 #pragma once
-#ifndef DX12COMMANDCONTEXT_H
-#define DX12COMMANDCONTEXT_H
+#ifndef DX12_COMMANDCONTEXT_H
+#define DX12_COMMANDCONTEXT_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
@@ -12,7 +12,7 @@
 
 #include <vector>
 
-namespace dx12
+namespace Dx12
 {
     class Renderer;
     class Pipeline;
@@ -37,7 +37,7 @@ namespace dx12
         std::shared_ptr<const SwapChain> GetSwapChain() const { return m_swapChain; }
 
         template<class CONTEXT>
-        static int GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts);
+        static int GetNextAvailable(const std::vector<std::shared_ptr<CONTEXT>>& contexts);
     
         template<class CONTEXT>
         static void WaitForAll(std::vector<std::shared_ptr<CONTEXT>>& contexts);
@@ -89,7 +89,7 @@ namespace dx12
     };
 
     template<class CONTEXT>
-    int CommandContext::GetNextAvailable(std::vector<std::shared_ptr<CONTEXT>>& contexts)
+    int CommandContext::GetNextAvailable(const std::vector<std::shared_ptr<CONTEXT>>& contexts)
     {
         UINT64 min = UINT64_MAX;
         int idx = 0;

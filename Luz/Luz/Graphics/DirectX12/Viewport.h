@@ -1,12 +1,12 @@
 #pragma once
-#ifndef DX12VIEWPORT_H
-#define DX12VIEWPORT_H
+#ifndef DX12_VIEWPORT_H
+#define DX12_VIEWPORT_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     class Viewport
     {

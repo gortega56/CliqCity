@@ -43,7 +43,7 @@ public:
     std::shared_ptr<Material> m_material;
 
     ConstantBufferData m_cbvData;
-    dx12::UploadBuffer m_gpuBuffer;
+    Dx12::UploadBuffer m_gpuBuffer;
 
     MeshApplication();
     ~MeshApplication();

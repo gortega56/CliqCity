@@ -2,7 +2,7 @@
 #include "RootSignature.h"
 #include "Device.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 DescriptorTable::DescriptorTable(int numRanges)
 {

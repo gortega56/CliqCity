@@ -8,7 +8,7 @@
 
 
 
-namespace dx12
+namespace Dx12
 {
     class Device;
     class SwapChain;

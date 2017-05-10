@@ -6,7 +6,7 @@
 #include "dx12_internal.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     class Device
     {

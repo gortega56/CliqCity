@@ -1,12 +1,12 @@
 #pragma once
-#ifndef DESCRIPTORHEAP_H
-#define DESCRIPTORHEAP_H
+#ifndef DX12_DESCRIPTORHEAP_H
+#define DX12_DESCRIPTORHEAP_H
 
 #ifndef DX12_INTERNAL_H
 #include "dx12_internal.h"
 #endif
 
-namespace dx12
+namespace Dx12
 {
     class Device;
 

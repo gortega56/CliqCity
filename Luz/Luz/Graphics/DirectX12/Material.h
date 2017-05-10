@@ -2,7 +2,7 @@
 #ifndef DX12_MATERIAL_H
 #define DX12_MATERIAL_H
 
-#ifndef GPURESOURCE_H
+#ifndef DX12_GPURESOURCE_H
 #include "GpuResource.h"
 #endif
 
@@ -12,8 +12,9 @@ class Texture2D;
 
 enum class ParamID : int32_t;
 
-namespace dx12
+namespace Dx12
 {
+    class Renderer;
     class DescriptorHeap;
     class RootSignature;
     class GraphicsCommandContext;
@@ -21,7 +22,7 @@ namespace dx12
     class Material : public std::enable_shared_from_this<Material>
     {
     public:
-        Material();
+        Material(std::shared_ptr<const Renderer> pRenderer);
         ~Material();
 
         template<class PARAM>
@@ -43,6 +44,7 @@ namespace dx12
         std::map<const ParamID, std::shared_ptr<const PixelBuffer>> m_pixelBufferMap;
         std::map<const ParamID, std::shared_ptr<const UploadBuffer>> m_constantBufferMap;
         std::shared_ptr<const RootSignature> m_rootSignature;
+        std::weak_ptr<const Renderer> m_renderer;
     };
 
     template<class PARAM>

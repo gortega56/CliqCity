@@ -2,7 +2,7 @@
 #include "DescriptorHeap.h"
 #include "dx12_renderer.h"
 
-using namespace dx12;
+using namespace Dx12;
 
 DescriptorHeap::DescriptorHeap(u32 numDescriptors) : m_descriptorHeap(nullptr), m_descriptorHeapSize(0), m_numDescriptors(numDescriptors)
 {

@@ -2,13 +2,13 @@
 #ifndef DX12RENDERABLE_H
 #define DX12RENDERABLE_H
 
-#ifndef GPURESOURCE_H
+#ifndef DX12_GPURESOURCE_H
 #include "GpuResource.h"
 #endif
 
 __interface IMesh;
 
-namespace dx12
+namespace Dx12
 {
     class Renderer;
 

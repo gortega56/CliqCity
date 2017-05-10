@@ -127,36 +127,36 @@ private:
 #include "DirectX12\dx12_renderer.h"
 #endif
 
-typedef TEngine<OSWin, dx12::Renderer> Engine;
+typedef TEngine<OSWin, Dx12::Renderer> Engine;
 
-typedef dx12::Renderer Renderer;
+typedef Dx12::Renderer Renderer;
 
-#ifndef DX12SHADER_H
+#ifndef DX12_SHADER_H
 #include "DirectX12\Shader.h"
 #endif
 
-typedef dx12::Shader Shader;
-typedef dx12::InputLayout InputLayout;
+typedef Dx12::Shader Shader;
+typedef Dx12::InputLayout InputLayout;
 
-#ifndef DX12PIPELINESTATE_H
+#ifndef DX12_PIPELINESTATE_H
 #include "DirectX12\PipelineState.h"
 #endif
 
-typedef dx12::GraphicsPipeline GraphicsPipeline;
+typedef Dx12::GraphicsPipeline GraphicsPipeline;
 
-#ifndef DX12ROOTSIGNATURE_H
+#ifndef DX12_ROOTSIGNATURE_H
 #include "DirectX12\RootSignature.h"
 #endif
 
-typedef dx12::RootSignature RootSignature;
+typedef Dx12::RootSignature RootSignature;
 
-#ifndef DX12GPUSTATE_H
+#ifndef DX12_GPUSTATE_H
 #include "DirectX12\GpuState.h"
 #endif
 
-typedef dx12::RasterizerState RasterizerState;
-typedef dx12::DepthStencilState DepthStencilState;
-typedef dx12::BlendState BlendState;
+typedef Dx12::RasterizerState RasterizerState;
+typedef Dx12::DepthStencilState DepthStencilState;
+typedef Dx12::BlendState BlendState;
 
 #elif _WIN32
 
@@ -168,36 +168,36 @@ typedef dx12::BlendState BlendState;
 #include "DirectX12\dx12_renderer.h"
 #endif
 
-typedef TEngine<OSWin, dx12::Renderer> Engine;
+typedef TEngine<OSWin, Dx12::Renderer> Engine;
 
-typedef dx12::Renderer Renderer;
+typedef Dx12::Renderer Renderer;
 
-#ifndef DX12SHADER_H
+#ifndef DX12_SHADER_H
 #include "DirectX12\Shader.h"
 #endif
 
-typedef dx12::Shader Shader;
-typedef dx12::InputLayout InputLayout;
+typedef Dx12::Shader Shader;
+typedef Dx12::InputLayout InputLayout;
 
-#ifndef DX12PIPELINESTATE_H
+#ifndef DX12_PIPELINESTATE_H
 #include "DirectX12\PipelineState.h"
 #endif
 
-typedef dx12::GraphicsPipeline GraphicsPipeline;
+typedef Dx12::GraphicsPipeline GraphicsPipeline;
 
-#ifndef DX12ROOTSIGNATURE_H
+#ifndef DX12_ROOTSIGNATURE_H
 #include "DirectX12\RootSignature.h"
 #endif
 
-typedef dx12::RootSignature RootSignature;
+typedef Dx12::RootSignature RootSignature;
 
-#ifndef DX12GPUSTATE_H
+#ifndef DX12_GPUSTATE_H
 #include "DirectX12\GpuState.h"
 #endif
 
-typedef dx12::RasterizerState RasterizerState;
-typedef dx12::DepthStencilState DepthStencilState;
-typedef dx12::BlendState BlendState;
+typedef Dx12::RasterizerState RasterizerState;
+typedef Dx12::DepthStencilState DepthStencilState;
+typedef Dx12::BlendState BlendState;
 
 #elif __APPLE__
 
