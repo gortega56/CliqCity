@@ -55,6 +55,12 @@ namespace Dx12
         RootSignature& SetFlag(D3D12_ROOT_SIGNATURE_FLAGS flag);
         void SetFlags(D3D12_ROOT_SIGNATURE_FLAGS flags) { m_flags = flags; }
 
+        inline RootSignature& AppendVSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_VERTEX); }
+        inline RootSignature& AppendHSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_HULL); }
+        inline RootSignature& AppendDSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_DOMAIN); }
+        inline RootSignature& AppendGSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_GEOMETRY); }
+        inline RootSignature& AppendPSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_PIXEL); }
+
     private:
         ID3D12RootSignature* m_signature;
         D3D12_ROOT_SIGNATURE_FLAGS m_flags;

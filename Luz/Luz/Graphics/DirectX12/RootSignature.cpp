@@ -83,7 +83,7 @@ RootSignature& RootSignature::AppendRootUAV(u32 shaderRegister, u32 registerSpac
 RootSignature& RootSignature::AppendRootDescriptorTable(DescriptorTable& descTable, D3D12_SHADER_VISIBILITY visibility)
 {
     m_rootParameters.emplace_back(CD3DX12_ROOT_PARAMETER1());
-    m_rootParameters.back().InitAsDescriptorTable(descTable.NumRanges(), descTable.Ranges());
+    m_rootParameters.back().InitAsDescriptorTable(descTable.NumRanges(), descTable.Ranges(), visibility);
     return *this;
 }
 

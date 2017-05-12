@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "DescriptorHeap.h"
 #include "dx12_renderer.h"
+#include "GpuResource.h"
 
 using namespace Dx12;
 
@@ -11,12 +12,32 @@ DescriptorHeap::DescriptorHeap(u32 numDescriptors) : m_descriptorHeap(nullptr), 
 
 DescriptorHeap::~DescriptorHeap()
 {
-    Release();
+    SAFE_RELEASE(m_descriptorHeap);
 }
 
-void DescriptorHeap::Release()
+DescriptorHeap::DescriptorHeap(DescriptorHeap&& other) : 
+    m_descriptorHeap(other.m_descriptorHeap),  
+    m_descriptorHeapSize(other.m_descriptorHeapSize), 
+    m_numDescriptors(other.m_numDescriptors),
+    m_type(other.m_type)
 {
-    SAFE_RELEASE(m_descriptorHeap);
+    other.m_descriptorHeap = nullptr;
+    other.m_descriptorHeapSize = 0;
+    other.m_numDescriptors = 0;
+    other.m_type = (D3D12_DESCRIPTOR_HEAP_TYPE)-1;
+}
+
+DescriptorHeap& DescriptorHeap::operator=(DescriptorHeap&& other)
+{
+    m_descriptorHeap = other.m_descriptorHeap;
+    m_descriptorHeapSize = other.m_descriptorHeapSize;
+    m_numDescriptors = other.m_numDescriptors;
+    m_type = other.m_type;
+
+    other.m_descriptorHeap = nullptr;
+    other.m_descriptorHeapSize = 0;
+    other.m_numDescriptors = 0;
+    other.m_type = (D3D12_DESCRIPTOR_HEAP_TYPE)-1;
 }
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CpuHandle(int i)
@@ -24,50 +45,50 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CpuHandle(int i)
     return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize);
 }
 
-bool DescriptorHeap::InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name)
+bool DescriptorHeap::Initialize(std::shared_ptr<const Device> pDevice, DescriptorHeapParams const* pParams, std::wstring name)
 {
-    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_numDescriptors))
+    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), pParams->Type, pParams->Flags, m_numDescriptors))
     {
         return false;
     }
 
-    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(pParams->Type);
 
     return true;
+}
+
+bool DescriptorHeap::InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name)
+{
+    return Initialize(pDevice, &RtvParams, name);
 }
 
 bool DescriptorHeap::InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, m_numDescriptors))
-    {
-        return false;
-    }
+    return Initialize(pDevice, &DsvParams, name);
 
-    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-
-    return true;
 }
 
 bool DescriptorHeap::InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_numDescriptors))
-    {
-        return false;
-    }
+    return Initialize(pDevice, &CbvSrvUavParams, name);
 
-    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    return true;
 }
 
 bool DescriptorHeap::InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, m_numDescriptors))
+    return Initialize(pDevice, &SamplerParams, name);
+}
+
+void DescriptorHeap::CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, std::vector<std::shared_ptr<const PixelBuffer>>& pixelBuffers)
+{
+    for (int i = 0, count = (int)pixelBuffers.size(); i < count; ++i)
     {
-        return false;
+        auto& pBuffer = pixelBuffers[i];
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        desc.Format = pBuffer->Format();
+        desc.ViewDimension = pBuffer->Dimension();
+        desc.Texture2D.MipLevels = pBuffer->MipLevels();
+        pDevice->DX()->CreateShaderResourceView(pBuffer->Resource(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize));
     }
-
-    m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-
-    return true;
 }

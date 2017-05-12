@@ -28,6 +28,7 @@ namespace Dx12
     protected:
         ID3D12Resource* m_resource;
         D3D12_RESOURCE_STATES m_resourceState;
+        D3D12_RESOURCE_DESC m_desc;
 
         GpuResource(const GpuResource& other) = delete;
     };
@@ -107,7 +108,10 @@ namespace Dx12
 
         u32 Width() const { return m_width; }
         u32 Height() const { return m_height; }
+        u16 MipLevels() const { return m_mipLevels; }
+        u16 ArraySize() const { return m_arraySize; }
         DXGI_FORMAT Format() const { return m_format; }
+        D3D12_SRV_DIMENSION Dimension() const { return m_dimension; }
 
         PixelBuffer(PixelBuffer&& other);
 
@@ -117,6 +121,7 @@ namespace Dx12
         u16 m_mipLevels;
         u16 m_arraySize;
         DXGI_FORMAT m_format;
+        D3D12_SRV_DIMENSION m_dimension;
     };
 
     class ColorBuffer : public PixelBuffer

@@ -54,7 +54,7 @@ bool MeshApplication::Initialize()
     m_material = std::make_shared<Material>(pRenderer);
 
     ResourceManager rm;
-    rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<Texture2D> pTexture)
+    rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<const Texture2D> pTexture)
     {
         if (!pTexture)
         {
@@ -63,7 +63,7 @@ bool MeshApplication::Initialize()
 
         if (auto shared = weakMaterial.lock())
         {
-            shared->SetTexture2D((ParamID)1, pTexture);
+            shared->SetTexture2D((ParamID)1, pTexture)
         }
     });    
 
