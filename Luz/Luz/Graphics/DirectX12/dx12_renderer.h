@@ -80,6 +80,7 @@ namespace Dx12
 
         void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
 
+       // std::shared_ptr<GraphicsCommandContext> GetCurrentGraphicsContext() const;
         std::shared_ptr<GraphicsCommandContext> GetContext() const;
 
         std::shared_ptr<const Device> GetDevice() const { return m_device; };
@@ -110,7 +111,7 @@ namespace Dx12
     private:
         u32 m_numFrameBuffers;
         u32 m_numThreads;
-        
+        u32 m_currentGraphicsContextIndex;
         bool m_running;
 
         Renderer(const Renderer& other) = delete;

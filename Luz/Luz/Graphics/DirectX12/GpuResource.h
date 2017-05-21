@@ -28,7 +28,6 @@ namespace Dx12
     protected:
         ID3D12Resource* m_resource;
         D3D12_RESOURCE_STATES m_resourceState;
-        D3D12_RESOURCE_DESC m_desc;
 
         GpuResource(const GpuResource& other) = delete;
     };
@@ -41,19 +40,21 @@ namespace Dx12
         GpuBuffer();
         ~GpuBuffer();
 
-        bool Initialize(std::shared_ptr<const CommandQueue> pQueue, 
-            std::shared_ptr<GraphicsCommandContext> pDevice, 
-            const u64 bufferSize, u32 elementSize, u32 numElements, 
-            void* data = nullptr);
+        bool Initialize(std::shared_ptr<const Renderer> pRenderer, u64 bufferSize, u32 elementSize, u32 numElements, void* data = nullptr);
+        virtual bool Initialize(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr);
 
-        u64 BufferSize() const { return m_bufferSize; }
-        u32 ElementSize() const { return m_elementSize; }
-        u32 NumElements() const { return m_numElements; }
+        inline void SetBufferSize(u64 bufferSize) { m_bufferSize = bufferSize; }
+        inline void SetElementSize(u32 elementSize) { m_elementSize = elementSize; }
+        inline void SetNumElements(u32 numElements) { m_numElements = numElements; }
+
+        inline u64 BufferSize() const { return m_bufferSize; }
+        inline u32 ElementSize() const { return m_elementSize; }
+        inline u32 NumElements() const { return m_numElements; }
 
         D3D12_VERTEX_BUFFER_VIEW VertexBufferView();
         D3D12_INDEX_BUFFER_VIEW IndexBufferView();
 
-        D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() const { return m_resource->GetGPUVirtualAddress(); }
+        inline D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() const { return m_resource->GetGPUVirtualAddress(); }
 
     protected:
         u64 m_bufferSize;
@@ -67,10 +68,10 @@ namespace Dx12
         UploadBuffer();
         ~UploadBuffer();
 
-        bool Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data);
+        bool Initialize(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr) override;
 
         template<class DataType>
-        bool Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, DataType* data);
+        bool InitializeStructure(std::shared_ptr<const Renderer> pRenderer, DataType* data);
         //void ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i = 0);
 
         bool Map(void* data);
@@ -81,9 +82,9 @@ namespace Dx12
     };
 
     template<class DataType>
-    bool UploadBuffer::Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, DataType* data)
+    bool UploadBuffer::InitializeStructure(std::shared_ptr<const Renderer> pRenderer, DataType* data)
     {
-        return Initialize(pCtx, sizeof(DataType), sizeof(DataType), 1, data);
+        return GpuBuffer::Initialize(pRenderer, sizeof(DataType), sizeof(DataType), 1, data);
     }
 
     class PixelBuffer : public GpuResource
@@ -100,28 +101,46 @@ namespace Dx12
             u32 height = 0);
         ~PixelBuffer();
 
-        bool Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shared_ptr<GraphicsCommandContext> pDevice, const u32 width, const u32 height, const DXGI_FORMAT format, void* data);
+        bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr);
+        bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
+            const u32 width, 
+            const u32 height, 
+            const DXGI_FORMAT format, 
+            const u16 mipLevels,
+            void* data = nullptr);
 
-        void SetWidth(u32 width) { m_width = width; }
-        void SetHeight(u32 height) { m_height = height; }
-        void SetFormat(DXGI_FORMAT format) { m_format = format; }
+        inline void SetDimension(D3D12_RESOURCE_DIMENSION dimension) { m_dimension = dimension; }
+        inline void SetWidth(u32 width) { m_width = width; }
+        inline void SetHeight(u32 height) { m_height = height; }
+        inline void SetArraySize(u16 arraySize) { m_arraySize = arraySize; }
+        inline void SetMipLevels(u16 mipLevels) { m_mipLevels = mipLevels; }
+        inline void SetFormat(DXGI_FORMAT format) { m_format = format; }
+        inline void SetSampleCount(u32 sampleCount) { m_sampleCount = sampleCount; }
+        inline void SetSampleQuality(u32 sampleQuality) { m_sampleQuality = sampleQuality; }
+        inline void SetViewDimension(D3D12_SRV_DIMENSION viewDimension) { m_viewDimension = viewDimension; }
 
-        u32 Width() const { return m_width; }
-        u32 Height() const { return m_height; }
-        u16 MipLevels() const { return m_mipLevels; }
-        u16 ArraySize() const { return m_arraySize; }
-        DXGI_FORMAT Format() const { return m_format; }
-        D3D12_SRV_DIMENSION Dimension() const { return m_dimension; }
+        inline D3D12_RESOURCE_DIMENSION Dimension() const { return m_dimension; }
+        inline u32 Width() const { return m_width; }
+        inline u32 Height() const { return m_height; }
+        inline u16 ArraySize() const { return m_arraySize; }
+        inline u16 MipLevels() const { return m_mipLevels; }
+        inline DXGI_FORMAT Format() const { return m_format; }
+        inline u32 SampleCount() const { return m_sampleCount; }
+        inline u32 SampleQuality() const { return m_sampleQuality; }
+        inline D3D12_SRV_DIMENSION ViewDimension() const { return m_viewDimension; }
 
         PixelBuffer(PixelBuffer&& other);
 
     protected:
+        D3D12_RESOURCE_DIMENSION m_dimension;
         u32 m_width;
         u32 m_height;
-        u16 m_mipLevels;
         u16 m_arraySize;
+        u16 m_mipLevels;
         DXGI_FORMAT m_format;
-        D3D12_SRV_DIMENSION m_dimension;
+        u32 m_sampleCount;
+        u32 m_sampleQuality;     
+        D3D12_SRV_DIMENSION m_viewDimension;
     };
 
     class ColorBuffer : public PixelBuffer

@@ -15,7 +15,8 @@ Renderer::Renderer(OSWin* pOS, u32 numThreads, u32 numFrameBuffers) :
     m_swapChain(nullptr),
     m_numThreads(numThreads),
     m_numFrameBuffers(numFrameBuffers),
-    m_running(true)
+    m_running(true),
+    m_currentGraphicsContextIndex(0)
 {
 
 
@@ -172,6 +173,11 @@ void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandCont
 {
     m_running = m_commandQueue->Execute(pGraphicsCommandCtx);
 }
+
+//std::shared_ptr<GraphicsCommandContext> Renderer::GetCurrentGraphicsContext() const 
+//{
+//    return m_graphicsCommandContexts[m_currentGraphicsContextIndex];
+//}
 
 std::shared_ptr<GraphicsCommandContext> Renderer::GetContext() const
 {

@@ -40,7 +40,7 @@ public:
     RootSignature m_rs;
 
     std::shared_ptr<Renderable> m_renderable;
-    std::shared_ptr<Material> m_material;
+   // std::shared_ptr<Material> m_material;
 
     ConstantBufferData m_cbvData;
     Dx12::UploadBuffer m_gpuBuffer;

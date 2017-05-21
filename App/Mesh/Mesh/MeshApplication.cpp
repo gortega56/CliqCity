@@ -46,14 +46,14 @@ bool MeshApplication::Initialize()
     
     m_renderable = std::make_shared<Renderable>();
 
-    if (!m_renderable->LoadMesh(pRenderer.get(), &mesh))
+    if (!m_renderable->LoadMesh(pRenderer, &mesh))
     {
         return false;
     }
 
-    m_material = std::make_shared<Material>(pRenderer);
+   // m_material = std::make_shared<Material>(pRenderer);
 
-    ResourceManager rm;
+/*    ResourceManager rm;
     rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<const Texture2D> pTexture)
     {
         if (!pTexture)
@@ -63,9 +63,9 @@ bool MeshApplication::Initialize()
 
         if (auto shared = weakMaterial.lock())
         {
-            shared->SetTexture2D((ParamID)1, pTexture)
+            shared->SetTexture2D((ParamID)1, pTexture);
         }
-    });    
+    });  */  
 
     if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
     {
@@ -117,7 +117,7 @@ bool MeshApplication::Initialize()
     m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
 
     auto ctx = pRenderer->GetContext();
-    if (!m_gpuBuffer.Initialize(ctx, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData))
+    if (!m_gpuBuffer.InitializeStructure(pRenderer, &m_cbvData))
     {
         return false;
     }

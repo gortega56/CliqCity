@@ -4,6 +4,7 @@
 #include "Device.h"
 #include "DescriptorHeap.h"
 #include "CommandQueue.h"
+#include "dx12_renderer.h"
 
 using namespace Dx12;
 
@@ -48,15 +49,11 @@ GpuBuffer::~GpuBuffer()
 
 }
 
-bool GpuBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data /* = nullptr*/)
+bool GpuBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
 {
-    m_bufferSize = bufferSize;
-    m_elementSize = elementSize;
-    m_numElements = numElements;
+    auto pDevice = pRenderer->GetDevice()->DX();
 
-    auto pDxDevice = pCtx->GetDevice()->DX();
-
-    if (!CreateDestinationBuffer(pDxDevice, &m_resource, m_bufferSize))
+    if (!CreateDestinationBuffer(pDevice, &m_resource, m_bufferSize))
     {
         return false;
     }
@@ -64,18 +61,30 @@ bool GpuBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shar
     if (data)
     {
         ID3D12Resource* uploadBuffer;
-        if (!CreateUploadBuffer(pDxDevice, &uploadBuffer, m_bufferSize))
+        if (!CreateUploadBuffer(pDevice, &uploadBuffer, m_bufferSize))
         {
             return false;
         }
 
-        UpdateBufferResource(pCtx->CommandList(), m_resource, uploadBuffer, data, (LONG_PTR)m_bufferSize, (LONG_PTR)m_bufferSize);
-        TransitionResource(pCtx->CommandList(), m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
-        pQueue->Execute(pCtx, true);
+        auto& pCtx = pRenderer->GetContext();
+        auto pCommandList = pCtx->CommandList();
+        UpdateBufferResource(pCommandList, m_resource, uploadBuffer, data, (LONG_PTR)m_bufferSize, (LONG_PTR)m_bufferSize);
+        TransitionResource(pCommandList, m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
+
+        auto& pCommandQueue = pRenderer->GetCommandQueue();
+        pCommandQueue->Execute(pCtx, true);
         SAFE_RELEASE(uploadBuffer);
     }
 
     return true;
+}
+
+bool GpuBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, u64 bufferSize, u32 elementSize, u32 numElements, void* data /*= nullptr*/)
+{
+    m_bufferSize = bufferSize;
+    m_elementSize = elementSize;
+    m_numElements = numElements;
+    return Initialize(pRenderer, data);
 }
 
 D3D12_VERTEX_BUFFER_VIEW GpuBuffer::VertexBufferView()
@@ -110,13 +119,9 @@ UploadBuffer::~UploadBuffer()
 
 }
 
-bool UploadBuffer::Initialize(std::shared_ptr<GraphicsCommandContext> pCtx, const u64 bufferSize, u32 elementSize, u32 numElements, void* data)
+bool UploadBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
 {
-    m_bufferSize = bufferSize;
-    m_elementSize = elementSize;
-    m_numElements = numElements;
-
-    auto pDevice = pCtx->GetDevice()->DX();
+    auto pDevice = pRenderer->GetDevice()->DX();
 
     if (!CreateUploadBuffer(pDevice, &m_resource, m_bufferSize))
     {
@@ -203,15 +208,10 @@ PixelBuffer::PixelBuffer(PixelBuffer&& other)
     other.m_height = 0;
 }
 
-bool PixelBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::shared_ptr<GraphicsCommandContext> pCtx, const u32 width, const u32 height, const DXGI_FORMAT format, void* data)
+bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
 {
-    m_width = width;
-    m_height = height;
-    m_format = format;
-
-    auto pDxDevice = pCtx->GetDevice()->DX();
-
-    if (!CreateDestinationTexture2D(pDxDevice, &m_resource, m_width, m_height, m_mipLevels, m_format))
+    auto pDevice = pRenderer->GetDevice()->DX();
+    if (!CreateDestinationTexture2D(pDevice, &m_resource, m_width, m_height, m_mipLevels, m_format))
     {
         return false;
     }
@@ -219,19 +219,42 @@ bool PixelBuffer::Initialize(std::shared_ptr<const CommandQueue> pQueue, std::sh
     if (data)
     {
         ID3D12Resource* uploadBuffer;
-        if (!CreateUploadTexture2D(pDxDevice, &uploadBuffer, m_width, m_height, m_mipLevels, m_format))
+        if (!CreateUploadTexture2D(pDevice, &uploadBuffer, m_width, m_height, m_mipLevels, m_format))
         {
             return false;
         }
 
+        auto& pCtx = pRenderer->GetContext();
+        auto pCommandList = pCtx->CommandList();
         int bytesPerRow = GetDXGIFormatBitsPerPixel(m_format);
-        UpdateBufferResource(pCtx->CommandList(), m_resource, uploadBuffer, data, (LONG_PTR)bytesPerRow, (LONG_PTR)(bytesPerRow * m_height));
-        TransitionResource(pCtx->CommandList(), m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
-        pQueue->Execute(pCtx, true);
+        UpdateBufferResource(pCommandList, m_resource, uploadBuffer, data, (LONG_PTR)bytesPerRow, (LONG_PTR)(bytesPerRow * m_height));
+        TransitionResource(pCommandList, m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
+
+        auto& pCommandQueue = pRenderer->GetCommandQueue();
+        pCommandQueue->Execute(pCtx, true);
         SAFE_RELEASE(uploadBuffer);
     }
 
     return true;
+}
+
+bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
+    const u32 width, 
+    const u32 height, 
+    const DXGI_FORMAT format,
+    const u16 mipLevels, 
+    void* data /*= nullptr*/)
+{
+    m_dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    m_width = width;
+    m_height = height;
+    m_format = format;
+    m_arraySize = 1;
+    m_mipLevels = mipLevels;
+    m_sampleCount = 1;
+    m_sampleQuality = 0;
+    m_viewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    return InitializeTexture2D(pRenderer, data);
 }
 
 ColorBuffer::ColorBuffer(ID3D12Resource* pResource,
