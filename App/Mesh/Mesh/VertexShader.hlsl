@@ -1,13 +1,13 @@
 struct VS_INPUT
 {
-    float4 color : COLOR;
     float3 pos : POSITION;
+    float2 uv: TEXCOORD;
 };
 
 struct VS_OUTPUT
 {
-    float4 color : COLOR;
-    float4 pos : SV_POSITION;
+    float4 pos: SV_POSITION;
+    float2 uv: TEXCOORD;
 };
 
 cbuffer ConstantBuffer : register(b0)
@@ -22,6 +22,6 @@ VS_OUTPUT main(VS_INPUT input)
     VS_OUTPUT output;
     matrix wvp = mul(mul(model, view), proj);
     output.pos = mul(float4(input.pos, 1.0f), wvp);
-    output.color = input.color;
+    output.uv = input.uv;
     return output;
 }

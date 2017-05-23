@@ -2,8 +2,8 @@
 #ifndef DX12_DESCRIPTORHEAP_H
 #define DX12_DESCRIPTORHEAP_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
 #endif
 
 namespace Dx12
@@ -18,10 +18,10 @@ namespace Dx12
         D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
     };
 
-    static const DescriptorHeapParams RtvParams = { D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE };
-    static const DescriptorHeapParams DsvParams = { D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE };
-    static const DescriptorHeapParams CbvSrvUavParams = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE };
-    static const DescriptorHeapParams SamplerParams = { D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE };
+    static const DescriptorHeapParams RtvHeapParams = { D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE };
+    static const DescriptorHeapParams DsvHeapParams = { D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE };
+    static const DescriptorHeapParams CbvSrvUavHeapParams = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE };
+    static const DescriptorHeapParams SamplerHeapParams = { D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE };
 
     class DescriptorHeap
     {

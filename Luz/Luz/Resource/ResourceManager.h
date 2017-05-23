@@ -43,8 +43,9 @@ public:
     template<class RESOURCE>
     void LoadResource(std::wstring filename, std::function<void(std::shared_ptr<const RESOURCE>)> onLoaded);
 
-    //template<class RESOURCE>
-    //ResourceFuture<RESOURCE> GetResourceFuture(std::wstring filename, std::function<void(std::shared_ptr<RESOURCE>)> onLoaded);
+
+    template<class RESOURCE>
+    std::shared_future<std::shared_ptr<const RESOURCE>> GetResourceFuture(std::wstring filename);
 };
 
 template<class RESOURCE>
@@ -66,15 +67,14 @@ void ResourceManager::LoadResource(std::wstring filename, std::function<void(std
         onLoaded(res);
     });
 }
-//
-//template<class RESOURCE>
-//ResourceFuture<RESOURCE> ResourceManager::GetResourceFuture(std::wstring filename, std::function<void(std::shared_ptr<RESOURCE>)> onLoaded)
-//{
-//    return ResourceFuture<RESOURCE>(std::async(std::launch::async, [filename, onLoaded]()
-//    {
-//        std::shared_ptr<RESOURCE> res = RESOURCE::Load(filename);
-//        onLoaded(res);
-//    }));
-//}
+
+template<class RESOURCE>
+std::shared_future<std::shared_ptr<const RESOURCE>> ResourceManager::GetResourceFuture(std::wstring filename)
+{
+    return std::async(std::launch::async, [filename]()
+    {
+        return RESOURCE::Load(filename);
+    });
+}
 
 #endif

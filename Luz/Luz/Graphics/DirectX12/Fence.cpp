@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Fence.h"
+#include "dx12_internal.h"
 #include "Device.h"
 
 using namespace Dx12;

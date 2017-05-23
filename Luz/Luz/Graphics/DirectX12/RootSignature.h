@@ -2,12 +2,38 @@
 #ifndef DX12_ROOTSIGNATURE_H
 #define DX12_ROOTSIGNATURE_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
 #endif
 
 namespace Dx12
 {
+    struct SamplerParams
+    {
+        D3D12_FILTER Filter;
+        D3D12_TEXTURE_ADDRESS_MODE AddressMode;
+        FLOAT MipLODBias;
+        UINT MaxAnisotropy;
+        D3D12_COMPARISON_FUNC ComparisonFunc;
+        D3D12_STATIC_BORDER_COLOR BorderColor;
+        FLOAT MinLOD;
+        FLOAT MaxLOD;
+    };
+
+    static const SamplerParams MinMagAnisotropicWrapParams = { D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+    static const SamplerParams MinMagAnisotropicClampParams = { D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+
+    static const SamplerParams MinMagPointWrapParams = { D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+    static const SamplerParams MinMagPointClampParams = { D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+
+    static const SamplerParams MinMagLinearWrapParams = { D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+    static const SamplerParams MinMagLinearClampParams = { D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+
+    static const SamplerParams MinMagPointWhiteBorderParams = { D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+    static const SamplerParams MinMagPointBlackBorderParams = { D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, 0.0f, D3D12_FLOAT32_MAX };
+    static const SamplerParams MinMagLinearWhiteBorderParams = { D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX };
+    static const SamplerParams MinMagLinearBlackBorderParams = { D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0.0f, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, 0.0f, D3D12_FLOAT32_MAX };
+
     class DescriptorTable
     {
     public:
@@ -40,7 +66,28 @@ namespace Dx12
         RootSignature& AppendRootSRV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
         RootSignature& AppendRootUAV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
         RootSignature& AppendRootDescriptorTable(DescriptorTable& descTable, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL);
-        RootSignature& AppendDefaultSampler(u32 shaderRegister);
+        
+        RootSignature& AppendAnisotropicWrapSampler(u32 shaderRegister);
+        RootSignature& AppendAnisotropicClampSampler(u32 shaderRegister);
+        RootSignature& AppendPointWrapSampler(u32 shaderRegister);
+        RootSignature& AppendPointClampSampler(u32 shaderRegister);
+        RootSignature& AppendLinearWrapSampler(u32 shaderRegister);
+        RootSignature& AppendLinearClampSampler(u32 shaderRegister);
+
+        RootSignature& AppendStaticSampler(u32 shaderRegister, const SamplerParams* pParams, u32 registerSpace = 0U, D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL);
+        RootSignature& AppendStaticSampler(u32 shaderRegister,
+            u32 registerSpace = 0U, 
+            D3D12_FILTER filter = D3D12_FILTER_ANISOTROPIC,
+            D3D12_TEXTURE_ADDRESS_MODE addressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            D3D12_TEXTURE_ADDRESS_MODE addressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            D3D12_TEXTURE_ADDRESS_MODE addressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            FLOAT mipLODBias = 0,
+            UINT maxAnisotropy = 16,
+            D3D12_COMPARISON_FUNC comparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL,
+            D3D12_STATIC_BORDER_COLOR borderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE,
+            FLOAT minLOD = 0.f,
+            FLOAT maxLOD = D3D12_FLOAT32_MAX,
+            D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL);
 
         bool Finalize(std::shared_ptr<const Device> pDevice);
 

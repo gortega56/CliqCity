@@ -26,7 +26,7 @@ public:
     u8 const* Data() const { return m_data; }
     DXGI_FORMAT GetDXGI() const { return m_format.asDXGI; }
 
-    static std::shared_ptr<Texture2D> Load(const std::wstring& filename);
+    static std::shared_ptr<const Texture2D> Load(const std::wstring& filename);
 
 private:
     u64 m_width;

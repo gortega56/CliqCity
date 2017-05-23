@@ -1,6 +1,8 @@
 #include "MeshApplication.h"
 #include <functional>
 
+#define TEXURE_PATH L".\\Assets\\tarmac_0.dds"
+
 MeshApplication::MeshApplication() : m_rs(1)
 {
 }
@@ -16,33 +18,71 @@ bool MeshApplication::Initialize()
 
     Vertex verts[] =
     {
-        Vertex(1.0f, 0.0f, 0.0f, 1.0f, -0.5f, +0.5f, -0.5f),    // 0 Back Top Left
-        Vertex(1.0f, 0.0f, 1.0f, 1.0f, +0.5f, -0.5f, -0.5f),    // 1 Back Bottom Right
-        Vertex(0.0f, 0.0f, 1.0f, 1.0f, -0.5f, -0.5f, -0.5f),    // 2 Back Bottom Left
-        Vertex(0.0f, 1.0f, 0.0f, 1.0f, +0.5f, +0.5f, -0.5f),    // 3 Back Top Right
-        Vertex(1.0f, 0.0f, 0.0f, 1.0f, -0.5f, +0.5f, +0.5f),    // 4 Front Top Left
-        Vertex(1.0f, 0.0f, 1.0f, 1.0f, +0.5f, -0.5f, +0.5f),    // 5 Front Bottom Right
-        Vertex(0.0f, 0.0f, 1.0f, 1.0f, -0.5f, -0.5f, +0.5f),    // 6 Front Bottom Left
-        Vertex(0.0f, 1.0f, 0.0f, 1.0f, +0.5f, +0.5f, +0.5f)     // 7 Front Top Right
+        // front face
+        { -0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
+        { 0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
+        { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
+        { 0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
+
+        // right side face
+        { 0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
+        { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
+        { 0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
+        { 0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
+
+        // left side face
+        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
+        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
+        { -0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
+        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
+
+        // back face
+        { 0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
+        { -0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
+        { 0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
+        { -0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
+
+        // top face
+        { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f },
+        { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
+        { 0.5f,  0.5f, -0.5f, 1.0f, 1.0f },
+        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
+
+        // bottom face
+        { 0.5f, -0.5f,  0.5f, 0.0f, 0.0f },
+        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
+        { 0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
+        { -0.5f, -0.5f,  0.5f, 1.0f, 0.0f }
     };
 
     u32 indices[] =
     {
-        0, 1, 2,    // Back face
-        0, 3, 1,
-        3, 7, 1,    // Right face
-        7, 5, 1,
-        4, 0, 2,    // Left face
-        4, 2, 6,
-        4, 6, 5,    // Front face
-        4, 5, 7,
-        4, 0, 3,    // Top face
-        4, 7, 3,
-        2, 1, 6,    // Bottom face
-        1, 5, 6
+        // ffront face
+        0, 1, 2, // first triangle
+        0, 3, 1, // second triangle
+
+        // left face
+        4, 5, 6, // first triangle
+        4, 7, 5, // second triangle
+
+        // right face
+        8, 9, 10, // first triangle
+        8, 11, 9, // second triangle
+
+        // back face
+        12, 13, 14, // first triangle
+        12, 15, 13, // second triangle
+
+        // top face
+        16, 17, 18, // first triangle
+        16, 19, 17, // second triangle
+
+        // bottom face
+        20, 21, 22, // first triangle
+        20, 23, 21, // second triangle
     };
 
-    Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), std::begin(verts) + 8), std::vector<u32>(std::begin(indices), std::begin(indices) + 36));
+    Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), std::begin(verts) + 24), std::vector<u32>(std::begin(indices), std::begin(indices) + 36));
     
     m_renderable = std::make_shared<Renderable>();
 
@@ -51,8 +91,26 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-   // m_material = std::make_shared<Material>(pRenderer);
+    //m_material = std::make_shared<Material>(pRenderer);
 
+    ResourceManager rm;
+    auto texture = rm.GetResourceFuture<Texture2D>(TEXURE_PATH).get();
+    
+    m_srvBuffer = std::make_shared<Dx12::PixelBuffer>();
+    m_srvBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    if (!m_srvBuffer->InitializeTexture2D(pRenderer, (u32)texture->Width(), texture->Height(), texture->Size(), texture->GetDXGI(), 3, (void*)texture->Data()))
+    {
+        return false;
+    }
+    
+    std::vector<std::shared_ptr<const Dx12::PixelBuffer>> pbs(1, m_srvBuffer);
+    m_srvHeap = std::make_shared<Dx12::DescriptorHeap>(1);
+    if (!m_srvHeap->InitializeMixed(pRenderer->GetDevice(), L"SRV Heap"))
+    {
+        return false;
+    }
+
+    m_srvHeap->CreateShaderResourceViews(pRenderer->GetDevice(), pbs);
 /*    ResourceManager rm;
     rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<const Texture2D> pTexture)
     {
@@ -78,16 +136,15 @@ bool MeshApplication::Initialize()
     }
 
     InputLayout inputLayout;
-    inputLayout.AppendColor4F()
-        .AppendPosition3F()
-        .Finalize();
+    inputLayout.AppendPosition3F().AppendUV2().Finalize();
+
+    auto range = Dx12::DescriptorTable(1).AppendRangeSRV(1, 0);
 
     m_rs.AllowInputLayout()
         .DenyHS()
         .DenyDS()
         .DenyGS()
-        .DenyPS()
-        .AppendRootCBV(0, 0);
+        .AppendRootCBV(0).AppendRootDescriptorTable(range).AppendAnisotropicWrapSampler(0);
 
     if (!m_rs.Finalize(pRenderer->GetDevice()))
     {
@@ -145,10 +202,12 @@ void MeshApplication::Update(double dt)
     pRenderer->ClearRenderContext(pCtx);
 
     pCtx->SetRootSignature(&m_rs);
+    pCtx->SetDescriptorHeap(m_srvHeap);
 
     pRenderer->SetViewport(pCtx);
 
     pCtx->SetGraphicsRootConstantBufferView(&m_gpuBuffer);
+    pCtx->SetGraphicsRootDescriptorTable(m_srvHeap.get(), 1);
 
     m_renderable->Prepare(pCtx.get());
     m_renderable->DrawIndexedInstanced(pCtx.get());

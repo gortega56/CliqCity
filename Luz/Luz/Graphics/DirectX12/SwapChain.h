@@ -2,13 +2,16 @@
 #ifndef DX12_SWAPCHAIN_H
 #define DX12_SWAPCHAIN_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
-#endif
-
 #ifndef DX12_FENCE_H
 #include "Fence.h"
 #endif
+
+struct IDXGISwapChain;
+struct IDXGISwapChain1;
+struct IDXGISwapChain2;
+struct IDXGISwapChain3;
+//struct ID3D12Resource;
+//struct ID3D12GraphicsCommandList;
 
 namespace Dx12
 {

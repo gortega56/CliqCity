@@ -2,6 +2,8 @@
 #include "DirectX12\dx12_internal.h"
 #include "Texture.h"
 #include <wincodec.h>
+#include <Shlwapi.h>
+#include "DirectXTex.h"
 
 static DXGI_FORMAT GetDXGIFormatFromWICFormat(WICPixelFormatGUID& wicFormatGUID);
 static WICPixelFormatGUID GetConvertToWICFormat(WICPixelFormatGUID& wicFormatGUID);
@@ -20,12 +22,19 @@ Texture2D::~Texture2D()
 {
     if (m_data)
     {
-        delete m_data;
+        free(m_data);
     }
 }
 
-std::shared_ptr<Texture2D> Texture2D::Load(const std::wstring& filename)
+std::shared_ptr<const Texture2D> Texture2D::Load(const std::wstring& filename)
 {
+    //LPWSTR ext = PathFindExtension(filename.c_str());
+
+    //if (_wcsicmp(ext, L"dds") != 0)
+    //{
+    //    __debugbreak();
+    //}
+
     HRESULT hr;
 
     IWICImagingFactory* wicFactory = nullptr;
@@ -42,8 +51,8 @@ std::shared_ptr<Texture2D> Texture2D::Load(const std::wstring& filename)
         // init COM lib
         CoInitialize(NULL);
 
-       // hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wicFactory));
-        hr = CoGetClassObject(CLSID_WICImagingFactory, CLSCTX_INPROC_SERVER, nullptr, IID_PPV_ARGS(&wicFactory));
+        hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wicFactory));
+        //hr = CoGetClassObject(CLSID_WICImagingFactory, CLSCTX_INPROC_SERVER, nullptr, IID_PPV_ARGS(&wicFactory));
         if (FAILED(hr))
         {
             return nullptr;
@@ -135,7 +144,7 @@ std::shared_ptr<Texture2D> Texture2D::Load(const std::wstring& filename)
         if (FAILED(hr)) return 0;
     }
 
-    return std::make_shared<Texture2D>(textureWidth, textureHeight, imageSize, imageData, dxgiFormat);
+    return std::make_shared<const Texture2D>(textureWidth, textureHeight, imageSize, imageData, dxgiFormat);
 }
 
 // get the dxgi format equivilent of a wic format

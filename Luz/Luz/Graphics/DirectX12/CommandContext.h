@@ -2,10 +2,6 @@
 #ifndef DX12_COMMANDCONTEXT_H
 #define DX12_COMMANDCONTEXT_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
-#endif
-
 #ifndef DX12_FENCE_H
 #include "Fence.h"
 #endif
@@ -18,6 +14,7 @@ namespace Dx12
     class Pipeline;
     class GraphicsPipeline;
     class RootSignature;
+    class DescriptorHeap;
     class RenderContext;
     class UploadBuffer;
     class Device;
@@ -68,6 +65,12 @@ namespace Dx12
 
         void SetRootSignature(RootSignature* pRootSignature);
 
+        //void SetDescriptorHeaps(std::vector<DescriptorHeap* const> descriptorHeaps);
+
+        void SetDescriptorHeap(const DescriptorHeap* pDescriptorHeap);
+        void SetDescriptorHeap(std::shared_ptr<const DescriptorHeap> pDescriptorHeap) { return SetDescriptorHeap(pDescriptorHeap.get()); }
+
+
         void SetRenderContext(RenderContext* pRenderContext);
         void ClearRenderContext(RenderContext* pRenderContext);
 
@@ -75,6 +78,8 @@ namespace Dx12
 
         void SetGraphicsRootConstantBufferView(UploadBuffer* pBuffer, u32 paramIndex = 0);
         
+        void SetGraphicsRootDescriptorTable(DescriptorHeap* pHeap, u32 paramIndex = 0);
+
         bool Close();
 
         void FinalizeSwapChain();

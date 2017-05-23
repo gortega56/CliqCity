@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "RootSignature.h"
+#include "dx12_internal.h"
 #include "Device.h"
 
 using namespace Dx12;
@@ -87,10 +88,68 @@ RootSignature& RootSignature::AppendRootDescriptorTable(DescriptorTable& descTab
     return *this;
 }
 
-RootSignature& RootSignature::AppendDefaultSampler(u32 shaderRegister)
+RootSignature& RootSignature::AppendAnisotropicWrapSampler(u32 shaderRegister)
+{
+    return AppendStaticSampler(shaderRegister, &MinMagAnisotropicWrapParams);
+}
+
+RootSignature& RootSignature::AppendAnisotropicClampSampler(u32 shaderRegister)
+{
+    return AppendStaticSampler(shaderRegister, &MinMagAnisotropicClampParams);
+}
+
+RootSignature& RootSignature::AppendPointWrapSampler(u32 shaderRegister)
+{
+    return AppendStaticSampler(shaderRegister, &MinMagPointWrapParams);
+}
+RootSignature& RootSignature::AppendPointClampSampler(u32 shaderRegister)
+{
+    return AppendStaticSampler(shaderRegister, &MinMagPointClampParams);
+}
+
+RootSignature& RootSignature::AppendLinearWrapSampler(u32 shaderRegister)
+{
+    return AppendStaticSampler(shaderRegister, &MinMagLinearWrapParams);
+}
+
+RootSignature& RootSignature::AppendLinearClampSampler(u32 shaderRegister)
+{
+    return AppendStaticSampler(shaderRegister, &MinMagLinearClampParams);
+}
+
+RootSignature& RootSignature::AppendStaticSampler(u32 shaderRegister, const SamplerParams* pParams, u32 registerSpace /*= 0U*/, D3D12_SHADER_VISIBILITY shaderVisibility /*= D3D12_SHADER_VISIBILITY_ALL*/)
+{
+    return AppendStaticSampler(shaderRegister,
+        registerSpace,
+        pParams->Filter,
+        pParams->AddressMode,
+        pParams->AddressMode,
+        pParams->AddressMode,
+        pParams->MipLODBias,
+        pParams->MaxAnisotropy,
+        pParams->ComparisonFunc,
+        pParams->BorderColor,
+        pParams->MinLOD,
+        pParams->MaxLOD,
+        shaderVisibility);
+}
+
+RootSignature& RootSignature::AppendStaticSampler(u32 shaderRegister,
+    u32 registerSpace /*= 0U*/,
+    D3D12_FILTER filter /*= D3D12_FILTER_ANISOTROPIC*/,
+    D3D12_TEXTURE_ADDRESS_MODE addressU /*= D3D12_TEXTURE_ADDRESS_MODE_WRAP*/,
+    D3D12_TEXTURE_ADDRESS_MODE addressV /*= D3D12_TEXTURE_ADDRESS_MODE_WRAP*/,
+    D3D12_TEXTURE_ADDRESS_MODE addressW /*= D3D12_TEXTURE_ADDRESS_MODE_WRAP*/,
+    FLOAT mipLODBias /*= 0*/,
+    UINT maxAnisotropy /*= 16*/,
+    D3D12_COMPARISON_FUNC comparisonFunc /*= D3D12_COMPARISON_FUNC_LESS_EQUAL*/,
+    D3D12_STATIC_BORDER_COLOR borderColor /*= D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE*/,
+    FLOAT minLOD /*= 0.f*/,
+    FLOAT maxLOD /*= D3D12_FLOAT32_MAX*/,
+    D3D12_SHADER_VISIBILITY shaderVisibility /*= D3D12_SHADER_VISIBILITY_ALL*/)
 {
     m_staticSamplers.emplace_back(CD3DX12_STATIC_SAMPLER_DESC());
-    m_staticSamplers.back().Init(shaderRegister);
+    m_staticSamplers.back().Init(shaderRegister, filter, addressU, addressV, addressW, mipLODBias, maxAnisotropy, comparisonFunc, borderColor, minLOD, maxLOD, shaderVisibility, registerSpace);
     return *this;
 }
 

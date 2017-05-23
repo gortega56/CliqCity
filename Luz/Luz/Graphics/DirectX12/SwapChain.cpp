@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "SwapChain.h"
+#include "dx12_internal.h"
 #include "Device.h"
 #include "CommandQueue.h"
 #include "DescriptorHeap.h"

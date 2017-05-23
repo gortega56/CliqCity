@@ -2,8 +2,8 @@
 #ifndef DX12_GPURESOURCE_H
 #define DX12_GPURESOURCE_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
 #endif
 
 namespace Dx12
@@ -20,6 +20,8 @@ namespace Dx12
         GpuResource(ID3D12Resource* pResource, D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
         GpuResource(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
         ~GpuResource();
+
+        inline void SetResourceState(D3D12_RESOURCE_STATES state) { m_resourceState = state; }
 
         ID3D12Resource* Resource() const { return m_resource; }
         D3D12_RESOURCE_STATES ResourceState() const { return m_resourceState; }
@@ -105,6 +107,7 @@ namespace Dx12
         bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
             const u32 width, 
             const u32 height, 
+            const u32 dataSize,
             const DXGI_FORMAT format, 
             const u16 mipLevels,
             void* data = nullptr);
@@ -112,6 +115,7 @@ namespace Dx12
         inline void SetDimension(D3D12_RESOURCE_DIMENSION dimension) { m_dimension = dimension; }
         inline void SetWidth(u32 width) { m_width = width; }
         inline void SetHeight(u32 height) { m_height = height; }
+        inline void SetSize(u32 size) { m_size = size; }
         inline void SetArraySize(u16 arraySize) { m_arraySize = arraySize; }
         inline void SetMipLevels(u16 mipLevels) { m_mipLevels = mipLevels; }
         inline void SetFormat(DXGI_FORMAT format) { m_format = format; }
@@ -122,6 +126,7 @@ namespace Dx12
         inline D3D12_RESOURCE_DIMENSION Dimension() const { return m_dimension; }
         inline u32 Width() const { return m_width; }
         inline u32 Height() const { return m_height; }
+        inline u32 Size() const { return m_size; }
         inline u16 ArraySize() const { return m_arraySize; }
         inline u16 MipLevels() const { return m_mipLevels; }
         inline DXGI_FORMAT Format() const { return m_format; }
@@ -135,11 +140,12 @@ namespace Dx12
         D3D12_RESOURCE_DIMENSION m_dimension;
         u32 m_width;
         u32 m_height;
+        u32 m_size;
         u16 m_arraySize;
         u16 m_mipLevels;
         DXGI_FORMAT m_format;
         u32 m_sampleCount;
-        u32 m_sampleQuality;     
+        u32 m_sampleQuality;   
         D3D12_SRV_DIMENSION m_viewDimension;
     };
 

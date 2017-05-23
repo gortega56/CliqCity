@@ -15,10 +15,10 @@
 
 struct Vertex
 {
-    vec4f color;
     vec3f position;
-    Vertex(float r, float g, float b, float a, float x, float y, float z) :
-        color(r, g, b, a), position(x, y, z) {}
+    vec2f uv;
+    Vertex(float x, float y, float z, float u, float v) :
+        position(x, y, z), uv(u, v) {}
 };
 
 struct ConstantBufferData
@@ -40,7 +40,9 @@ public:
     RootSignature m_rs;
 
     std::shared_ptr<Renderable> m_renderable;
-   // std::shared_ptr<Material> m_material;
+    std::shared_ptr<Material> m_material;
+    std::shared_ptr<Dx12::DescriptorHeap> m_srvHeap;
+    std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer;
 
     ConstantBufferData m_cbvData;
     Dx12::UploadBuffer m_gpuBuffer;

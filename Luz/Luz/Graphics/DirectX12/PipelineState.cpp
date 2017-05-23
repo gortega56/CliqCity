@@ -1,10 +1,16 @@
 #include "stdafx.h"
 #include "PipelineState.h"
+#include "dx12_internal.h"
 #include "GpuResource.h"
 #include "RenderContext.h"
 #include "Device.h"
 
 using namespace Dx12;
+
+PipelineState::~PipelineState()
+{
+    SAFE_RELEASE(m_pipelineState);
+}
 
 GraphicsPipeline::GraphicsPipeline()
 {
@@ -13,7 +19,6 @@ GraphicsPipeline::GraphicsPipeline()
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-
 }
 
 void GraphicsPipeline::SetRenderTargets(std::shared_ptr<const RenderContext> pRenderContext)

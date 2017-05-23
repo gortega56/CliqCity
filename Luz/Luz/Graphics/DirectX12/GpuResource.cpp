@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GpuResource.h"
+#include "dx12_internal.h"
 #include "CommandContext.h"
 #include "Device.h"
 #include "DescriptorHeap.h"
@@ -210,14 +211,19 @@ PixelBuffer::PixelBuffer(PixelBuffer&& other)
 
 bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
 {
-    auto pDevice = pRenderer->GetDevice()->DX();
-    if (!CreateDestinationTexture2D(pDevice, &m_resource, m_width, m_height, m_mipLevels, m_format))
-    {
-        return false;
-    }
-
     if (data)
     {
+        auto pDevice = pRenderer->GetDevice()->DX();
+
+        std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+        HRESULT hr = DirectX::LoadDDSTextureFromMemoryEx(pDevice, (u8*)data, m_size, 0, D3D12_RESOURCE_FLAG_NONE, DirectX::DDS_LOADER_FLAGS::DDS_LOADER_MIP_AUTOGEN, &m_resource, subresources);
+        if (FAILED(hr))
+        {
+            return false;
+        }
+
+        //const u64 uploadBufferSize = GetRequiredIntermediateSize(m_resource, 0, static_cast<u32>(subresources.size()));
+
         ID3D12Resource* uploadBuffer;
         if (!CreateUploadTexture2D(pDevice, &uploadBuffer, m_width, m_height, m_mipLevels, m_format))
         {
@@ -235,12 +241,38 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
         SAFE_RELEASE(uploadBuffer);
     }
 
+    //if (!CreateDestinationTexture2D(pDevice, &m_resource, m_width, m_height, m_mipLevels, m_format))
+    //{
+    //    return false;
+    //}
+
+    //if (data)
+    //{
+    //    
+    //    ID3D12Resource* uploadBuffer;
+    //    if (!CreateUploadTexture2D(pDevice, &uploadBuffer, m_width, m_height, m_mipLevels, m_format))
+    //    {
+    //        return false;
+    //    }
+
+    //    auto& pCtx = pRenderer->GetContext();
+    //    auto pCommandList = pCtx->CommandList();
+    //    int bytesPerRow = GetDXGIFormatBitsPerPixel(m_format);
+    //    UpdateBufferResource(pCommandList, m_resource, uploadBuffer, data, (LONG_PTR)bytesPerRow, (LONG_PTR)(bytesPerRow * m_height));
+    //    TransitionResource(pCommandList, m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
+
+    //    auto& pCommandQueue = pRenderer->GetCommandQueue();
+    //    pCommandQueue->Execute(pCtx, true);
+    //    SAFE_RELEASE(uploadBuffer);
+    //}
+
     return true;
 }
 
 bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
     const u32 width, 
     const u32 height, 
+    const u32 size,
     const DXGI_FORMAT format,
     const u16 mipLevels, 
     void* data /*= nullptr*/)
@@ -248,6 +280,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
     m_dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     m_width = width;
     m_height = height;
+    m_size = size;
     m_format = format;
     m_arraySize = 1;
     m_mipLevels = mipLevels;

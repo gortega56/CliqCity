@@ -2,9 +2,17 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
 #endif
+
+struct IDXGIFactory;
+struct IDXGIFactory1;
+struct IDXGIFactory2;
+struct IDXGIFactory3;
+struct IDXGIFactory4;
+struct ID3D12Device;
+struct ID3D12Device1;
 
 namespace Dx12
 {

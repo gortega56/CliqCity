@@ -29,13 +29,13 @@ Renderer::~Renderer()
 
 bool Renderer::Initialize(int width, int height, bool fullscreen)
 {
-//#ifdef _DEBUG
-//    HRESULT hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_debug));
-//    if (SUCCEEDED(hr))
-//    {
-//        m_debug->EnableDebugLayer();
-//    }
-//#endif
+#ifdef _DEBUG
+    HRESULT hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_debug));
+    if (SUCCEEDED(hr))
+    {
+        m_debug->EnableDebugLayer();
+    }
+#endif
 
     if (!m_device->Initialize())
     {

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "DescriptorHeap.h"
+#include "dx12_internal.h"
 #include "dx12_renderer.h"
 #include "GpuResource.h"
 
@@ -38,6 +39,7 @@ DescriptorHeap& DescriptorHeap::operator=(DescriptorHeap&& other)
     other.m_descriptorHeapSize = 0;
     other.m_numDescriptors = 0;
     other.m_type = (D3D12_DESCRIPTOR_HEAP_TYPE)-1;
+    return *this;
 }
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CpuHandle(int i)
@@ -59,24 +61,24 @@ bool DescriptorHeap::Initialize(std::shared_ptr<const Device> pDevice, Descripto
 
 bool DescriptorHeap::InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    return Initialize(pDevice, &RtvParams, name);
+    return Initialize(pDevice, &RtvHeapParams, name);
 }
 
 bool DescriptorHeap::InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    return Initialize(pDevice, &DsvParams, name);
+    return Initialize(pDevice, &DsvHeapParams, name);
 
 }
 
 bool DescriptorHeap::InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    return Initialize(pDevice, &CbvSrvUavParams, name);
+    return Initialize(pDevice, &CbvSrvUavHeapParams, name);
 
 }
 
 bool DescriptorHeap::InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name)
 {
-    return Initialize(pDevice, &SamplerParams, name);
+    return Initialize(pDevice, &SamplerHeapParams, name);
 }
 
 void DescriptorHeap::CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, std::vector<std::shared_ptr<const PixelBuffer>>& pixelBuffers)

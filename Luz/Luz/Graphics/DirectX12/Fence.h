@@ -2,8 +2,8 @@
 #ifndef DX12_FENCE_H
 #define DX12_FENCE_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
 #endif
 
 namespace Dx12

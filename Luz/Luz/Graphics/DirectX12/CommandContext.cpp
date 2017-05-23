@@ -6,6 +6,8 @@
 #include "Device.h"
 #include "RenderContext.h"
 #include "Viewport.h"
+#include "DescriptorHeap.h"
+#include "dx12_internal.h"
 
 using namespace Dx12;
 
@@ -92,6 +94,21 @@ void GraphicsCommandContext::SetRootSignature(RootSignature* pRootSignature)
     m_commandList->SetGraphicsRootSignature(pRootSignature->Signature());
 }
 
+//void GraphicsCommandContext::SetDescriptorHeaps(std::vector<DescriptorHeap* const> descriptorHeaps)
+//{
+//    std::vector<ID3D12DescriptorHeap*> pHeaps;
+//    pHeaps.reserve(descriptorHeaps.size());
+//
+//    std::transform(descriptorHeaps.begin(), descriptorHeaps.end(), pHeaps.begin(), [](const DescriptorHeap* const pHeap) { return pHeap->Native(); });
+//    m_commandList->SetDescriptorHeaps((u32)pHeaps.size(), pHeaps.data());
+//}
+
+void GraphicsCommandContext::SetDescriptorHeap(const DescriptorHeap* pDescriptorHeap)
+{
+    ID3D12DescriptorHeap* descriptorHeaps[] = { pDescriptorHeap->Native() };
+    m_commandList->SetDescriptorHeaps(1, descriptorHeaps);
+}
+
 void GraphicsCommandContext::SetRenderContext(RenderContext* pRenderContext)
 {
     u32 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -146,4 +163,9 @@ void GraphicsCommandContext::FinalizeSwapChain()
 void GraphicsCommandContext::SetGraphicsRootConstantBufferView(UploadBuffer* pBuffer, u32 paramIndex /*= 0*/)
 {
     m_commandList->SetGraphicsRootConstantBufferView(paramIndex, pBuffer->RootConstantBufferView());
+}
+
+void GraphicsCommandContext::SetGraphicsRootDescriptorTable(DescriptorHeap* pHeap, u32 paramIndex/* = 0*/)
+{
+    m_commandList->SetGraphicsRootDescriptorTable(paramIndex, pHeap->Native()->GetGPUDescriptorHandleForHeapStart());
 }

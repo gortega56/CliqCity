@@ -2,10 +2,6 @@
 #ifndef DX12_PIPELINESTATE_H
 #define DX12_PIPELINESTATE_H
 
-#ifndef DX12_INTERNAL_H
-#include "dx12_internal.h"
-#endif
-
 #ifndef DX12_ROOTSIGNATURE_H
 #include "RootSignature.h"
 #endif
@@ -31,7 +27,7 @@ namespace Dx12
     {
     public:
         PipelineState() : m_pipelineState(nullptr) {}
-        ~PipelineState() { SAFE_RELEASE(m_pipelineState) }
+        ~PipelineState();
 
         ID3D12PipelineState* PSO() { return m_pipelineState; }
 

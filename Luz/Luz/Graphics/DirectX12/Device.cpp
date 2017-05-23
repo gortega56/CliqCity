@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Device.h"
+#include "dx12_internal.h"
 
 using namespace Dx12;
 

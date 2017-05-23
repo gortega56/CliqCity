@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "dx12_internal.h"
 #include "CommandQueue.h"
 #include "Device.h"
 #include "CommandContext.h"
