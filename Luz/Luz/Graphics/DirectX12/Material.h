@@ -8,8 +8,6 @@
 
 #include <map>
 
-class Texture2D;
-
 namespace Dx12
 {
     /*struct ResourceParamBinding

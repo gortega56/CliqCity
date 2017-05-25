@@ -98,7 +98,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -110,7 +110,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -124,7 +124,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -142,7 +142,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -169,10 +169,10 @@
     <ClCompile Include="Graphics\DirectX12\RootSignature.cpp" />
     <ClCompile Include="Graphics\DirectX12\Shader.cpp" />
     <ClCompile Include="Graphics\DirectX12\SwapChain.cpp" />
+    <ClCompile Include="Graphics\DirectX12\TextureImpl.cpp" />
     <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
     <ClCompile Include="OSWin.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
-    <ClCompile Include="Resource\Texture.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Window.cpp" />
     <ClCompile Include="WindowsMessageCenter.cpp" />
@@ -197,6 +197,7 @@
     <ClInclude Include="Graphics\DirectX12\RootSignature.h" />
     <ClInclude Include="Graphics\DirectX12\Shader.h" />
     <ClInclude Include="Graphics\DirectX12\SwapChain.h" />
+    <ClInclude Include="Graphics\DirectX12\TextureImpl.h" />
     <ClInclude Include="Graphics\DirectX12\Viewport.h" />
     <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="Luz.h" />
@@ -217,7 +218,7 @@
     <ClInclude Include="windows_utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Library\DirectXTex\DirectXTex\DirectXTex_Desktop_2015.vcxproj">
+    <ProjectReference Include="..\..\Library\DirectXTex\DirectXTex_Desktop_2015_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\Library\DirectXTK12\DirectXTK_Desktop_2015_Win10.vcxproj">

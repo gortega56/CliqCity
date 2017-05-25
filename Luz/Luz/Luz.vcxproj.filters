@@ -99,7 +99,7 @@
     <ClCompile Include="Resource\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Resource\Texture.cpp">
+    <ClCompile Include="Graphics\DirectX12\TextureImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -210,6 +210,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\GpuResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX12\TextureImpl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

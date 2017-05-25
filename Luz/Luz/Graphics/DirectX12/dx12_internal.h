@@ -34,6 +34,10 @@
 #include "VertexTypes.h"
 #include "WICTextureLoader.h"
 
+#include "DirectXTex.h"
+
+#include <wincodec.h>
+
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
 namespace Dx12
@@ -140,5 +144,7 @@ bool ExecuteCommandList(ID3D12CommandQueue* pCommandQueue, ID3D12Fence* pFence, 
 DXGI_FORMAT IndexFormat(unsigned size);
 
 int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
+DXGI_FORMAT GetDXGIFormatFromWICFormat(WICPixelFormatGUID& wicFormatGUID);
+WICPixelFormatGUID GetConvertToWICFormat(WICPixelFormatGUID& wicFormatGUID);
 
 #endif // !DX12_INTERNAL_H

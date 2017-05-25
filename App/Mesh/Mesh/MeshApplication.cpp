@@ -1,7 +1,7 @@
 #include "MeshApplication.h"
 #include <functional>
 
-#define TEXURE_PATH L".\\Assets\\tarmac_0.dds"
+#define TEXURE_PATH L".\\Assets\\tarmac_0.jpg"
 
 MeshApplication::MeshApplication() : m_rs(1)
 {
@@ -98,7 +98,7 @@ bool MeshApplication::Initialize()
     
     m_srvBuffer = std::make_shared<Dx12::PixelBuffer>();
     m_srvBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    if (!m_srvBuffer->InitializeTexture2D(pRenderer, (u32)texture->Width(), texture->Height(), texture->Size(), texture->GetDXGI(), 3, (void*)texture->Data()))
+    if (!m_srvBuffer->InitializeTexture2D(pRenderer, texture))
     {
         return false;
     }
@@ -144,7 +144,7 @@ bool MeshApplication::Initialize()
         .DenyHS()
         .DenyDS()
         .DenyGS()
-        .AppendRootCBV(0).AppendRootDescriptorTable(range).AppendAnisotropicWrapSampler(0);
+        .AppendRootCBV(0).AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL).AppendAnisotropicWrapSampler(0);
 
     if (!m_rs.Finalize(pRenderer->GetDevice()))
     {

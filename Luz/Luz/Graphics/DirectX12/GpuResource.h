@@ -6,6 +6,10 @@
 #include "d3dx12.h"
 #endif
 
+#ifndef TEXTURE_H
+#include "Resource\Texture.h"
+#endif
+
 namespace Dx12
 {
     class Renderer;
@@ -95,17 +99,18 @@ namespace Dx12
         PixelBuffer(ID3D12Resource* pResource, 
             D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
             DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
-            u32 width = 0, 
+            u64 width = 0,
             u32 height = 0);
         PixelBuffer(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
             DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
-            u32 width = 0, 
+            u64 width = 0,
             u32 height = 0);
         ~PixelBuffer();
 
+        bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, std::shared_ptr<const Texture2D> texture = nullptr);
         bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr);
         bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
-            const u32 width, 
+            const u64 width, 
             const u32 height, 
             const u32 dataSize,
             const DXGI_FORMAT format, 
@@ -113,7 +118,7 @@ namespace Dx12
             void* data = nullptr);
 
         inline void SetDimension(D3D12_RESOURCE_DIMENSION dimension) { m_dimension = dimension; }
-        inline void SetWidth(u32 width) { m_width = width; }
+        inline void SetWidth(u64 width) { m_width = width; }
         inline void SetHeight(u32 height) { m_height = height; }
         inline void SetSize(u32 size) { m_size = size; }
         inline void SetArraySize(u16 arraySize) { m_arraySize = arraySize; }
@@ -124,7 +129,7 @@ namespace Dx12
         inline void SetViewDimension(D3D12_SRV_DIMENSION viewDimension) { m_viewDimension = viewDimension; }
 
         inline D3D12_RESOURCE_DIMENSION Dimension() const { return m_dimension; }
-        inline u32 Width() const { return m_width; }
+        inline u64 Width() const { return m_width; }
         inline u32 Height() const { return m_height; }
         inline u32 Size() const { return m_size; }
         inline u16 ArraySize() const { return m_arraySize; }
@@ -138,7 +143,7 @@ namespace Dx12
 
     protected:
         D3D12_RESOURCE_DIMENSION m_dimension;
-        u32 m_width;
+        u64 m_width;
         u32 m_height;
         u32 m_size;
         u16 m_arraySize;
@@ -155,12 +160,12 @@ namespace Dx12
         ColorBuffer(ID3D12Resource* pResource, 
             D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
             DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
-            u32 width = 0, 
+            u64 width = 0,
             u32 height = 0, 
             const float* color = nullptr);
         ColorBuffer(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON,
             DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN,
-            u32 width = 0,
+            u64 width = 0,
             u32 height = 0,
             const float* color = nullptr);
         ~ColorBuffer();

@@ -172,7 +172,7 @@ void UploadBuffer::Unmap()
 
 PixelBuffer::PixelBuffer(ID3D12Resource* pResource, 
     D3D12_RESOURCE_STATES resourceState, 
-    DXGI_FORMAT format, u32 width, u32 height) : 
+    DXGI_FORMAT format, u64 width, u32 height) :
     GpuResource(pResource, resourceState), 
     m_width(width), 
     m_height(height),
@@ -183,7 +183,7 @@ PixelBuffer::PixelBuffer(ID3D12Resource* pResource,
 
 }
 
-PixelBuffer::PixelBuffer(D3D12_RESOURCE_STATES resourceState, DXGI_FORMAT format, u32 width, u32 height) : 
+PixelBuffer::PixelBuffer(D3D12_RESOURCE_STATES resourceState, DXGI_FORMAT format, u64 width, u32 height) :
     PixelBuffer(nullptr, resourceState, format, width, height)
 {
 
@@ -209,46 +209,73 @@ PixelBuffer::PixelBuffer(PixelBuffer&& other)
     other.m_height = 0;
 }
 
-bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
+bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, std::shared_ptr<const Texture2D> texture/* = nullptr*/)
 {
-    if (data)
+    auto pTexImpl = texture->GetImpl();
+    if (!pTexImpl)
     {
-        auto pDevice = pRenderer->GetDevice()->DX();
+        return false;
+    }
+ 
+    const DirectX::ScratchImage& image = *pTexImpl->m_image;
+    DirectX::TexMetadata imageMetadata = image.GetMetadata();
 
-        std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-        HRESULT hr = DirectX::LoadDDSTextureFromMemoryEx(pDevice, (u8*)data, m_size, 0, D3D12_RESOURCE_FLAG_NONE, DirectX::DDS_LOADER_FLAGS::DDS_LOADER_MIP_AUTOGEN, &m_resource, subresources);
-        if (FAILED(hr))
-        {
-            return false;
-        }
+    m_format = imageMetadata.format;
+    m_viewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    m_mipLevels = (u16)imageMetadata.mipLevels;
 
-        //const u64 uploadBufferSize = GetRequiredIntermediateSize(m_resource, 0, static_cast<u32>(subresources.size()));
+    ID3D12Device* pDevice = pRenderer->GetDevice()->DX();
 
-        ID3D12Resource* uploadBuffer;
-        if (!CreateUploadTexture2D(pDevice, &uploadBuffer, m_width, m_height, m_mipLevels, m_format))
-        {
-            return false;
-        }
-
-        auto& pCtx = pRenderer->GetContext();
-        auto pCommandList = pCtx->CommandList();
-        int bytesPerRow = GetDXGIFormatBitsPerPixel(m_format);
-        UpdateBufferResource(pCommandList, m_resource, uploadBuffer, data, (LONG_PTR)bytesPerRow, (LONG_PTR)(bytesPerRow * m_height));
-        TransitionResource(pCommandList, m_resource, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
-
-        auto& pCommandQueue = pRenderer->GetCommandQueue();
-        pCommandQueue->Execute(pCtx, true);
-        SAFE_RELEASE(uploadBuffer);
+    HRESULT hr;
+    hr = CreateTexture(pDevice, imageMetadata, &m_resource);
+    if (FAILED(hr))
+    {
+        __debugbreak();
     }
 
-    //if (!CreateDestinationTexture2D(pDevice, &m_resource, m_width, m_height, m_mipLevels, m_format))
-    //{
-    //    return false;
-    //}
+    std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+    hr = PrepareUpload(pDevice, image.GetImages(), image.GetImageCount(), imageMetadata, subresources);
+    if (FAILED(hr))
+    {
+        __debugbreak();
+    }
 
+    const u32 numSubresources = static_cast<u32>(subresources.size());
+    const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_resource, 0, numSubresources);
+
+    ID3D12Resource* uploadBuffer;
+    if (!CreateUploadBuffer(pDevice, &uploadBuffer, uploadBufferSize))
+    {
+        return false;
+    }
+
+    auto& pCtx = pRenderer->GetContext();
+    auto pCommandList = pCtx->CommandList();
+    UpdateSubresources(pCommandList, m_resource, uploadBuffer, 0, 0, numSubresources, subresources.data());
+    TransitionResource(pCommandList, m_resource, D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
+
+    auto& pCommandQueue = pRenderer->GetCommandQueue();
+    pCommandQueue->Execute(pCtx, true);
+    SAFE_RELEASE(uploadBuffer);
+
+    return true;
+}
+
+bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
+{
     //if (data)
     //{
-    //    
+    //    auto pDevice = pRenderer->GetDevice()->DX();
+
+    //    std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+    //    HRESULT hr = DirectX::LoadDDSTextureFromMemoryEx(pDevice, (u8*)data, m_size, 0, D3D12_RESOURCE_FLAG_NONE, DirectX::DDS_LOADER_FLAGS::DDS_LOADER_MIP_AUTOGEN, &m_resource, subresources);
+    //    if (FAILED(hr))
+    //    {
+    //        return false;
+    //    }
+
+    //    //const u64 uploadBufferSize = GetRequiredIntermediateSize(m_resource, 0, static_cast<u32>(subresources.size()));
+
     //    ID3D12Resource* uploadBuffer;
     //    if (!CreateUploadTexture2D(pDevice, &uploadBuffer, m_width, m_height, m_mipLevels, m_format))
     //    {
@@ -270,7 +297,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
 }
 
 bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
-    const u32 width, 
+    const u64 width,
     const u32 height, 
     const u32 size,
     const DXGI_FORMAT format,
@@ -292,14 +319,14 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
 
 ColorBuffer::ColorBuffer(ID3D12Resource* pResource,
     D3D12_RESOURCE_STATES resourceState,
-    DXGI_FORMAT format, u32 width, u32 height, 
+    DXGI_FORMAT format, u64 width, u32 height,
     const float* color) : 
     PixelBuffer(pResource, resourceState, format, width, height)
 {
     SetColor(color);
 }
 ColorBuffer::ColorBuffer(D3D12_RESOURCE_STATES resourceState,
-    DXGI_FORMAT format, u32 width, u32 height,
+    DXGI_FORMAT format, u64 width, u32 height,
     const float* color) : 
     ColorBuffer(nullptr, resourceState, format, width, height)
 {
