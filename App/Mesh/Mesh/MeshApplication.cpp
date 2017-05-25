@@ -1,7 +1,7 @@
 #include "MeshApplication.h"
 #include <functional>
 
-#define TEXURE_PATH L".\\Assets\\tarmac_0.jpg"
+#define TEXURE_PATH L".\\Assets\\tarmac_0.dds"
 
 MeshApplication::MeshApplication() : m_rs(1)
 {
@@ -173,7 +173,6 @@ bool MeshApplication::Initialize()
     m_cbvData.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
 
-    auto ctx = pRenderer->GetContext();
     if (!m_gpuBuffer.InitializeStructure(pRenderer, &m_cbvData))
     {
         return false;
