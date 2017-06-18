@@ -94,6 +94,14 @@ void GraphicsCommandContext::SetRootSignature(RootSignature* pRootSignature)
     m_commandList->SetGraphicsRootSignature(pRootSignature->Signature());
 }
 
+void GraphicsCommandContext::SetDescriptorHeaps(const DescriptorHeap* pDescriptorHeaps, u32 numHeaps)
+{
+    //std::vector<ID3D12DescriptorHeap*> descriptorHeaps;
+    //descriptorHeaps.reserve(numHeaps);
+    //std::transform(descriptorHeaps.begin(), descriptorHeaps.end(), pDescriptorHeaps, [](const DescriptorHeap& const pHeap) { return pHeap.Native(); });
+    //m_commandList->SetDescriptorHeaps(numHeaps, descriptorHeaps.data());
+}
+
 //void GraphicsCommandContext::SetDescriptorHeaps(std::vector<DescriptorHeap* const> descriptorHeaps)
 //{
 //    std::vector<ID3D12DescriptorHeap*> pHeaps;
@@ -160,12 +168,12 @@ void GraphicsCommandContext::FinalizeSwapChain()
     m_swapChain->Finalize(m_commandList);
 }
 
-void GraphicsCommandContext::SetGraphicsRootConstantBufferView(UploadBuffer* pBuffer, u32 paramIndex /*= 0*/)
+void GraphicsCommandContext::SetGraphicsRootConstantBufferView(const UploadBuffer* pBuffer, u32 paramIndex /*= 0*/)
 {
     m_commandList->SetGraphicsRootConstantBufferView(paramIndex, pBuffer->RootConstantBufferView());
 }
 
-void GraphicsCommandContext::SetGraphicsRootDescriptorTable(DescriptorHeap* pHeap, u32 paramIndex/* = 0*/)
+void GraphicsCommandContext::SetGraphicsRootDescriptorTable(const DescriptorHeap* pHeap, u32 paramIndex /*= 0*/, u32 heapOffset /*= 0*/)
 {
-    m_commandList->SetGraphicsRootDescriptorTable(paramIndex, pHeap->Native()->GetGPUDescriptorHandleForHeapStart());
+    m_commandList->SetGraphicsRootDescriptorTable(paramIndex, CD3DX12_GPU_DESCRIPTOR_HANDLE(pHeap->Native()->GetGPUDescriptorHandleForHeapStart(), heapOffset, pHeap->Size()));
 }

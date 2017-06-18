@@ -81,16 +81,12 @@ bool DescriptorHeap::InitializeSampler(std::shared_ptr<const Device> pDevice, st
     return Initialize(pDevice, &SamplerHeapParams, name);
 }
 
-void DescriptorHeap::CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, std::vector<std::shared_ptr<const PixelBuffer>>& pixelBuffers)
+void DescriptorHeap::CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, const PixelBuffer* pixelBuffer, int offset /*= 0*/)
 {
-    for (int i = 0, count = (int)pixelBuffers.size(); i < count; ++i)
-    {
-        auto& pBuffer = pixelBuffers[i];
-        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        desc.Format = pBuffer->Format();
-        desc.ViewDimension = pBuffer->ViewDimension();
-        desc.Texture2D.MipLevels = pBuffer->MipLevels();
-        pDevice->DX()->CreateShaderResourceView(pBuffer->Resource(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize));
-    }
+    D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+    desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    desc.Format = pixelBuffer->Format();
+    desc.ViewDimension = pixelBuffer->ViewDimension();
+    desc.Texture2D.MipLevels = pixelBuffer->MipLevels();
+    pDevice->DX()->CreateShaderResourceView(pixelBuffer->Resource(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), offset, m_descriptorHeapSize));
 }

@@ -23,5 +23,7 @@
 #include <iostream>
 #include <future>
 #include <thread>
+#include <iterator>
 
 #include "TypeDefs.h"
+#include "LzAssert.h"

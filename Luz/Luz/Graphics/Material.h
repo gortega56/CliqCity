@@ -12,7 +12,6 @@ class TMaterial : public Base
 {
 public:
     using Base::Base;
-    using Base::SetTexture2D;
 
     TMaterial() {}
     virtual ~TMaterial() {}
@@ -24,8 +23,8 @@ public:
 #include "DirectX12\Material.h"
 #endif
 
-namespace Dx12 { class Material; }
-typedef TMaterial<Dx12::Material> Material;
+namespace Dx12 { namespace Material { class Immutable; } }
+typedef TMaterial<Dx12::Material::Immutable> MaterialState;
 
 #elif _WIN32
 

@@ -91,7 +91,15 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    //m_material = std::make_shared<Material>(pRenderer);
+    m_cbvData.model = mat4f(1.0f).transpose();
+    m_cbvData.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
+    m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
+
+    m_gpuBuffer = std::make_shared<Dx12::UploadBuffer>();
+    if (!m_gpuBuffer->InitializeStructure(pRenderer, &m_cbvData))
+    {
+        return false;
+    }
 
     ResourceManager rm;
     auto texture = rm.GetResourceFuture<Texture2D>(TEXURE_PATH).get();
@@ -103,15 +111,16 @@ bool MeshApplication::Initialize()
         return false;
     }
     
-    std::vector<std::shared_ptr<const Dx12::PixelBuffer>> pbs(1, m_srvBuffer);
     m_srvHeap = std::make_shared<Dx12::DescriptorHeap>(1);
     if (!m_srvHeap->InitializeMixed(pRenderer->GetDevice(), L"SRV Heap"))
     {
         return false;
     }
 
-    m_srvHeap->CreateShaderResourceViews(pRenderer->GetDevice(), pbs);
-/*    ResourceManager rm;
+
+    m_srvHeap->CreateShaderResourceViews(pRenderer->GetDevice(), m_srvBuffer.get());
+
+    /*    ResourceManager rm;
     rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<const Texture2D> pTexture)
     {
         if (!pTexture)
@@ -169,14 +178,12 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    m_cbvData.model = mat4f(1.0f).transpose();
-    m_cbvData.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
+    std::shared_ptr<const RootSignature> sharedRootSignature;
+    sharedRootSignature.reset(&m_rs);
 
-    if (!m_gpuBuffer.InitializeStructure(pRenderer, &m_cbvData))
-    {
-        return false;
-    }
+    m_material = std::make_shared<MaterialState>(sharedRootSignature);
+    m_material->SetRootConstantBufferView(m_gpuBuffer, 0);
+    m_material->SetRootDescriptorTable(m_srvHeap, std::vector<std::shared_ptr<const Dx12::GpuResource>>({ m_srvBuffer }), 1);
     
     return true;
 }
@@ -189,8 +196,8 @@ int MeshApplication::Shutdown()
 void MeshApplication::Update(double dt)
 {
     // Rendering
-    m_gpuBuffer.Map(&m_cbvData);
-    m_gpuBuffer.Unmap();
+    m_gpuBuffer->Map(&m_cbvData);
+    m_gpuBuffer->Unmap();
 
     Renderer* pRenderer = m_engine->Graphics().get();
 
@@ -205,8 +212,9 @@ void MeshApplication::Update(double dt)
 
     pRenderer->SetViewport(pCtx);
 
-    pCtx->SetGraphicsRootConstantBufferView(&m_gpuBuffer);
-    pCtx->SetGraphicsRootDescriptorTable(m_srvHeap.get(), 1);
+    m_material->Prepare(pCtx.get());
+    //pCtx->SetGraphicsRootConstantBufferView(&m_gpuBuffer);
+    //pCtx->SetGraphicsRootDescriptorTable(m_srvHeap.get(), 1);
 
     m_renderable->Prepare(pCtx.get());
     m_renderable->DrawIndexedInstanced(pCtx.get());

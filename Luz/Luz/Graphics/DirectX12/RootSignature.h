@@ -8,6 +8,11 @@
 
 namespace Dx12
 {
+    namespace Material
+    {
+        class Immutable;
+    }
+
     struct SamplerParams
     {
         D3D12_FILTER Filter;
@@ -107,6 +112,9 @@ namespace Dx12
         inline RootSignature& AppendDSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_DOMAIN); }
         inline RootSignature& AppendGSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_GEOMETRY); }
         inline RootSignature& AppendPSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_PIXEL); }
+
+    protected:
+        friend class Material::Immutable;
 
     private:
         ID3D12RootSignature* m_signature;

@@ -34,7 +34,7 @@ namespace Dx12
 
         ID3D12DescriptorHeap* Native() const { return m_descriptorHeap; }
         ID3D12DescriptorHeap** Address() { return &m_descriptorHeap; }
-        u32 Size() { return m_descriptorHeapSize; }
+        u32 Size() const { return m_descriptorHeapSize; }
         u32 NumDescriptors() { return m_numDescriptors; }
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE CpuHandle(int i = 0);
@@ -46,7 +46,7 @@ namespace Dx12
         bool InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name);
         bool InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name);
 
-        void CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, std::vector<std::shared_ptr<const PixelBuffer>>& pPixelBuffers);
+        void CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, const PixelBuffer* pixelBuffer, int offset = 0);
 
     private:
         ID3D12DescriptorHeap* m_descriptorHeap;

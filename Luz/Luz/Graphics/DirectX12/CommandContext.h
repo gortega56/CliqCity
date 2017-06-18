@@ -65,7 +65,7 @@ namespace Dx12
 
         void SetRootSignature(RootSignature* pRootSignature);
 
-        //void SetDescriptorHeaps(std::vector<DescriptorHeap* const> descriptorHeaps);
+        void SetDescriptorHeaps(const DescriptorHeap* pDescriptorHeaps, u32 numHeaps);
 
         void SetDescriptorHeap(const DescriptorHeap* pDescriptorHeap);
         void SetDescriptorHeap(std::shared_ptr<const DescriptorHeap> pDescriptorHeap) { return SetDescriptorHeap(pDescriptorHeap.get()); }
@@ -76,9 +76,9 @@ namespace Dx12
 
         void SetViewport(Viewport* pViewport);
 
-        void SetGraphicsRootConstantBufferView(UploadBuffer* pBuffer, u32 paramIndex = 0);
+        void SetGraphicsRootConstantBufferView(const UploadBuffer* pBuffer, u32 paramIndex = 0);
         
-        void SetGraphicsRootDescriptorTable(DescriptorHeap* pHeap, u32 paramIndex = 0);
+        void SetGraphicsRootDescriptorTable(const DescriptorHeap* pHeap, u32 paramIndex = 0, u32 heapOffset = 0);
 
         bool Close();
 

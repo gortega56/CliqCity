@@ -40,12 +40,12 @@ public:
     RootSignature m_rs;
 
     std::shared_ptr<Renderable> m_renderable;
-    std::shared_ptr<Material> m_material;
+    std::shared_ptr<MaterialState> m_material;
     std::shared_ptr<Dx12::DescriptorHeap> m_srvHeap;
     std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer;
+    std::shared_ptr<Dx12::UploadBuffer> m_gpuBuffer;
 
     ConstantBufferData m_cbvData;
-    Dx12::UploadBuffer m_gpuBuffer;
 
     MeshApplication();
     ~MeshApplication();
