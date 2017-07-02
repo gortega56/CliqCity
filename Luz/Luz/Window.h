@@ -2,9 +2,6 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <Windows.h>
-#include <string>
-
 class Window
 {
 public:

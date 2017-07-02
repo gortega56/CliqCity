@@ -128,7 +128,6 @@ private:
 #endif
 
 typedef TEngine<OSWin, Dx12::Renderer> Engine;
-
 typedef Dx12::Renderer Renderer;
 
 #ifndef DX12_SHADER_H

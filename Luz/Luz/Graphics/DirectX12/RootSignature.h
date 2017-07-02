@@ -10,6 +10,7 @@ namespace Dx12
 {
     namespace Material
     {
+        class Builder;
         class Immutable;
     }
 
@@ -114,6 +115,7 @@ namespace Dx12
         inline RootSignature& AppendPSRootCBV(u32 shaderRegister, u32 registerSpace = 0U, D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) { return AppendRootCBV(shaderRegister, registerSpace, flags, D3D12_SHADER_VISIBILITY_PIXEL); }
 
     protected:
+        friend class Material::Builder;
         friend class Material::Immutable;
 
     private:

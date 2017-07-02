@@ -6,41 +6,13 @@
 #include "TypeDefs.h"
 #endif
 
-#ifndef DX12_DESCRIPTORHEAP_H
-#include "DescriptorHeap.h"
-#endif
-
-#ifndef DX12_COMMANDCONTEXT_H
-#include "CommandContext.h"
-#endif
-
-#ifndef DX12_GPURESOURCE_H
-#include "GpuResource.h"
-#endif
-
-#ifndef DX12PIPELINE_H
-#include "PipelineState.h"
-#endif
-
 #ifndef DX12_RENDERCONTEXT_H
 #include "RenderContext.h"
 #endif 
 
-
-#ifndef DEVICE_H
-#include "Device.h"
-#endif
-
-#ifndef DX12_SWAPCHAIN_H
-#include "SwapChain.h"
-#endif
-
 #ifndef DX12_VIEWPORT_H
 #include "Viewport.h"
 #endif
-
-#include <memory>
-#include <vector>
 
 class OSWin;
 
@@ -97,7 +69,7 @@ namespace Dx12
     protected:
         HWND m_hwnd;
 
-        std::shared_ptr<Device> m_device;
+        std::shared_ptr<const Device> m_device;
         std::shared_ptr<CommandQueue> m_commandQueue;
         std::shared_ptr<RenderContext> m_renderContext;
         std::shared_ptr<SwapChain> m_swapChain;

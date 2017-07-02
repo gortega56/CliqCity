@@ -4,6 +4,28 @@
 
 using namespace Dx12;
 
+struct MakeSharedDevice : public Device
+{
+    MakeSharedDevice() : Device()
+    {
+
+    }
+};
+
+std::shared_ptr<const Device> Device::SharedInstance()
+{
+    static std::shared_ptr<Device> g_device = nullptr;
+
+    if (!g_device)
+    {
+        g_device = std::make_shared<MakeSharedDevice>();
+        bool result = g_device->Initialize();
+        LUZASSERT(result);
+    }
+
+    return g_device;
+}
+
 Device::Device() : 
     m_factory(nullptr),
     m_factory1(nullptr),

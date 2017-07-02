@@ -53,7 +53,7 @@ void ResourceManager::LoadResource(ResourceID id, std::function<void(std::shared
 {
     std::async(std::launch::async, [id, onLoaded]()
     {
-        std::shared_ptr<RESOURCE> res = RESOURCE::Load(id);
+        std::shared_ptr<const RESOURCE> res = RESOURCE::Load(id);
         onLoaded(res);
     });
 }
@@ -63,7 +63,7 @@ void ResourceManager::LoadResource(std::wstring filename, std::function<void(std
 {
     std::async(std::launch::async, [filename, onLoaded]()
     {
-        std::shared_ptr<RESOURCE> res = RESOURCE::Load(filename);
+        std::shared_ptr<const RESOURCE> res = RESOURCE::Load(filename);
         onLoaded(res);
     });
 }

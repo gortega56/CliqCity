@@ -2,10 +2,11 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
 #endif
 
-#include <windows.h>
+#define NOMINMAX
+#include <Windows.h>
 #include "MeshApplication.h"
-#include "Engine.h"
 #include "Options.h"
+#include "Engine.h"
 
 int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
     HINSTANCE hPrevInstance,
@@ -21,7 +22,7 @@ int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
     options.WindowWidth = 1600;
     options.WindowHeight = 900;
     options.FullScreen = false;
-    options.UseConsole = true;
+    options.UseConsole = false;
     
     Engine::Run<MeshApplication>(options);
 

@@ -37,11 +37,6 @@ SwapChain::~SwapChain()
     SAFE_RELEASE(m_swapChain1);
     SAFE_RELEASE(m_swapChain2);
     SAFE_RELEASE(m_swapChain3);
-
-    for (auto& res : m_frameBuffers)
-    {
-        SAFE_RELEASE(res);
-    }
 }
 
 bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen)
@@ -58,25 +53,22 @@ bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_pt
         return false;
     }
 
-    m_fences.resize(numFrameBuffers);
-
-    for (u32 i = 0; i < numFrameBuffers; ++i)
-    {
-        if (!m_fences[i].Initialize(pDevice))
-        {
-            return false;
-        }
-    }
-
     return true;
 }
 
 bool SwapChain::InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap)
 {
+    std::vector<ID3D12Resource*> resources(m_frameBuffers.size());
+
     // Create swap chain rtv resources
-    if (!CreateSwapChainRenderTargetViews(pDevice->DX(), pHeap->Native(), m_swapChain3, m_frameBuffers.data(), (UINT)m_frameBuffers.size()))
+    if (!CreateSwapChainRenderTargetViews(pDevice->DX(), pHeap->Native(), m_swapChain3, resources.data(), (UINT)m_frameBuffers.size()))
     {
         return false;
+    }
+
+    for (int i = 0; i < (int)m_frameBuffers.size(); ++i)
+    {
+        m_frameBuffers[i].Attach(resources[i]);
     }
 
     return true;
@@ -97,5 +89,5 @@ bool SwapChain::Present()
 
 void SwapChain::Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const
 {
-    TransitionResource(pGraphicsCommandList, m_frameBuffers[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    TransitionResource(pGraphicsCommandList, m_frameBuffers[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }

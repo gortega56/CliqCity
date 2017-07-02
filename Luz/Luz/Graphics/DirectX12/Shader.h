@@ -6,9 +6,6 @@
 #include "d3dx12.h"
 #endif
 
-#include <vector>
-#include <unordered_map>
-
 namespace Dx12
 {
     class Shader

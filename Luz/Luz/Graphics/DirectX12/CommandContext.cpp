@@ -173,7 +173,7 @@ void GraphicsCommandContext::SetGraphicsRootConstantBufferView(const UploadBuffe
     m_commandList->SetGraphicsRootConstantBufferView(paramIndex, pBuffer->RootConstantBufferView());
 }
 
-void GraphicsCommandContext::SetGraphicsRootDescriptorTable(const DescriptorHeap* pHeap, u32 paramIndex /*= 0*/, u32 heapOffset /*= 0*/)
+void GraphicsCommandContext::SetGraphicsRootDescriptorTable(const DescriptorHandle& handle, u32 paramIndex /*= 0*/)
 {
-    m_commandList->SetGraphicsRootDescriptorTable(paramIndex, CD3DX12_GPU_DESCRIPTOR_HANDLE(pHeap->Native()->GetGPUDescriptorHandleForHeapStart(), heapOffset, pHeap->Size()));
+    m_commandList->SetGraphicsRootDescriptorTable(paramIndex, handle.GpuHandle());
 }

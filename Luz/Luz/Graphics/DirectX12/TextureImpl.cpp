@@ -63,7 +63,7 @@ static HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImag
     return DirectX::GenerateMipMaps(inImage.GetImages(), inImage.GetImageCount(), inImage.GetMetadata(), (DWORD)DirectX::TEX_FILTER_FLAGS::TEX_FILTER_DEFAULT, 0, outImage);
 }
 
-TextureImpl::TextureImpl() : m_image(std::make_unique<DirectX::ScratchImage>())
+TextureImpl::TextureImpl(std::wstring filename) : m_filename(filename), m_image(std::make_unique<DirectX::ScratchImage>())
 {
 
 }
@@ -71,6 +71,28 @@ TextureImpl::TextureImpl() : m_image(std::make_unique<DirectX::ScratchImage>())
 TextureImpl::~TextureImpl()
 {
 
+}
+
+TextureImpl::TextureImpl(TextureImpl&& other) : m_filename(other.m_filename), m_image(std::move(m_image))
+{
+    other.m_filename.clear();
+    other.m_image = nullptr;
+}
+
+TextureImpl& TextureImpl::operator=(TextureImpl&& other)
+{
+    m_filename = other.m_filename;
+    m_image = std::move(m_image);
+
+    other.m_filename.clear();
+    other.m_image = nullptr;
+
+    return *this;
+}
+
+std::wstring TextureImpl::Filename() const
+{
+    return m_filename;
 }
 
 size_t TextureImpl::GetImageWidth(size_t mip, size_t item, size_t slice) const
@@ -98,7 +120,7 @@ const u8* TextureImpl::GetImagePixels(size_t mip, size_t item, size_t slice) con
     return m_image->GetImage(mip, item, slice)->pixels;
 }
 
-bool TextureImpl::Load(const std::wstring& filename) const
+bool TextureImpl::Load() const
 {
     static bool coIntialized = false;
     if (!coIntialized)
@@ -107,19 +129,19 @@ bool TextureImpl::Load(const std::wstring& filename) const
         coIntialized = true;
     }
 
-    LPCWSTR extension = PathFindExtension(filename.c_str());
+    LPCWSTR extension = PathFindExtension(m_filename.c_str());
     if (_wcsicmp(L".dds", extension) == 0)
     {
-        return LoadDDSImage(filename, *m_image, true);
+        return LoadDDSImage(m_filename, *m_image, true);
     }
     else
     {
-        return LoadWICImage(filename, *m_image, true);
+        return LoadWICImage(m_filename, *m_image, true);
     }
 
     DirectX::TexMetadata texMetaData;
     DirectX::ScratchImage scratchImage;
-    HRESULT hr = DirectX::LoadFromWICFile(filename.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &texMetaData, scratchImage);
+    HRESULT hr = DirectX::LoadFromWICFile(m_filename.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &texMetaData, scratchImage);
     if (FAILED(hr))
     {
         __debugbreak();

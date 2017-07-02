@@ -157,7 +157,12 @@
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandQueue.cpp" />
-    <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp" />
+    <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Graphics\DirectX12\Device.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_renderable.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_renderer.cpp" />
@@ -180,6 +185,7 @@
     <ClCompile Include="windows_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GeneralMacros.h" />
     <ClInclude Include="LzAssert.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\CommandContext.h" />

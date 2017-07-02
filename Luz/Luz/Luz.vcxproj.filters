@@ -221,5 +221,8 @@
     <ClInclude Include="LzAssert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GeneralMacros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

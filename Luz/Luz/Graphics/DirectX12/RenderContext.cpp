@@ -4,10 +4,11 @@
 #include "CommandContext.h"
 #include "DescriptorHeap.h"
 #include "SwapChain.h"
+#include "GpuResource.h"
 
 using namespace Dx12;
 
-RenderContext::RenderContext() : m_dsv(1), m_rtvDescriptorHeap(nullptr), m_dsvDescriptorHeap(nullptr)
+RenderContext::RenderContext() : m_dsv(/*std::make_shared<DepthBuffer>(1)*/1), m_rtvDescriptorHeap(nullptr), m_dsvDescriptorHeap(nullptr)
 {
     
 }
@@ -32,6 +33,7 @@ bool RenderContext::Initialize(std::shared_ptr<const Device> pDevice, std::share
     for (int i = 0, count = pSwapChain->NumFrameBuffers(); i < count; ++i)
     {
         auto frameBuffer = pSwapChain->FrameBuffer(i);
+        //m_rtvs.push_back(std::make_shared<ColorBuffer>(frameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, pSwapChain->Format(), m_width, m_height));
         m_rtvs.emplace_back(ColorBuffer(frameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, pSwapChain->Format(), m_width, m_height));
     }
 
@@ -40,6 +42,10 @@ bool RenderContext::Initialize(std::shared_ptr<const Device> pDevice, std::share
     {
         return false;
     }
+
+    //m_dsv->SetFormat(DXGI_FORMAT_D24_UNORM_S8_UINT);
+    //m_dsv->SetWidth(width);
+    //m_dsv->SetHeight(height);
 
     m_dsv.SetFormat(DXGI_FORMAT_D24_UNORM_S8_UINT);
     m_dsv.SetWidth(width);
@@ -68,12 +74,17 @@ void RenderContext::SetClearDepth(float f)
 
 void RenderContext::SetClearStencil(u8 s) 
 { 
-    m_dsv.SetClearStencil(s); 
+    m_dsv.SetClearStencil(s);
 }
 
-void RenderContext::SetClearFlags(D3D12_CLEAR_FLAGS flags) 
-{ 
-    m_dsv.SetClearFlags(flags); 
+void RenderContext::SetClearDepthFlag()
+{
+    m_dsv.SetClearFlags(D3D12_CLEAR_FLAG_DEPTH);
+}
+
+void RenderContext::SetClearStencilFlag()
+{
+    m_dsv.SetClearFlags(D3D12_CLEAR_FLAG_STENCIL);
 }
 
 RenderContext::~RenderContext()

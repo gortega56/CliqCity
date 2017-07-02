@@ -6,7 +6,10 @@
 #include "Fence.h"
 #endif
 
-#include <vector>
+struct ID3D12CommandQueue;
+struct ID3D12CommandAllocator;
+struct ID3D12CommandList;
+struct ID3D12GraphicsCommandList;
 
 namespace Dx12
 {
@@ -15,6 +18,7 @@ namespace Dx12
     class GraphicsPipeline;
     class RootSignature;
     class DescriptorHeap;
+    class DescriptorHandle;
     class RenderContext;
     class UploadBuffer;
     class Device;
@@ -44,6 +48,7 @@ namespace Dx12
 
         Fence m_fence;
         
+        ID3D12CommandQueue* m_commandQueue;
         ID3D12CommandAllocator* m_commandAllocator;
 
         std::shared_ptr<const Device> m_device;
@@ -78,7 +83,7 @@ namespace Dx12
 
         void SetGraphicsRootConstantBufferView(const UploadBuffer* pBuffer, u32 paramIndex = 0);
         
-        void SetGraphicsRootDescriptorTable(const DescriptorHeap* pHeap, u32 paramIndex = 0, u32 heapOffset = 0);
+        void SetGraphicsRootDescriptorTable(const DescriptorHandle& handle, u32 paramIndex = 0);
 
         bool Close();
 

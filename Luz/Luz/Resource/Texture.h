@@ -23,7 +23,7 @@ typedef Internal::Texture2D<Dx12::TextureImpl> Texture2D;
 #endif
 
 namespace Dx12 { class TextureImpl; }
-typedef Texture2D<Dx12::TextureImpl> Tex2D;
+typedef Internal::Texture2D<Dx12::TextureImpl> Texture2D;
 
 #elif __APPLE__
 #endif
@@ -45,41 +45,69 @@ namespace Internal
             COUNT
         };
 
-        //Texture2D(u64 width, u32 height, u32 imageSize, u16 mipLevels, u8* data, DXGI_FORMAT format, std::shared_ptr<std::vector<D3D12_SUBRESOURCE_DATA>> subresources);
-        Texture2D() : m_pImpl(std::make_unique<Impl>()) {}
-        ~Texture2D() {}
+        Texture2D(std::wstring filename);
+        ~Texture2D();
 
-        const Impl* GetImpl() const { return m_pImpl.get(); }
+        Texture2D(Texture2D<Impl>&& other);
+        Texture2D<Impl>& operator=(Texture2D<Impl>&& other);
 
-        //u64 Width() const { return m_width; }
-        //u32 Height() const { return m_height; }
-        //u32 Size() const { return m_size; }
-        //u16 MipLevels() const { return m_mipLevels; }
-        //u8 const* Data() const { return m_data; }
-        //DXGI_FORMAT GetDXGI() const { return m_format.asDXGI; }
-        //std::shared_ptr<std::vector<D3D12_SUBRESOURCE_DATA>> GetSubresources() const { return m_subresources; }
+        std::wstring Filename() const;
+        const Impl* GetImpl() const;
+
         static std::shared_ptr<const Texture2D> Load(const std::wstring& filename);
 
     private:
         std::unique_ptr<Impl> m_pImpl;
-        //u64 m_width;
-        //u32 m_height;
-        //u32 m_size;
-        //u16 m_mipLevels;
-        //u8* m_data;
-        //union
-        //{
-        //    DXGI_FORMAT asDXGI;
-        //} m_format;
 
-        //std::shared_ptr<std::vector<D3D12_SUBRESOURCE_DATA>> m_subresources;
+        Texture2D(const Texture2D<Impl>& other) = delete;
+        Texture2D& operator=(const Texture2D<Impl>& other) = delete;
     };
+
+    template<class Impl>
+    Texture2D<Impl>::Texture2D(std::wstring filename) : m_pImpl(std::make_unique<Impl>(filename)) 
+    {
+    
+    }
+
+    template<class Impl>
+    Texture2D<Impl>::~Texture2D() 
+    {
+    
+    }
+
+    template<class Impl>
+    Texture2D<Impl>::Texture2D(Texture2D<Impl>&& other) : m_pImpl(std::move(other.m_pImpl))
+    {
+        other.m_pImpl = nullptr;
+    }
+
+    template<class Impl>
+    Texture2D<Impl>& Texture2D<Impl>::operator=(Texture2D<Impl>&& other)
+    {
+        m_pImpl = std::move(m_pImpl);
+
+        other.m_pImpl = nullptr;
+        
+        return *this;
+    }
+
+    template<class Impl>
+    std::wstring Texture2D<Impl>::Filename() const 
+    { 
+        return m_pImpl->Filename(); 
+    }
+
+    template<class Impl>
+    const Impl* Texture2D<Impl>::GetImpl() const 
+    { 
+        return m_pImpl.get(); 
+    }
 
     template<class Impl>
     std::shared_ptr<const Texture2D<Impl>> Texture2D<Impl>::Load(const std::wstring& filename)
     {
-        auto pTex2d = std::make_shared<Texture2D<Impl>>();
-        pTex2d->m_pImpl->Load(filename);
+        auto pTex2d = std::make_shared<Texture2D<Impl>>(filename);
+        pTex2d->m_pImpl->Load();
         return pTex2d;
     }
 }

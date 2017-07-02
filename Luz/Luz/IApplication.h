@@ -2,7 +2,6 @@
 #ifndef IAPPLICATION_H
 #define IAPPLICATION_H
 
-
 template<class OS, class GFX>
 class TEngine;
 
@@ -12,9 +11,14 @@ class TEngine;
 #include "OSWin.h"
 #endif
 
-#ifndef DX12RENDERER_H
-#include "Graphics\DirectX12\dx12_renderer.h"
-#endif
+//#ifndef DX12RENDERER_H
+//#include "Graphics\DirectX12\dx12_renderer.h"
+//#endif
+
+namespace Dx12
+{
+    class Renderer;
+}
 
 typedef TEngine<OSWin, Dx12::Renderer> Engine;
 

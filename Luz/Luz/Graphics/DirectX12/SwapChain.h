@@ -2,16 +2,14 @@
 #ifndef DX12_SWAPCHAIN_H
 #define DX12_SWAPCHAIN_H
 
-#ifndef DX12_FENCE_H
-#include "Fence.h"
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
 #endif
 
 struct IDXGISwapChain;
 struct IDXGISwapChain1;
 struct IDXGISwapChain2;
 struct IDXGISwapChain3;
-//struct ID3D12Resource;
-//struct ID3D12GraphicsCommandList;
 
 namespace Dx12
 {
@@ -44,8 +42,7 @@ namespace Dx12
         inline u32 Height() const { return m_height; }
         inline bool FullScreen() const { return m_fullScreen; }
 
-        inline ID3D12Resource* FrameBuffer(int i) const { return m_frameBuffers[i]; }
-        inline ID3D12Resource** FrameBuffers() { return m_frameBuffers.data(); }
+        inline ID3D12Resource* FrameBuffer(int i) const { return m_frameBuffers[i].Get(); }
         inline u32 NumFrameBuffers() const { return (u32)m_frameBuffers.size(); }
 
         inline u32 GetCurrentBackBufferIndex() const { return m_frameIndex; }
@@ -54,7 +51,6 @@ namespace Dx12
         friend class CommandQueue;
         friend class GraphicsCommandContext;
 
-        Fence* GetFence() { return &m_fences[m_frameIndex]; }
         void Finalize(ID3D12GraphicsCommandList* pGraphicsCommandList) const;
 
     private:
@@ -74,8 +70,7 @@ namespace Dx12
 
         bool m_fullScreen;
 
-        std::vector<ID3D12Resource*> m_frameBuffers;
-        std::vector<Fence> m_fences;
+        std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_frameBuffers;
 
         SwapChain(const SwapChain& other) = delete;
         SwapChain& operator=(const SwapChain& other) = delete;

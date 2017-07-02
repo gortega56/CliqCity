@@ -2,9 +2,7 @@
 #ifndef DX12_FENCE_H
 #define DX12_FENCE_H
 
-#ifndef __D3DX12_H__
-#include "d3dx12.h"
-#endif
+struct ID3D12Fence;
 
 namespace Dx12
 {

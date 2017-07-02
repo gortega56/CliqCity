@@ -6,14 +6,18 @@
 #include "GpuResource.h"
 #endif
 
-#ifndef DX12_DESCRIPTORHEAP_H
-#include "DescriptorHeap.h"
-#endif
-
 namespace Dx12
 {
     class Device;
     class SwapChain;
+    //class ColorBuffer;
+    //class DepthBuffer;
+    class DescriptorHeap;
+
+    class IRenderContext
+    {
+
+    };
 
     class RenderContext
     {
@@ -23,8 +27,11 @@ namespace Dx12
 
         bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<SwapChain>, i32 width, i32 height);
         
+        //inline ColorBuffer const* RTV(int i) const { return m_rtvs[i].get(); }
+        //inline DepthBuffer const* DSV() const { return m_dsv.get(); }
         inline ColorBuffer const* RTV(int i) const { return &m_rtvs[i]; }
         inline DepthBuffer const* DSV() const { return &m_dsv; }
+
         inline i32 NumRTVs() const { return (i32)m_rtvs.size(); }
 
         inline DescriptorHeap* RtvHeap() { return m_rtvDescriptorHeap.get(); }
@@ -37,11 +44,15 @@ namespace Dx12
         void SetColor(const float* color);
         void SetClearDepth(float f);
         void SetClearStencil(u8 s);
-        void SetClearFlags(D3D12_CLEAR_FLAGS flags);
+        void SetClearDepthFlag();
+        void SetClearStencilFlag();
 
     private:
         u32 m_width;
         u32 m_height;
+
+        //std::vector<std::shared_ptr<ColorBuffer>> m_rtvs;
+        //std::shared_ptr<DepthBuffer> m_dsv;
 
         std::vector<ColorBuffer> m_rtvs;
         DepthBuffer m_dsv;

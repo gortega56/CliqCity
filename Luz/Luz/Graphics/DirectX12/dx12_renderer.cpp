@@ -4,12 +4,13 @@
 #include "OSWin.h"
 #include "CommandQueue.h"
 #include "SwapChain.h"
+#include "Device.h"
+#include "CommandContext.h"
 
 using namespace Dx12;
 
 Renderer::Renderer(OSWin* pOS, u32 numThreads, u32 numFrameBuffers) : 
     m_hwnd(pOS->RootWindowHandle()),
-    m_device(std::make_shared<Device>()),
     m_commandQueue(std::make_shared<CommandQueue>()),
     m_renderContext(std::make_shared<RenderContext>()),
     m_swapChain(nullptr),
@@ -37,10 +38,7 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
     }
 #endif
 
-    if (!m_device->Initialize())
-    {
-        return false;
-    }
+    m_device = Device::SharedInstance();
 
     //ID3D12InfoQueue* pInfoQueue = nullptr;
     //if (SUCCEEDED(m_device->DX()->QueryInterface(IID_PPV_ARGS(&pInfoQueue))))
@@ -121,7 +119,8 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
     m_renderContext->SetColor(color);
     m_renderContext->SetClearDepth(1.0f);
     m_renderContext->SetClearStencil(0);
-    m_renderContext->SetClearFlags(D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
+    m_renderContext->SetClearDepthFlag();
+    m_renderContext->SetClearStencilFlag();
 
     m_viewport.SetViewportRect(0, 0, (float)width, (float)height);
     m_viewport.SetScissorRect(0, 0, width, height);

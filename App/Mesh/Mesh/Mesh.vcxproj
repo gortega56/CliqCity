@@ -130,7 +130,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -142,7 +142,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -156,7 +156,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -172,7 +172,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

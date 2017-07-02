@@ -2,18 +2,25 @@
 #ifndef DX12_GPURESOURCE_H
 #define DX12_GPURESOURCE_H
 
-#ifndef __D3DX12_H__
-#include "d3dx12.h"
+//#ifndef __D3DX12_H__
+//#include "d3dx12.h"
+//#endif
+
+#ifndef DX12_DESCRIPTORHEAP_H
+#include "DescriptorHeap.h"
 #endif
 
-#ifndef TEXTURE_H
-#include "Resource\Texture.h"
-#endif
+namespace Internal
+{
+    template<class Impl> class Texture2D;
+}
+
+namespace Dx12 { class TextureImpl; }
+typedef Internal::Texture2D<Dx12::TextureImpl> Texture2D;
 
 namespace Dx12
 {
     class Renderer;
-    class DescriptorHeap;
     class CommandQueue;
     class GraphicsCommandContext;
     class Device;
@@ -21,21 +28,24 @@ namespace Dx12
     class GpuResource
     {
     public:
-        GpuResource(ID3D12Resource* pResource, D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
+        GpuResource(Microsoft::WRL::ComPtr<ID3D12Resource> pResource, D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
         GpuResource(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON);
         ~GpuResource();
 
+        inline Microsoft::WRL::ComPtr<ID3D12Resource> SharedResource() { return m_resource; }
+        inline ID3D12Resource* Resource() const { return m_resource.Get(); }
+        inline D3D12_RESOURCE_STATES ResourceState() const { return m_resourceState; }
+
         inline void SetResourceState(D3D12_RESOURCE_STATES state) { m_resourceState = state; }
-
-        ID3D12Resource* Resource() const { return m_resource; }
-        D3D12_RESOURCE_STATES ResourceState() const { return m_resourceState; }
-
+        
         GpuResource(GpuResource&& other);
+        GpuResource& operator=(GpuResource&& other);
+
     protected:
-        ID3D12Resource* m_resource;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
         D3D12_RESOURCE_STATES m_resourceState;
 
-        GpuResource(const GpuResource& other) = delete;
+        NO_COPY(GpuResource)
     };
 
     class GpuBuffer : public GpuResource
@@ -62,10 +72,15 @@ namespace Dx12
 
         inline D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() const { return m_resource->GetGPUVirtualAddress(); }
 
+        GpuBuffer(GpuBuffer&& other);
+        GpuBuffer& operator=(GpuBuffer&& other);
+
     protected:
         u64 m_bufferSize;
         u32 m_elementSize;
         u32 m_numElements;
+
+        NO_COPY(GpuBuffer)
     };
 
     class UploadBuffer : public GpuBuffer
@@ -80,11 +95,10 @@ namespace Dx12
         bool InitializeStructure(std::shared_ptr<const Renderer> pRenderer, DataType* data);
         //void ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i = 0);
 
-        bool Map(void* data);
-        void Unmap();
+        bool Map(void* data) const;
+        void Unmap() const;
 
-    private:
-        UINT8* m_gpuAddress;
+        NO_COPY(UploadBuffer)
     };
 
     template<class DataType>
@@ -96,7 +110,7 @@ namespace Dx12
     class PixelBuffer : public GpuResource
     {
     public:
-        PixelBuffer(ID3D12Resource* pResource, 
+        PixelBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource, 
             D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
             DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
             u64 width = 0,
@@ -138,8 +152,13 @@ namespace Dx12
         inline u32 SampleCount() const { return m_sampleCount; }
         inline u32 SampleQuality() const { return m_sampleQuality; }
         inline D3D12_SRV_DIMENSION ViewDimension() const { return m_viewDimension; }
+        inline const DescriptorHandle Handle() const { return m_handle; }
+
+        void CreateShaderResourceView(const DescriptorHandle& descriptorHandle, u32 offset = 0);
+        void CreateShaderResourceView();
 
         PixelBuffer(PixelBuffer&& other);
+        PixelBuffer& operator=(PixelBuffer&& other);
 
     protected:
         D3D12_RESOURCE_DIMENSION m_dimension;
@@ -152,12 +171,15 @@ namespace Dx12
         u32 m_sampleCount;
         u32 m_sampleQuality;   
         D3D12_SRV_DIMENSION m_viewDimension;
+        DescriptorHandle m_handle;
+
+        NO_COPY(PixelBuffer)
     };
 
     class ColorBuffer : public PixelBuffer
     {
     public:
-        ColorBuffer(ID3D12Resource* pResource, 
+        ColorBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource, 
             D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON, 
             DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, 
             u64 width = 0,
@@ -175,9 +197,12 @@ namespace Dx12
         float const* Color() const { return m_color; }
 
         ColorBuffer(ColorBuffer&& other);
+        ColorBuffer& operator=(ColorBuffer&& other);
 
     protected:
         float m_color[4];
+
+        NO_COPY(ColorBuffer)
     };
 
     class DepthBuffer : public PixelBuffer
@@ -194,12 +219,17 @@ namespace Dx12
 
         void SetClearDepth(float f) { m_clearDepth = f; }
         void SetClearStencil(u8 s) { m_clearStencil = s; }
-        void SetClearFlags(D3D12_CLEAR_FLAGS flags) { m_clearFlags = flags; }
+        void SetClearFlags(D3D12_CLEAR_FLAGS flags) { m_clearFlags |= flags; }
+
+        DepthBuffer(DepthBuffer&& other);
+        DepthBuffer& operator=(DepthBuffer&& other);
 
     private:
         float m_clearDepth;
         u8 m_clearStencil;
         D3D12_CLEAR_FLAGS m_clearFlags;
+
+        NO_COPY(DepthBuffer)
     };
 }
 

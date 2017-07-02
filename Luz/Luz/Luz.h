@@ -6,6 +6,10 @@
 #include "Engine.h"
 #endif
 
+#ifndef OPTIONS_H
+#include "Options.h"
+#endif
+
 #ifndef RENDERABLE_H
 #include "Graphics\Renderable.h"
 #endif

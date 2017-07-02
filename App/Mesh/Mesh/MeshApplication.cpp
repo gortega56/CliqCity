@@ -1,9 +1,18 @@
 #include "MeshApplication.h"
+#include "Engine.h"
+#include "Resource\ResourceManager.h"
+#include "Mesh.h"
+#include "DirectX12\GpuResource.h"
 #include <functional>
+#include <memory>
+#include "DirectX12\CommandContext.h"
+#include "Resource\Texture.h"
 
-#define TEXURE_PATH L".\\Assets\\tarmac_0.dds"
+#define TEXURE_PATH0 L".\\Assets\\tarmac_0.dds"
+#define TEXURE_PATH1 L".\\Assets\\oldsandbags.png"
 
-MeshApplication::MeshApplication() : m_rs(1)
+
+MeshApplication::MeshApplication()
 {
 }
 
@@ -84,41 +93,55 @@ bool MeshApplication::Initialize()
 
     Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), std::begin(verts) + 24), std::vector<u32>(std::begin(indices), std::begin(indices) + 36));
     
-    m_renderable = std::make_shared<Renderable>();
+    m_renderable0 = std::make_shared<Renderable>();
 
-    if (!m_renderable->LoadMesh(pRenderer, &mesh))
+    if (!m_renderable0->LoadMesh(pRenderer, &mesh))
     {
         return false;
     }
 
-    m_cbvData.model = mat4f(1.0f).transpose();
-    m_cbvData.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
+    m_cbvData0.model = mat4f(1.0f).transpose();
+    m_cbvData0.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
+    m_cbvData0.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
 
-    m_gpuBuffer = std::make_shared<Dx12::UploadBuffer>();
-    if (!m_gpuBuffer->InitializeStructure(pRenderer, &m_cbvData))
+    m_cbvData1.model = mat4f(1.0f).transpose();
+    m_cbvData1.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
+    m_cbvData1.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
+
+    m_gpuBuffer0 = std::make_shared<Dx12::UploadBuffer>();
+    if (!m_gpuBuffer0->InitializeStructure(pRenderer, &m_cbvData0))
+    {
+        return false;
+    }
+
+    m_gpuBuffer1 = std::make_shared<Dx12::UploadBuffer>();
+    if (!m_gpuBuffer1->InitializeStructure(pRenderer, &m_cbvData1))
     {
         return false;
     }
 
     ResourceManager rm;
-    auto texture = rm.GetResourceFuture<Texture2D>(TEXURE_PATH).get();
+    auto texture0 = rm.GetResourceFuture<Texture2D>(TEXURE_PATH0).get();
     
-    m_srvBuffer = std::make_shared<Dx12::PixelBuffer>();
-    m_srvBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    if (!m_srvBuffer->InitializeTexture2D(pRenderer, texture))
+    m_srvBuffer0 = std::make_shared<Dx12::PixelBuffer>();
+    m_srvBuffer0->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    if (!m_srvBuffer0->InitializeTexture2D(pRenderer, texture0))
     {
         return false;
     }
     
-    m_srvHeap = std::make_shared<Dx12::DescriptorHeap>(1);
-    if (!m_srvHeap->InitializeMixed(pRenderer->GetDevice(), L"SRV Heap"))
+    m_srvBuffer0->CreateShaderResourceView();
+
+    auto texture1 = rm.GetResourceFuture<Texture2D>(TEXURE_PATH1).get();
+
+    m_srvBuffer1 = std::make_shared<Dx12::PixelBuffer>();
+    m_srvBuffer1->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    if (!m_srvBuffer1->InitializeTexture2D(pRenderer, texture1))
     {
         return false;
     }
 
-
-    m_srvHeap->CreateShaderResourceViews(pRenderer->GetDevice(), m_srvBuffer.get());
+    m_srvBuffer1->CreateShaderResourceView();
 
     /*    ResourceManager rm;
     rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<const Texture2D> pTexture)
@@ -149,19 +172,20 @@ bool MeshApplication::Initialize()
 
     auto range = Dx12::DescriptorTable(1).AppendRangeSRV(1, 0);
 
-    m_rs.AllowInputLayout()
+    m_rs = std::make_shared<Dx12::RootSignature>(2);
+    m_rs->AllowInputLayout()
         .DenyHS()
         .DenyDS()
         .DenyGS()
         .AppendRootCBV(0).AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL).AppendAnisotropicWrapSampler(0);
 
-    if (!m_rs.Finalize(pRenderer->GetDevice()))
+    if (!m_rs->Finalize(pRenderer->GetDevice()))
     {
         return false;
     }
 
     m_pipeline.SetInputLayout(&inputLayout);
-    m_pipeline.SetRootSignature(&m_rs);
+    m_pipeline.SetRootSignature(m_rs.get());
     m_pipeline.SetVS(&m_vs);
     m_pipeline.SetPS(&m_ps);
     m_pipeline.SetTriangleTopology();
@@ -178,13 +202,15 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    std::shared_ptr<const RootSignature> sharedRootSignature;
-    sharedRootSignature.reset(&m_rs);
-
-    m_material = std::make_shared<MaterialState>(sharedRootSignature);
-    m_material->SetRootConstantBufferView(m_gpuBuffer, 0);
-    m_material->SetRootDescriptorTable(m_srvHeap, std::vector<std::shared_ptr<const Dx12::GpuResource>>({ m_srvBuffer }), 1);
+    m_material0 = std::make_shared<MaterialState>(m_rs);
+    m_material0->SetRootConstantBufferView(m_gpuBuffer0, 0);
+    m_material0->SetShaderResourceViewTableEntry(m_srvBuffer0, 1, 0, 0);
+    //m_material->SetRootDescriptorTable(m_srvBuffer->Handle(), 1);
     
+    m_material1 = std::make_shared<MaterialState>(m_rs);
+    m_material1->SetRootConstantBufferView(m_gpuBuffer1, 0);
+    m_material1->SetShaderResourceViewTableEntry(m_srvBuffer1, 1, 0, 0);
+
     return true;
 }
 
@@ -195,10 +221,6 @@ int MeshApplication::Shutdown()
 
 void MeshApplication::Update(double dt)
 {
-    // Rendering
-    m_gpuBuffer->Map(&m_cbvData);
-    m_gpuBuffer->Unmap();
-
     Renderer* pRenderer = m_engine->Graphics().get();
 
     auto pCtx = pRenderer->GetContext();
@@ -206,18 +228,20 @@ void MeshApplication::Update(double dt)
 
     pRenderer->SetRenderContext(pCtx);
     pRenderer->ClearRenderContext(pCtx);
-
-    pCtx->SetRootSignature(&m_rs);
-    pCtx->SetDescriptorHeap(m_srvHeap);
-
     pRenderer->SetViewport(pCtx);
 
-    m_material->Prepare(pCtx.get());
-    //pCtx->SetGraphicsRootConstantBufferView(&m_gpuBuffer);
-    //pCtx->SetGraphicsRootDescriptorTable(m_srvHeap.get(), 1);
+    pCtx->SetRootSignature(m_rs.get());
 
-    m_renderable->Prepare(pCtx.get());
-    m_renderable->DrawIndexedInstanced(pCtx.get());
+    m_material0->UpdateConstantBufferView(0, &m_cbvData0);
+    m_material0->Prepare(pCtx.get());
+
+    m_renderable0->Prepare(pCtx.get());
+    m_renderable0->DrawIndexedInstanced(pCtx.get());
+
+    m_material1->UpdateConstantBufferView(0, &m_cbvData1);
+    m_material1->Prepare(pCtx.get());
+
+    m_renderable0->DrawIndexedInstanced(pCtx.get());
 
     pRenderer->Present(pCtx);
 }
@@ -231,5 +255,6 @@ void MeshApplication::FixedUpdate(double dt)
     mat4f trn = mat4f::translate(vec3f(ct, st, ct) * 6.0f);
     mat4f rot = quatf::rollPitchYaw(st, ct, st).toMatrix4();
 
-    m_cbvData.model = (rot * trn * rot).transpose();
+    m_cbvData0.model = (rot * trn * rot).transpose();
+    m_cbvData1.model = (trn * rot * trn).transpose();
 }

@@ -9,8 +9,6 @@
 namespace Dx12
 {
     class Device;
-    class UploadBuffer;
-    class PixelBuffer;
 
     struct DescriptorHeapParams
     {
@@ -38,25 +36,78 @@ namespace Dx12
         u32 NumDescriptors() { return m_numDescriptors; }
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE CpuHandle(int i = 0);
+        CD3DX12_GPU_DESCRIPTOR_HANDLE GpuHandle(int i = 0);
 
         bool Initialize(std::shared_ptr<const Device> pDevice, DescriptorHeapParams const* pParams, std::wstring name);
 
-        bool InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name);
-        bool InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name);
-        bool InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name);
-        bool InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name);
-
-        void CreateShaderResourceViews(std::shared_ptr<const Device> pDevice, const PixelBuffer* pixelBuffer, int offset = 0);
+        bool InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
+        bool InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
+        bool InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
+        bool InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
 
     private:
         ID3D12DescriptorHeap* m_descriptorHeap;
         u32 m_descriptorHeapSize;
         u32 m_numDescriptors;
         D3D12_DESCRIPTOR_HEAP_TYPE m_type;
-    
+
         DescriptorHeap(const DescriptorHeap& other) = delete;
         DescriptorHeap& operator=(const DescriptorHeap& other) = delete;
     };
+
+    class DescriptorHandle
+    {
+    public:
+        DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 descriptorIndex, u32 descriptorOffset);
+        DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 descriptorIndex, u32 descriptorOffset);
+        DescriptorHandle();
+
+        D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle(u32 offset = 0) const;
+        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle(u32 offset = 0) const;
+        D3D12_DESCRIPTOR_HEAP_TYPE Type() const;
+        u32 Index() const;
+        u32 Offset() const;
+
+        DescriptorHandle(const DescriptorHandle& other) = default;
+        DescriptorHandle(DescriptorHandle&& other) = default;
+        DescriptorHandle& operator=(const DescriptorHandle& other) = default;
+        DescriptorHandle& operator=(DescriptorHandle&& other) = default;
+
+        bool operator==(const DescriptorHandle& other) const;
+
+    private:
+        D3D12_CPU_DESCRIPTOR_HANDLE m_cpuHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE m_gpuHandle;
+        D3D12_DESCRIPTOR_HEAP_TYPE m_type;
+        u32 m_descriptorIndex;
+        u32 m_descriptorOffset;
+    };
+
+    class DescriptorHeapAllocator
+    {
+    public:
+        static const int sm_handlesPerHeap = 256;
+
+        DescriptorHeapAllocator() : m_currentHeap(nullptr), m_remainingHandles(sm_handlesPerHeap) {}
+        ~DescriptorHeapAllocator() = default;
+
+        const DescriptorHeap* GetHeap(int i) const { return &m_descriptorHeaps[i]; }
+        
+        DescriptorHeap* Current() const { return m_currentHeap; }
+        u32 RemainingHandles() const { return m_remainingHandles; }
+    
+        DescriptorHandle Allocate(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count = 1);
+
+    private:
+        DescriptorHeap* m_currentHeap;
+        u32 m_remainingHandles;
+        std::mutex m_allocMutex;
+        std::vector<DescriptorHeap> m_descriptorHeaps;
+    };
+
+    DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count = 1);
+    const DescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 index);
+    void GetDescriptorHeaps(std::vector<DescriptorHandle>& handles, std::vector<ID3D12DescriptorHeap*>& out);
 }
 
 #endif

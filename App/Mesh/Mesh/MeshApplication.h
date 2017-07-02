@@ -1,17 +1,55 @@
 #pragma once
+#ifndef MESHAPPLICATION_H
+#define MESHAPPLICATION_H
+#include <mutex>
+#include <wrl.h>
+#include "GeneralMacros.h"
+
 #ifndef IAPPLICATION_H
 #include "IApplication.h"
 #endif
 
-#include <memory>
+//#ifndef LUZ_H
+//#include "Luz.h"
+//#endif
 
-#ifndef LUZ_H
-#include "Luz.h"
+#ifndef TYPEDEFS_H
+#include "TypeDefs.h"
 #endif
 
 #ifndef CGM_H
 #include "cgm.h"
 #endif
+
+#ifndef DX12_SHADER_H
+#include "DirectX12\Shader.h"
+#endif
+
+#ifndef DX12_PIPELINESTATE_H
+#include "DirectX12\PipelineState.h"
+#endif
+
+#ifndef DX12_SHADER_H
+#include "DirectX12\Shader.h"
+#endif
+
+#ifndef DX12_ROOTSIGNATURE_H
+#include "DirectX12\RootSignature.h"
+#endif
+
+#ifndef RENDERABLE_H
+#include "Renderable.h"
+#endif
+
+#ifndef MATERIAL_H
+#include "Material.h"
+#endif
+
+namespace Dx12
+{
+    class UploadBuffer;
+    class PixelBuffer;
+}
 
 struct Vertex
 {
@@ -34,18 +72,25 @@ class MeshApplication :
 public:
     using IApplication::IApplication;
 
-    Shader m_vs;
-    Shader m_ps;
-    GraphicsPipeline m_pipeline;
-    RootSignature m_rs;
+    Dx12::Shader m_vs;
+    Dx12::Shader m_ps;
+    Dx12::GraphicsPipeline m_pipeline;
 
-    std::shared_ptr<Renderable> m_renderable;
-    std::shared_ptr<MaterialState> m_material;
-    std::shared_ptr<Dx12::DescriptorHeap> m_srvHeap;
-    std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer;
-    std::shared_ptr<Dx12::UploadBuffer> m_gpuBuffer;
+    std::shared_ptr<Dx12::RootSignature> m_rs;
 
-    ConstantBufferData m_cbvData;
+    std::shared_ptr<Renderable> m_renderable0;
+
+    std::shared_ptr<MaterialState> m_material0;
+    std::shared_ptr<MaterialState> m_material1;
+
+    std::shared_ptr<Dx12::UploadBuffer> m_gpuBuffer0;
+    std::shared_ptr<Dx12::UploadBuffer> m_gpuBuffer1;
+
+    std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer0;
+    std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer1;
+
+    ConstantBufferData m_cbvData0;
+    ConstantBufferData m_cbvData1;
 
     MeshApplication();
     ~MeshApplication();
@@ -57,3 +102,4 @@ public:
     void FixedUpdate(double delta) override;
 };
 
+#endif
