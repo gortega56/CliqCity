@@ -30,19 +30,17 @@ D3D12_INDEX_BUFFER_VIEW const* Renderable::IndexBufferView() const
     return &m_indexBufferView;
 }
 
-bool Renderable::LoadMesh(std::shared_ptr<const Renderer> pRenderer, std::shared_ptr<const IMesh> pMesh)
+bool Renderable::LoadMesh(std::shared_ptr<const IMesh> pMesh)
 {
-    return LoadMesh(pRenderer, pMesh.get());
+    return LoadMesh(pMesh.get());
 }
 
-bool Renderable::LoadMesh(std::shared_ptr<const Renderer> pRenderer, IMesh const* pMesh)
+bool Renderable::LoadMesh(IMesh const* pMesh)
 {
-    auto pQueue = pRenderer->GetCommandQueue();
-
     m_vertexBuffer.SetBufferSize((u64)pMesh->VertexDataSize());
     m_vertexBuffer.SetElementSize((u32)pMesh->VertexStride());
     m_vertexBuffer.SetNumElements(pMesh->NumVertices());
-    if (!m_vertexBuffer.Initialize(pRenderer, pMesh->VertexData()))
+    if (!m_vertexBuffer.Initialize(pMesh->VertexData()))
     {
         return false;
     }
@@ -50,7 +48,7 @@ bool Renderable::LoadMesh(std::shared_ptr<const Renderer> pRenderer, IMesh const
     m_indexBuffer.SetBufferSize((u64)pMesh->IndexDataSize());
     m_indexBuffer.SetElementSize((u32)pMesh->IndexStride());
     m_indexBuffer.SetNumElements(pMesh->NumIndices());
-    if (!m_indexBuffer.Initialize(pRenderer, pMesh->IndexData()))
+    if (!m_indexBuffer.Initialize(pMesh->IndexData()))
     {
         return false;
     }

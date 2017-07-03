@@ -155,16 +155,16 @@ DescriptorHandle DescriptorHeapAllocator::Allocate(D3D12_DESCRIPTOR_HEAP_TYPE ty
         switch (type)
         {
         case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
-            m_currentHeap->InitializeMixed(Device::SharedInstance());
+            m_currentHeap->InitializeMixed(Device::SharedInstance(), L"CBV UAV SRV Heap" + (u32)(m_descriptorHeaps.size() - 1));
             break;
         case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
-            m_currentHeap->InitializeDSV(Device::SharedInstance());
+            m_currentHeap->InitializeDSV(Device::SharedInstance(), L"DSV Heap" + (u32)(m_descriptorHeaps.size() - 1));
             break; 
         case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
-            m_currentHeap->InitializeRTV(Device::SharedInstance());
+            m_currentHeap->InitializeRTV(Device::SharedInstance(), L"RTV Heap" + (u32)(m_descriptorHeaps.size() - 1));
             break;
         case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-            m_currentHeap->InitializeSampler(Device::SharedInstance());
+            m_currentHeap->InitializeSampler(Device::SharedInstance(), L"Sampler Heap" + (u32)(m_descriptorHeaps.size() - 1));
             break;
         }
 

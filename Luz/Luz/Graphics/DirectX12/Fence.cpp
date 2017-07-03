@@ -40,7 +40,6 @@ bool Fence::Wait()
 {
     bool running = false;
 
-    assert(m_completed <= m_signal);
     if (m_completed < m_signal)
     {
         // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
@@ -63,4 +62,43 @@ bool Fence::Wait()
     }
 
     return running;
+}
+
+bool Fence::IsIdle() const
+{
+    LUZASSERT(m_completed <= m_signal);
+
+    // If the delta between signal and completed is zero than isIdle will be equal to result
+    UINT64 result = UINT64_MAX;
+    UINT64 isIdle = 0;
+    InterlockedCompareExchange(&isIdle, result, m_signal - m_completed);
+
+    return (isIdle == result);
+}
+
+bool Fence::InUse() const
+{
+    LUZASSERT(m_completed <= m_signal);
+
+    UINT64 result = UINT64_MAX;
+    UINT64 inUse = 1;
+    InterlockedCompareExchange(&inUse, result, m_signal - m_completed);
+
+    return (inUse == result);
+}
+
+bool Fence::IsWaiting() const
+{
+    LUZASSERT(m_completed <= m_signal);
+
+    UINT64 result = UINT64_MAX;
+    UINT64 isWaiting = 2;
+    InterlockedCompareExchange(&isWaiting, result, m_signal - m_completed);
+
+    return (isWaiting == result);
+}
+
+void Fence::IncrementSignal()
+{
+    InterlockedIncrement(&m_signal);
 }

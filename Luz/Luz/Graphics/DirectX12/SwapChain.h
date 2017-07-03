@@ -26,7 +26,6 @@ namespace Dx12
         ~SwapChain();
 
         bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen);
-        bool InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap);
         bool Present();
 
         inline IDXGISwapChain* GetSwapChain() const { return m_swapChain; }
@@ -34,12 +33,14 @@ namespace Dx12
         inline IDXGISwapChain2* GetSwapChain2() const { return m_swapChain2; }
         inline IDXGISwapChain3* GetSwapChain3() const { return m_swapChain3; }
     
+        inline DXGI_SWAP_EFFECT SwapEffect() const { return m_swapEffect; }
         inline DXGI_FORMAT Format() const { return m_format; }
         inline DXGI_USAGE Usage() const { return m_usage; }
-        inline DXGI_SWAP_EFFECT SwapEffect() const { return m_swapEffect; }
         inline HWND Handle() const { return m_hwnd; }
+
         inline u32 Width() const { return m_width; }
         inline u32 Height() const { return m_height; }
+        
         inline bool FullScreen() const { return m_fullScreen; }
 
         inline ID3D12Resource* FrameBuffer(int i) const { return m_frameBuffers[i].Get(); }
@@ -59,9 +60,9 @@ namespace Dx12
         IDXGISwapChain2* m_swapChain2;
         IDXGISwapChain3* m_swapChain3;
 
+        DXGI_SWAP_EFFECT m_swapEffect;
         DXGI_FORMAT m_format;
         DXGI_USAGE m_usage;
-        DXGI_SWAP_EFFECT m_swapEffect;
         HWND m_hwnd;
 
         u32 m_width;
@@ -72,8 +73,7 @@ namespace Dx12
 
         std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_frameBuffers;
 
-        SwapChain(const SwapChain& other) = delete;
-        SwapChain& operator=(const SwapChain& other) = delete;
+        NO_COPY(SwapChain)
     };
 }
 

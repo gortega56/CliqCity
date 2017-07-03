@@ -12,7 +12,7 @@ using namespace Dx12;
 Renderer::Renderer(OSWin* pOS, u32 numThreads, u32 numFrameBuffers) : 
     m_hwnd(pOS->RootWindowHandle()),
     m_commandQueue(std::make_shared<CommandQueue>()),
-    m_renderContext(std::make_shared<RenderContext>()),
+    m_renderContext(nullptr),
     m_swapChain(nullptr),
     m_numThreads(numThreads),
     m_numFrameBuffers(numFrameBuffers),
@@ -89,7 +89,8 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
     //    pInfoQueue->Release();
     //}
 
-    if (!m_commandQueue->Initialize(m_device))
+    m_commandQueue = GraphicsCommandContext::GlobalQueue();
+    if (!m_commandQueue)
     {
         return false;
     }
@@ -99,32 +100,34 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
     {
         return false;
     }
+
+    GraphicsCommandContext::SetGlobalSwapChain(m_swapChain);
     
-    for (u32 i = 0; i < m_numFrameBuffers; ++i)
+    if (!CommandAllocatorPool::Initialize())
     {
-        m_graphicsCommandContexts.emplace_back(std::make_shared<GraphicsCommandContext>());
-        if (!m_graphicsCommandContexts.back()->Initialize(m_device, m_swapChain))
-        {
-            return false;
-        }
+        return false;
     }
 
-    if (!m_renderContext->Initialize(m_device, m_swapChain, width, height))
+    for (u32 i = 0; i < m_numFrameBuffers; ++i)
+    {
+        /*m_graphicsCommandContexts.emplace_back(std::make_shared<GraphicsCommandContext>());
+        if (!m_graphicsCommandContexts.back()->Initialize())
+        {
+            return false;
+        }*/
+    }
+
+    m_renderContext = std::make_shared<SwapChainContext>(m_swapChain);
+    if (!m_renderContext->Initialize(width, height))
     {
         return false;
     }
 
     float color[4] = { 0.44f, 0.86f, 0.91f, 1.0f };
-
     m_renderContext->SetColor(color);
-    m_renderContext->SetClearDepth(1.0f);
-    m_renderContext->SetClearStencil(0);
-    m_renderContext->SetClearDepthFlag();
-    m_renderContext->SetClearStencilFlag();
 
     m_viewport.SetViewportRect(0, 0, (float)width, (float)height);
     m_viewport.SetScissorRect(0, 0, width, height);
-
 
 #if _DEBUG
 
@@ -136,7 +139,7 @@ bool Renderer::Initialize(int width, int height, bool fullscreen)
 bool Renderer::Shutdown()
 {
     // wait for the gpu to finish all frames
-    CommandContext::WaitForAll(m_graphicsCommandContexts);
+    CommandAllocatorPool::WaitAll();
 
     return true;
 }
@@ -158,19 +161,19 @@ void Renderer::SetViewport(std::shared_ptr<GraphicsCommandContext>& pCtx)
 
 void Renderer::Present(std::shared_ptr<GraphicsCommandContext> pCtx)
 {
-    // Transition back buffer to present
-    pCtx->FinalizeSwapChain();
+    //// Transition back buffer to present
+    //pCtx->FinalizeSwapChain();
 
-    // Close / Execute / Signal
-    m_running = m_commandQueue->Execute(pCtx);
-    
-    // Present
-    m_swapChain->Present();
+    //// Close / Execute / Signal
+    //m_running = m_commandQueue->Execute(pCtx);
+    //
+    //// Present
+    //m_swapChain->Present();
 }
 
 void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx)
 {
-    m_running = m_commandQueue->Execute(pGraphicsCommandCtx);
+  //  m_running = m_commandQueue->Execute(pGraphicsCommandCtx);
 }
 
 //std::shared_ptr<GraphicsCommandContext> Renderer::GetCurrentGraphicsContext() const 
@@ -178,12 +181,12 @@ void Renderer::ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandCont
 //    return m_graphicsCommandContexts[m_currentGraphicsContextIndex];
 //}
 
-std::shared_ptr<GraphicsCommandContext> Renderer::GetContext() const
-{
-    int idx = CommandContext::GetNextAvailable(m_graphicsCommandContexts);
-
-    //u32 i = m_swapChain->GetCurrentBackBufferIndex();
-    //std::cout << "Frame: " << i << "Ctx: " << idx << std::endl;
-
-    return m_graphicsCommandContexts[idx];
-}
+//std::shared_ptr<GraphicsCommandContext> Renderer::GetContext() const
+//{
+//    int idx = CommandContext::GetNextAvailable(m_graphicsCommandContexts);
+//
+//    //u32 i = m_swapChain->GetCurrentBackBufferIndex();
+//    //std::cout << "Frame: " << i << "Ctx: " << idx << std::endl;
+//
+//    return m_graphicsCommandContexts[idx];
+//}

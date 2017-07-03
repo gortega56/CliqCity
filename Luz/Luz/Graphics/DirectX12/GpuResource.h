@@ -56,8 +56,8 @@ namespace Dx12
         GpuBuffer();
         ~GpuBuffer();
 
-        bool Initialize(std::shared_ptr<const Renderer> pRenderer, u64 bufferSize, u32 elementSize, u32 numElements, void* data = nullptr);
-        virtual bool Initialize(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr);
+        bool Initialize(u64 bufferSize, u32 elementSize, u32 numElements, void* data = nullptr);
+        virtual bool Initialize(void* data = nullptr);
 
         inline void SetBufferSize(u64 bufferSize) { m_bufferSize = bufferSize; }
         inline void SetElementSize(u32 elementSize) { m_elementSize = elementSize; }
@@ -89,10 +89,10 @@ namespace Dx12
         UploadBuffer();
         ~UploadBuffer();
 
-        bool Initialize(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr) override;
+        bool Initialize(void* data = nullptr) override;
 
         template<class DataType>
-        bool InitializeStructure(std::shared_ptr<const Renderer> pRenderer, DataType* data);
+        bool InitializeStructure(DataType* data);
         //void ConstantBufferView(Renderer* pRenderer, DescriptorHeap* pCBVHeap, int i = 0);
 
         bool Map(void* data) const;
@@ -102,9 +102,9 @@ namespace Dx12
     };
 
     template<class DataType>
-    bool UploadBuffer::InitializeStructure(std::shared_ptr<const Renderer> pRenderer, DataType* data)
+    bool UploadBuffer::InitializeStructure(DataType* data)
     {
-        return GpuBuffer::Initialize(pRenderer, sizeof(DataType), sizeof(DataType), 1, data);
+        return GpuBuffer::Initialize(sizeof(DataType), sizeof(DataType), 1, data);
     }
 
     class PixelBuffer : public GpuResource
@@ -121,9 +121,9 @@ namespace Dx12
             u32 height = 0);
         ~PixelBuffer();
 
-        bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, std::shared_ptr<const Texture2D> texture = nullptr);
-        bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data = nullptr);
-        bool InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
+        bool InitializeTexture2D(std::shared_ptr<const Texture2D> texture = nullptr);
+        bool InitializeTexture2D(void* data = nullptr);
+        bool InitializeTexture2D(
             const u64 width, 
             const u32 height, 
             const u32 dataSize,
@@ -152,10 +152,15 @@ namespace Dx12
         inline u32 SampleCount() const { return m_sampleCount; }
         inline u32 SampleQuality() const { return m_sampleQuality; }
         inline D3D12_SRV_DIMENSION ViewDimension() const { return m_viewDimension; }
-        inline const DescriptorHandle Handle() const { return m_handle; }
+
+        inline const DescriptorHandle ShaderResourceViewHandle() const { return m_srvHandle; }
+        inline const DescriptorHandle RenderTargetViewHandle() const { return m_rtvHandle; }
 
         void CreateShaderResourceView(const DescriptorHandle& descriptorHandle, u32 offset = 0);
         void CreateShaderResourceView();
+
+        void CreateRenderTargetView(const DescriptorHandle& descriptorHandle, u32 offset = 0);
+        void CreateRenderTargetView();
 
         PixelBuffer(PixelBuffer&& other);
         PixelBuffer& operator=(PixelBuffer&& other);
@@ -171,7 +176,8 @@ namespace Dx12
         u32 m_sampleCount;
         u32 m_sampleQuality;   
         D3D12_SRV_DIMENSION m_viewDimension;
-        DescriptorHandle m_handle;
+        DescriptorHandle m_srvHandle;
+        DescriptorHandle m_rtvHandle;
 
         NO_COPY(PixelBuffer)
     };
@@ -208,10 +214,24 @@ namespace Dx12
     class DepthBuffer : public PixelBuffer
     {
     public:
-        DepthBuffer(u32 width = 0, u32 height = 0);
+        DepthBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,
+            D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON,
+            DXGI_FORMAT format = DXGI_FORMAT_D24_UNORM_S8_UINT,
+            u64 width = 0,
+            u32 height = 0,
+            D3D12_CLEAR_FLAGS clearFlags = D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            float depthClear = 1.0f,
+            u8 stencilClear = 0);
+        DepthBuffer(D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON,
+            DXGI_FORMAT format = DXGI_FORMAT_D24_UNORM_S8_UINT,
+            u64 width = 0,
+            u32 height = 0,
+            D3D12_CLEAR_FLAGS clearFlags = D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            float depthClear = 1.0f,
+            u8 stencilClear = 0);
         ~DepthBuffer();
 
-        bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap);
+        bool Initialize(u32 width, u32 height);
 
         float ClearDepth() const { return m_clearDepth; }
         u8 ClearStencil() const { return m_clearStencil; }
@@ -221,13 +241,19 @@ namespace Dx12
         void SetClearStencil(u8 s) { m_clearStencil = s; }
         void SetClearFlags(D3D12_CLEAR_FLAGS flags) { m_clearFlags |= flags; }
 
+        inline DescriptorHandle DepthStencilViewHandle() const { return m_dsvHandle; }
+
+        void CreateDepthStencilView(const DescriptorHandle& descriptorHandle, u32 offset = 0);
+        void CreateDepthStencilView();
+
         DepthBuffer(DepthBuffer&& other);
         DepthBuffer& operator=(DepthBuffer&& other);
 
     private:
+        DescriptorHandle m_dsvHandle;
+        D3D12_CLEAR_FLAGS m_clearFlags;
         float m_clearDepth;
         u8 m_clearStencil;
-        D3D12_CLEAR_FLAGS m_clearFlags;
 
         NO_COPY(DepthBuffer)
     };

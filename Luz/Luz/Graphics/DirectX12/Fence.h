@@ -17,12 +17,17 @@ namespace Dx12
         bool Initialize(std::shared_ptr<const Device> pDevice);
         bool Wait();
 
-        bool IsWaiting() const { return m_completed < m_signal; }
+        bool IsIdle() const;
+        bool InUse() const;
+        bool IsWaiting() const;
      
         ID3D12Fence* Ptr() const { return m_fence; }
+        UINT64 Completed() const { return m_completed; }
         UINT64 Signal() const { return m_signal; }
         UINT64* SignalPtr() { return &m_signal; }
         HANDLE Event() const { return m_event; }
+
+        void IncrementSignal();
 
     protected:
         friend class CommandQueue;
@@ -31,8 +36,6 @@ namespace Dx12
         UINT64 m_completed;
         ID3D12Fence* m_fence;
         HANDLE m_event;
-
-        void IncrementSignal() { m_signal++; }
     };
 }
 

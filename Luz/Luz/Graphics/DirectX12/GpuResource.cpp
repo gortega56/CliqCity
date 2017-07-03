@@ -58,9 +58,9 @@ GpuBuffer::~GpuBuffer()
 
 }
 
-bool GpuBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
+bool GpuBuffer::Initialize(void* data /*= nullptr*/)
 {
-    auto pDevice = pRenderer->GetDevice()->DX();
+    auto pDevice = Device::SharedInstance()->DX();
 
     if (!CreateDestinationBuffer(pDevice, m_resource.ReleaseAndGetAddressOf(), m_bufferSize))
     {
@@ -75,25 +75,23 @@ bool GpuBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, void* data
             return false;
         }
 
-        auto& pCtx = pRenderer->GetContext();
+        auto pCtx = GraphicsCommandContext::Create();
         auto pCommandList = pCtx->CommandList();
         UpdateBufferResource(pCommandList, m_resource.Get(), uploadBuffer, data, (LONG_PTR)m_bufferSize, (LONG_PTR)m_bufferSize);
         TransitionResource(pCommandList, m_resource.Get(), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
-
-        auto& pCommandQueue = pRenderer->GetCommandQueue();
-        pCommandQueue->Execute(pCtx, true);
+        pCtx->Execute(true);
         SAFE_RELEASE(uploadBuffer);
     }
 
     return true;
 }
 
-bool GpuBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, u64 bufferSize, u32 elementSize, u32 numElements, void* data /*= nullptr*/)
+bool GpuBuffer::Initialize(u64 bufferSize, u32 elementSize, u32 numElements, void* data /*= nullptr*/)
 {
     m_bufferSize = bufferSize;
     m_elementSize = elementSize;
     m_numElements = numElements;
-    return Initialize(pRenderer, data);
+    return Initialize(data);
 }
 
 D3D12_VERTEX_BUFFER_VIEW GpuBuffer::VertexBufferView()
@@ -154,9 +152,9 @@ UploadBuffer::~UploadBuffer()
 
 }
 
-bool UploadBuffer::Initialize(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
+bool UploadBuffer::Initialize(void* data /*= nullptr*/)
 {
-    auto pDevice = pRenderer->GetDevice()->DX();
+    auto pDevice = Device::SharedInstance()->DX();
 
     if (!CreateUploadBuffer(pDevice, m_resource.ReleaseAndGetAddressOf(), m_bufferSize))
     {
@@ -231,7 +229,7 @@ PixelBuffer::~PixelBuffer()
 
 }
 
-bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, std::shared_ptr<const Texture2D> texture/* = nullptr*/)
+bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Texture2D> texture/* = nullptr*/)
 {
     auto pTexImpl = texture->GetImpl();
     if (!pTexImpl)
@@ -246,7 +244,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
     m_viewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     m_mipLevels = (u16)imageMetadata.mipLevels;
 
-    ID3D12Device* pDevice = pRenderer->GetDevice()->DX();
+    ID3D12Device* pDevice = Device::SharedInstance()->DX();
 
     HRESULT hr;
     hr = CreateTexture(pDevice, imageMetadata, m_resource.ReleaseAndGetAddressOf());
@@ -273,19 +271,18 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
         return false;
     }
 
-    auto& pCtx = pRenderer->GetContext();
+    auto pCtx = GraphicsCommandContext::Create();
     auto pCommandList = pCtx->CommandList();
     UpdateSubresources(pCommandList, m_resource.Get(), uploadBuffer, 0, 0, numSubresources, subresources.data());
     TransitionResource(pCommandList, m_resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, m_resourceState);
 
-    auto& pCommandQueue = pRenderer->GetCommandQueue();
-    pCommandQueue->Execute(pCtx, true);
+    pCtx->Execute(true);
     SAFE_RELEASE(uploadBuffer);
 
     return true;
 }
 
-bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, void* data /*= nullptr*/)
+bool PixelBuffer::InitializeTexture2D(void* data /*= nullptr*/)
 {
     //if (data)
     //{
@@ -320,7 +317,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
     return true;
 }
 
-bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer, 
+bool PixelBuffer::InitializeTexture2D( 
     const u64 width,
     const u32 height, 
     const u32 size,
@@ -338,12 +335,12 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Renderer> pRenderer,
     m_sampleCount = 1;
     m_sampleQuality = 0;
     m_viewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    return InitializeTexture2D(pRenderer, data);
+    return InitializeTexture2D(data);
 }
 
 void PixelBuffer::CreateShaderResourceView(const DescriptorHandle& descriptorHandle, u32 offset /*= 0*/)
 {
-    m_handle = descriptorHandle;
+    m_srvHandle = descriptorHandle;
 
     D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -351,12 +348,24 @@ void PixelBuffer::CreateShaderResourceView(const DescriptorHandle& descriptorHan
     desc.ViewDimension = m_viewDimension;
     desc.Texture2D.MipLevels = m_mipLevels;
 
-    Device::SharedInstance()->DX()->CreateShaderResourceView(m_resource.Get(), &desc, m_handle.CpuHandle(offset));
+    Device::SharedInstance()->DX()->CreateShaderResourceView(m_resource.Get(), &desc, m_srvHandle.CpuHandle(offset));
 }
 
 void PixelBuffer::CreateShaderResourceView()
 {
     CreateShaderResourceView(Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+}
+
+void PixelBuffer::CreateRenderTargetView(const DescriptorHandle& descriptorHandle, u32 offset /*= 0*/)
+{
+    m_rtvHandle = descriptorHandle;
+
+    Device::SharedInstance()->DX()->CreateRenderTargetView(m_resource.Get(), nullptr, m_rtvHandle.CpuHandle(offset));
+}
+
+void PixelBuffer::CreateRenderTargetView()
+{
+    CreateRenderTargetView(Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 }
 
 PixelBuffer::PixelBuffer(PixelBuffer&& other) : 
@@ -484,7 +493,30 @@ void ColorBuffer::SetColor(float r, float g, float b, float a)
     m_color[3] = a;
 }
 
-DepthBuffer::DepthBuffer(u32 width, u32 height) : PixelBuffer(nullptr), m_clearFlags(D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH)
+DepthBuffer::DepthBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,
+    D3D12_RESOURCE_STATES resourceState/* = D3D12_RESOURCE_STATE_COMMON*/,
+    DXGI_FORMAT format/* = DXGI_FORMAT_D24_UNORM_S8_UINT*/,
+    u64 width /*= 0*/,
+    u32 height /*= 0*/,
+    D3D12_CLEAR_FLAGS clearFlags /*= D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL*/,
+    float clearDepth /*= 1.0f*/,
+    u8 clearStencil /*= 0*/) :
+    PixelBuffer(pResource, resourceState, format, width, height),
+    m_clearFlags(clearFlags),
+    m_clearDepth(clearDepth),
+    m_clearStencil(clearStencil)
+{
+
+}
+
+DepthBuffer::DepthBuffer(D3D12_RESOURCE_STATES resourceState/* = D3D12_RESOURCE_STATE_COMMON*/,
+    DXGI_FORMAT format/* = DXGI_FORMAT_D24_UNORM_S8_UINT*/,
+    u64 width /*= 0*/,
+    u32 height /*= 0*/,
+    D3D12_CLEAR_FLAGS clearFlags /*= D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL*/,
+    float clearDepth /*= 1.0f*/,
+    u8 clearStencil /*= 0*/) :
+    DepthBuffer(nullptr, resourceState, format, width, height)
 {
 
 }
@@ -494,14 +526,19 @@ DepthBuffer::~DepthBuffer()
 
 }
 
-bool DepthBuffer::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap)
+bool DepthBuffer::Initialize(u32 width, u32 height)
 {
-    if (!CreateDepthStencilResource(pDevice->DX(), m_resource.ReleaseAndGetAddressOf(), m_width, m_height, 1, 0, 1, 0))
+    m_width = width;
+    m_height = height;
+
+    auto pDevice = Device::SharedInstance()->DX();
+
+    if (!CreateDepthStencilResource(pDevice, m_resource.ReleaseAndGetAddressOf(), m_width, m_height, 1, 0, 1, 0))
     {
         return false;
     }
 
-    CreateDepthStencilViews(pDevice->DX(), pHeap->Native(), m_resource.GetAddressOf(), 1);
+    CreateDepthStencilView();
 
     return true;
 }
@@ -530,4 +567,22 @@ DepthBuffer& DepthBuffer::operator=(DepthBuffer&& other)
     other.m_clearStencil = -1;
 
     return *this;
+}
+
+void DepthBuffer::CreateDepthStencilView(const DescriptorHandle& descriptorHandle, u32 offset /*= 0*/)
+{
+    m_dsvHandle = descriptorHandle;
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc;
+    ZeroMemory(&depthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_VIEW_DESC));
+    depthStencilDesc.Format = m_format;
+    depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+    Device::SharedInstance()->DX()->CreateDepthStencilView(m_resource.Get(), &depthStencilDesc, m_dsvHandle.CpuHandle(offset));
+}
+
+void DepthBuffer::CreateDepthStencilView()
+{
+    CreateDepthStencilView(Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_DSV));
 }

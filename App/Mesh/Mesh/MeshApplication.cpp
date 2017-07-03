@@ -23,8 +23,6 @@ MeshApplication::~MeshApplication()
 
 bool MeshApplication::Initialize()
 {
-    auto pRenderer = m_engine->Graphics();
-
     Vertex verts[] =
     {
         // front face
@@ -95,27 +93,29 @@ bool MeshApplication::Initialize()
     
     m_renderable0 = std::make_shared<Renderable>();
 
-    if (!m_renderable0->LoadMesh(pRenderer, &mesh))
+    if (!m_renderable0->LoadMesh(&mesh))
     {
         return false;
     }
 
+    float aspectRatio = m_engine->Graphics()->AspectRatio();
+
     m_cbvData0.model = mat4f(1.0f).transpose();
     m_cbvData0.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData0.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
+    m_cbvData0.proj = mat4f::perspectiveLH(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 
     m_cbvData1.model = mat4f(1.0f).transpose();
     m_cbvData1.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData1.proj = mat4f::perspectiveLH(3.14f * 0.5f, pRenderer->AspectRatio(), 0.1f, 100.0f).transpose();
+    m_cbvData1.proj = mat4f::perspectiveLH(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 
     m_gpuBuffer0 = std::make_shared<Dx12::UploadBuffer>();
-    if (!m_gpuBuffer0->InitializeStructure(pRenderer, &m_cbvData0))
+    if (!m_gpuBuffer0->InitializeStructure(&m_cbvData0))
     {
         return false;
     }
 
     m_gpuBuffer1 = std::make_shared<Dx12::UploadBuffer>();
-    if (!m_gpuBuffer1->InitializeStructure(pRenderer, &m_cbvData1))
+    if (!m_gpuBuffer1->InitializeStructure(&m_cbvData1))
     {
         return false;
     }
@@ -125,7 +125,7 @@ bool MeshApplication::Initialize()
     
     m_srvBuffer0 = std::make_shared<Dx12::PixelBuffer>();
     m_srvBuffer0->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    if (!m_srvBuffer0->InitializeTexture2D(pRenderer, texture0))
+    if (!m_srvBuffer0->InitializeTexture2D(texture0))
     {
         return false;
     }
@@ -136,7 +136,7 @@ bool MeshApplication::Initialize()
 
     m_srvBuffer1 = std::make_shared<Dx12::PixelBuffer>();
     m_srvBuffer1->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    if (!m_srvBuffer1->InitializeTexture2D(pRenderer, texture1))
+    if (!m_srvBuffer1->InitializeTexture2D(texture1))
     {
         return false;
     }
@@ -179,7 +179,7 @@ bool MeshApplication::Initialize()
         .DenyGS()
         .AppendRootCBV(0).AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL).AppendAnisotropicWrapSampler(0);
 
-    if (!m_rs->Finalize(pRenderer->GetDevice()))
+    if (!m_rs->Finalize())
     {
         return false;
     }
@@ -195,9 +195,9 @@ bool MeshApplication::Initialize()
     m_pipeline.SetRasterizerState(&RasterizerState());
     m_pipeline.SetDepthStencilState(&DepthStencilState());
     m_pipeline.SetBlendState(&BlendState());
-    m_pipeline.SetRenderTargets(pRenderer->GetRenderContext());
+    m_pipeline.SetRenderTargets(m_engine->Graphics()->GetRenderContext());
     
-    if (!m_pipeline.Finalize(pRenderer->GetDevice()))
+    if (!m_pipeline.Finalize())
     {
         return false;
     }
@@ -205,7 +205,6 @@ bool MeshApplication::Initialize()
     m_material0 = std::make_shared<MaterialState>(m_rs);
     m_material0->SetRootConstantBufferView(m_gpuBuffer0, 0);
     m_material0->SetShaderResourceViewTableEntry(m_srvBuffer0, 1, 0, 0);
-    //m_material->SetRootDescriptorTable(m_srvBuffer->Handle(), 1);
     
     m_material1 = std::make_shared<MaterialState>(m_rs);
     m_material1->SetRootConstantBufferView(m_gpuBuffer1, 0);
@@ -221,9 +220,11 @@ int MeshApplication::Shutdown()
 
 void MeshApplication::Update(double dt)
 {
+    static int frame = 0;
+
     Renderer* pRenderer = m_engine->Graphics().get();
 
-    auto pCtx = pRenderer->GetContext();
+    auto pCtx = Dx12::GraphicsCommandContext::Create();
     pCtx->Reset(&m_pipeline);
 
     pRenderer->SetRenderContext(pCtx);
@@ -243,7 +244,8 @@ void MeshApplication::Update(double dt)
 
     m_renderable0->DrawIndexedInstanced(pCtx.get());
 
-    pRenderer->Present(pCtx);
+    pCtx->Present(true);
+    frame++;
 }
 
 void MeshApplication::FixedUpdate(double dt)

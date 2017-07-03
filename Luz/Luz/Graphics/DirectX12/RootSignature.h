@@ -95,7 +95,7 @@ namespace Dx12
             FLOAT maxLOD = D3D12_FLOAT32_MAX,
             D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL);
 
-        bool Finalize(std::shared_ptr<const Device> pDevice);
+        bool Finalize();
 
         RootSignature& AllowInputLayout() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT); }
         RootSignature& AllowStreamOutput() { return SetFlag(D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT); }

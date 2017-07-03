@@ -64,7 +64,7 @@ namespace Dx12
         void SetDepthStencilState(DepthStencilState* pDSS) { m_desc.DepthStencilState = pDSS->Desc(); }
         void SetBlendState(BlendState* pBS) { m_desc.BlendState = pBS->Desc(); }
 
-        bool Finalize(std::shared_ptr<const Device> pDevice);
+        bool Finalize();
         D3D12_GRAPHICS_PIPELINE_STATE_DESC m_desc;
 
     private:

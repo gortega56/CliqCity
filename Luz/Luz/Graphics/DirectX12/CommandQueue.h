@@ -16,20 +16,34 @@ namespace Dx12
     class CommandQueue
     {
     public:
+        /* 
+        /   MSDN: Any thread may submit a command list to any command queue at any time, 
+        /   and the runtime will automatically serialize submission of the command 
+        /   list in the command queue while preserving the submission order.
+        /
+        /   For right now just making global compute and graphics queues.
+        */
+
+        static std::shared_ptr<CommandQueue> CreateGraphicsQueue();
+        static std::shared_ptr<CommandQueue> CreateComputeQueue();
+
         CommandQueue();
         ~CommandQueue();
 
-        ID3D12CommandQueue* GraphiceQueue() const { return m_graphicsCommandQueue; }
-        ID3D12CommandQueue* ComputeQueue() const { return m_computeCommandQueue; }
+        ID3D12CommandQueue* GetQueue() const { return m_commandQueue; }
 
-        bool Initialize(std::shared_ptr<const Device> pDevice);
+        bool Initialize(D3D12_COMMAND_LIST_TYPE type, 
+            D3D12_COMMAND_QUEUE_FLAGS flags = D3D12_COMMAND_QUEUE_FLAG_NONE, 
+            D3D12_COMMAND_QUEUE_PRIORITY priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL);
 
-        bool Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
-        bool Execute(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
+        //bool Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
+        //bool Execute(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
+
+        
 
     private:
-        ID3D12CommandQueue* m_graphicsCommandQueue;
-        ID3D12CommandQueue* m_computeCommandQueue;
+        ID3D12CommandQueue* m_commandQueue;
+
 
         CommandQueue(const CommandQueue& other) = delete;
     };

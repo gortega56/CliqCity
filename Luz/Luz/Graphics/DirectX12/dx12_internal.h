@@ -95,6 +95,8 @@ bool CreateTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, Dx12::R
 bool CreateUploadTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount = 1, UINT sampleQuality = 0, D3D12_TEXTURE_LAYOUT layout = D3D12_TEXTURE_LAYOUT_UNKNOWN);
 bool CreateDestinationTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 width, UINT height, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount = 1, UINT sampleQuality = 0, D3D12_TEXTURE_LAYOUT layout = D3D12_TEXTURE_LAYOUT_UNKNOWN);
 
+bool CreateCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count, D3D12_COMMAND_LIST_TYPE type);
+
 bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count);
 
 bool CreateGraphicsCommandList(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocator, ID3D12PipelineState* pPipeLineState, ID3D12GraphicsCommandList** ppCommandList);

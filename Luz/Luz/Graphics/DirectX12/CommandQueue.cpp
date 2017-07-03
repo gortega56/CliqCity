@@ -7,25 +7,37 @@
 
 using namespace Dx12;
 
-CommandQueue::CommandQueue() : m_graphicsCommandQueue(nullptr), m_computeCommandQueue(nullptr)
+#pragma region CommandQueue
+
+std::shared_ptr<CommandQueue> CommandQueue::CreateGraphicsQueue()
+{
+    auto queue = std::make_shared<CommandQueue>();
+    bool success = queue->Initialize(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    LUZASSERT(success);
+    return queue;
+}
+
+std::shared_ptr<CommandQueue> CommandQueue::CreateComputeQueue()
+{
+    auto queue = std::make_shared<CommandQueue>();
+    bool success = queue->Initialize(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    LUZASSERT(success);
+    return queue;
+}
+
+CommandQueue::CommandQueue() : m_commandQueue(nullptr)
 {
 
 }
 
 CommandQueue::~CommandQueue()
 {
-    SAFE_RELEASE(m_graphicsCommandQueue);
-    SAFE_RELEASE(m_computeCommandQueue);
+    SAFE_RELEASE(m_commandQueue);
 }
 
-bool CommandQueue::Initialize(std::shared_ptr<const Device> pDevice)
+bool CommandQueue::Initialize(D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_FLAGS flags /*= D3D12_COMMAND_QUEUE_FLAG_NONE*/, D3D12_COMMAND_QUEUE_PRIORITY priority /*= D3D12_COMMAND_QUEUE_PRIORITY_NORMAL*/)
 {
-    if (!CreateCommandQueue(pDevice->DX(), &m_graphicsCommandQueue, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_FLAG_NONE, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL))
-    {
-        return false;
-    }
-
-    if (!CreateCommandQueue(pDevice->DX(), &m_computeCommandQueue, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_QUEUE_FLAG_NONE, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL))
+    if (!CreateCommandQueue(Device::SharedInstance()->DX(), &m_commandQueue, type, flags, priority))
     {
         return false;
     }
@@ -33,39 +45,41 @@ bool CommandQueue::Initialize(std::shared_ptr<const Device> pDevice)
     return true;
 }
 
-bool CommandQueue::Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait /*= false*/) const
-{
-    // add signal to command queue so the fence value gets updated
-    auto pFence = pCtx->GetFence();
-    pFence->IncrementSignal();
+//bool CommandQueue::Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait /*= false*/) const
+//{
+//    // add signal to command queue so the fence value gets updated
+//    auto pFence = pCtx->GetFence();
+//    pFence->IncrementSignal();
+//
+//    HRESULT hr = m_commandQueue->Signal(pFence->Ptr(), pFence->Signal());
+//    if (FAILED(hr))
+//    {
+//        return false;
+//    }
+//
+//    if (wait)
+//    {
+//        pCtx->GetFence()->Wait();
+//        pCtx->Reset();
+//    }
+//
+//    return true;
+//}
 
-    HRESULT hr = m_graphicsCommandQueue->Signal(pFence->Ptr(), pFence->Signal());
-    if (FAILED(hr))
-    {
-        return false;
-    }
+//bool CommandQueue::Execute(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait /*= false*/) const
+//{
+//    if (!pCtx->Close())
+//    {
+//        return false;
+//    }
+//
+//    // Create array of command lists
+//    ID3D12CommandList* ppCommandLists[] = { pCtx->m_commandList };
+//
+//    // execute command lists
+//    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+//
+//    return Signal(pCtx, wait);
+//}
 
-    if (wait)
-    {
-        pCtx->GetFence()->Wait();
-        pCtx->Reset();
-    }
-
-    return true;
-}
-
-bool CommandQueue::Execute(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait /*= false*/) const
-{
-    if (!pCtx->Close())
-    {
-        return false;
-    }
-
-    // Create array of command lists
-    ID3D12CommandList* ppCommandLists[] = { pCtx->m_commandList };
-
-    // execute command lists
-    m_graphicsCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-    return Signal(pCtx, wait);
-}
+#pragma endregion

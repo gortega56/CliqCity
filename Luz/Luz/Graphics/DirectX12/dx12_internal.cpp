@@ -273,11 +273,11 @@ bool CreateDestinationTexture2D(ID3D12Device* pDevice, ID3D12Resource** ppResour
     return CreateTexture2D(pDevice, ppResource, &Dx12::DestinationParams, width, height, mipLevels, format, sampleCount, sampleQuality, layout);
 }
 
-bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count)
+bool CreateCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count, D3D12_COMMAND_LIST_TYPE type)
 {
     for (UINT i = 0; i < count; ++i)
     {
-        HRESULT hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCommandAllocators[i]));
+        HRESULT hr = pDevice->CreateCommandAllocator(type, IID_PPV_ARGS(&pCommandAllocators[i]));
         if (FAILED(hr))
         {
             return false;
@@ -285,6 +285,11 @@ bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocat
     }
 
     return true;
+}
+
+bool CreateGraphicsCommandAllocators(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocators[], UINT count)
+{
+    return CreateCommandAllocators(pDevice, pCommandAllocators, count, D3D12_COMMAND_LIST_TYPE_DIRECT);
 }
 
 bool CreateGraphicsCommandList(ID3D12Device* pDevice, ID3D12CommandAllocator* pCommandAllocator, ID3D12PipelineState* pPipeLineState, ID3D12GraphicsCommandList** ppCommandList)

@@ -33,9 +33,9 @@ void GraphicsPipeline::SetRenderTargets(std::shared_ptr<const RenderContext> pRe
     m_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 }
 
-bool GraphicsPipeline::Finalize(std::shared_ptr<const Device> pDevice)
+bool GraphicsPipeline::Finalize()
 {
-    HRESULT hr = pDevice->DX()->CreateGraphicsPipelineState(&m_desc, IID_PPV_ARGS(&m_pipelineState));
+    HRESULT hr = Device::SharedInstance()->DX()->CreateGraphicsPipelineState(&m_desc, IID_PPV_ARGS(&m_pipelineState));
     if (FAILED(hr))
     {
         return false;

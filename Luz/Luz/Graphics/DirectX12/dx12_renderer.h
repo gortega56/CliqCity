@@ -53,7 +53,7 @@ namespace Dx12
         void ExecuteGraphicsCommandContext(std::shared_ptr<GraphicsCommandContext> pGraphicsCommandCtx);
 
        // std::shared_ptr<GraphicsCommandContext> GetCurrentGraphicsContext() const;
-        std::shared_ptr<GraphicsCommandContext> GetContext() const;
+       // std::shared_ptr<GraphicsCommandContext> GetContext() const;
 
         std::shared_ptr<const Device> GetDevice() const { return m_device; };
         std::shared_ptr<const CommandQueue> GetCommandQueue() const { return m_commandQueue; }
@@ -71,7 +71,7 @@ namespace Dx12
 
         std::shared_ptr<const Device> m_device;
         std::shared_ptr<CommandQueue> m_commandQueue;
-        std::shared_ptr<RenderContext> m_renderContext;
+        std::shared_ptr<SwapChainContext> m_renderContext;
         std::shared_ptr<SwapChain> m_swapChain;
 
         Viewport m_viewport;

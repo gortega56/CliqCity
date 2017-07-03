@@ -69,7 +69,7 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
         if (pRootSignature->m_rootParameters[param->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_CBV) continue;
 
         auto& uploadBuffer = std::static_pointer_cast<UploadBuffer>(param->m_gpuResource);
-        if (uploadBuffer->Initialize(nullptr, param->m_data))
+        if (uploadBuffer->Initialize(param->m_data))
         {
             __debugbreak();
         }
@@ -98,7 +98,7 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
         resMgr.LoadResource<Texture2D>(param->m_filename, [&param, &numSrvLoading](std::shared_ptr<const Texture2D> pTexture)
         {
             auto pPixelBuffer = std::static_pointer_cast<PixelBuffer>(param->m_gpuResource);
-            if (!pPixelBuffer->InitializeTexture2D(nullptr, pTexture))
+            if (!pPixelBuffer->InitializeTexture2D(pTexture))
             {
                 __debugbreak();
             }
@@ -180,7 +180,7 @@ void Immutable::SetShaderResourceViewTableEntry(std::shared_ptr<const PixelBuffe
     LUZASSERT(m_rootSignature->m_rootParameters[paramIndex].DescriptorTable.pDescriptorRanges[rangeIndex].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV);
     LUZASSERT(std::find_if(m_gpuResources.begin(), m_gpuResources.end(), [pPixelBuffer](const std::shared_ptr<const GpuResource>& pResource) { return pResource == pPixelBuffer; }) == m_gpuResources.end());
 
-    auto srvHandle = pPixelBuffer->Handle();
+    auto srvHandle = pPixelBuffer->ShaderResourceViewHandle();
     auto srvHandleIter = std::find_if(m_descriptorHandles.begin(), m_descriptorHandles.end(), [&srvHandle](const DescriptorHandle& handle) { return srvHandle.Type() == handle.Type() && srvHandle.Index() == handle.Index(); });
     if (srvHandleIter == m_descriptorHandles.end())
     {

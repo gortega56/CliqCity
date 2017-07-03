@@ -159,7 +159,7 @@ RootSignature& RootSignature::SetFlag(D3D12_ROOT_SIGNATURE_FLAGS flag)
     return *this;
 }
 
-bool RootSignature::Finalize(std::shared_ptr<const Device> pDevice)
+bool RootSignature::Finalize()
 {
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC desc;
     desc.Init_1_1((UINT)m_rootParameters.size(), m_rootParameters.data(), (UINT)m_staticSamplers.size(), m_staticSamplers.data(), m_flags);
@@ -172,7 +172,7 @@ bool RootSignature::Finalize(std::shared_ptr<const Device> pDevice)
         return false;
     }
 
-    hr = pDevice->DX()->CreateRootSignature(0, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&m_signature));
+    hr = Device::SharedInstance()->DX()->CreateRootSignature(0, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&m_signature));
     if (FAILED(hr))
     {
         return false;

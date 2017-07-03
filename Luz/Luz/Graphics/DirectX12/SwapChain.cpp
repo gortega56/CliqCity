@@ -14,9 +14,9 @@ SwapChain::SwapChain(DXGI_FORMAT format,
     m_swapChain1(nullptr),
     m_swapChain2(nullptr),
     m_swapChain3(nullptr),
+    m_swapEffect(swapEffect),
     m_format(format),
     m_usage(usage),
-    m_swapEffect(swapEffect),
     m_hwnd(nullptr),
     m_width(0),
     m_height(0),
@@ -41,27 +41,24 @@ SwapChain::~SwapChain()
 
 bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen)
 {
-    m_hwnd = hwnd;
     m_width = width;
     m_height = height;
+    m_hwnd = hwnd;
     m_fullScreen = fullScreen;
 
     m_frameBuffers.resize(numFrameBuffers);
 
-    if (!InitD3D12SwapChain(pDevice->Factory4(), pCmdQueue->GraphiceQueue(), &m_swapChain3, m_hwnd, m_width, m_height, m_format, m_usage, m_swapEffect, numFrameBuffers, m_fullScreen))
+    // Resources are created here but internal to the swap chain
+
+    if (!InitD3D12SwapChain(pDevice->Factory4(), pCmdQueue->GetQueue(), &m_swapChain3, m_hwnd, m_width, m_height, m_format, m_usage, m_swapEffect, numFrameBuffers, m_fullScreen))
     {
         return false;
     }
 
-    return true;
-}
+    // Attach resources to our vector of ComPtrs
 
-bool SwapChain::InitializeFrameBuffers(std::shared_ptr<const Device> pDevice, std::shared_ptr<DescriptorHeap> pHeap)
-{
     std::vector<ID3D12Resource*> resources(m_frameBuffers.size());
-
-    // Create swap chain rtv resources
-    if (!CreateSwapChainRenderTargetViews(pDevice->DX(), pHeap->Native(), m_swapChain3, resources.data(), (UINT)m_frameBuffers.size()))
+    if (!GetSwapChainBuffers(m_swapChain3, resources.data(), numFrameBuffers))
     {
         return false;
     }
