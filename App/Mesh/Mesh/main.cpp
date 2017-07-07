@@ -22,7 +22,7 @@ int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
     options.WindowWidth = 1600;
     options.WindowHeight = 900;
     options.FullScreen = false;
-    options.UseConsole = true;
+    options.UseConsole = false;
     
     Engine::Run<MeshApplication>(options);
 

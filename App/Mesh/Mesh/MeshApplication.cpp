@@ -244,7 +244,7 @@ void MeshApplication::Update(double dt)
 
     m_renderable0->DrawIndexedInstanced(pCtx.get());
 
-    pCtx->Present(true);
+    pCtx->Present();
     frame++;
 }
 

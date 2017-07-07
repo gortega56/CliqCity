@@ -91,8 +91,6 @@ CommandAllocator* CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE type)
     for (int i = 0, count = (int)sm_maxAllocatorsPerType; i < count; ++i)
     {
         CommandAllocator* iter = &allocatorPool.m_allocators[i];
-    //    std::cout << i << ":\tLast Complete: " << iter->GetFence().Completed() << " Signal: " << iter->GetFence().Signal() << " IsWaiting: " << iter->GetFence().IsWaiting() << std::endl;
-
         if (iter->GetFence().IsIdle())
         {
             pCommandAllocator = iter;
@@ -116,7 +114,6 @@ CommandAllocator* CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE type)
         // We know this guy WAS waiting... but we gotta check again...
         if (pCommandAllocator->GetFence().IsWaiting())
         {
-            std::cout << "Last Complete: " << pCommandAllocator->GetFence().Completed() << " Signal: " << pCommandAllocator->GetFence().Signal() << std::endl;
             pCommandAllocator->GetFence().Wait();
         }
 
