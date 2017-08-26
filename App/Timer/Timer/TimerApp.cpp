@@ -1,6 +1,7 @@
 #include "TimerApp.h"
 #include "Engine.h"
 #include <iostream>
+#include "Console.h"
 
 TimerApp::TimerApp()
 {
@@ -14,6 +15,8 @@ TimerApp::~TimerApp()
 
 bool TimerApp::Initialize()
 {
+    Console::Initialize(&m_console);
+
     std::cout << "Init" << std::endl;
 
     return true;

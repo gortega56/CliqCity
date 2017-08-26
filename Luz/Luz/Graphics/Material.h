@@ -17,7 +17,7 @@ public:
     virtual ~TMaterial() {}
 };
 
-#ifdef _WIN64
+#if _WIN64 || _WIN32
 
 #ifndef DX12_MATERIAL_H
 #include "DirectX12\Material.h"
@@ -25,15 +25,6 @@ public:
 
 namespace Dx12 { namespace Material { class Immutable; } }
 typedef TMaterial<Dx12::Material::Immutable> MaterialState;
-
-#elif _WIN32
-
-#ifndef DX12_MATERIAL_H
-#include "DirectX12\Material.h"
-#endif
-
-namespace Dx12 { class Material; }
-typedef TMaterial<Dx12::Material> Material;
 
 #elif __APPLE__
 #endif

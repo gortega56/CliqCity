@@ -9,6 +9,7 @@
 #include "DescriptorHeap.h"
 #include "dx12_internal.h"
 #include "CommandQueue.h"
+#include "Dx12Graphics.h"
 
 using namespace Dx12;
 
@@ -141,7 +142,6 @@ void CommandAllocatorPool::WaitAll()
 
 #pragma endregion
 
-
 #pragma region CommandContext
 
 CommandContext::CommandContext() :
@@ -155,37 +155,21 @@ CommandContext::~CommandContext()
 {
 
 }
+    
+void CommandContext::Initialize()
+{
+    bool success = CommandAllocatorPool::Initialize();
+    LUZASSERT(success);
+}
 
 #pragma endregion
 
 #pragma region GraphicsCommandContext
 
-static std::shared_ptr<CommandQueue> g_graphicsCommandQueue = nullptr;
-
-std::shared_ptr<CommandQueue> GraphicsCommandContext::GlobalQueue()
-{
-    if (!g_graphicsCommandQueue)
-    {
-        g_graphicsCommandQueue = CommandQueue::CreateGraphicsQueue();
-    }
-
-    return g_graphicsCommandQueue;
-}
-
-static std::shared_ptr<SwapChain> g_swapChain = nullptr;
-
-void GraphicsCommandContext::SetGlobalSwapChain(std::shared_ptr<SwapChain> pSwapChain)
-{
-    if (!g_swapChain)
-    {
-        g_swapChain = pSwapChain;
-    }
-}
-
-std::shared_ptr<GraphicsCommandContext> GraphicsCommandContext::Create()
+std::shared_ptr<GraphicsCommandContext> GraphicsCommandContext::Create(std::shared_ptr<CommandQueue> pCommandQueue /*= nullptr*/)
 {
     auto ctx = std::make_shared<GraphicsCommandContext>();
-    bool success = ctx->Initialize();
+    bool success = ctx->Initialize(pCommandQueue ? pCommandQueue : CommandQueue::SwapChainQueue());
     LUZASSERT(success);
     return ctx;
 }
@@ -200,10 +184,10 @@ GraphicsCommandContext::~GraphicsCommandContext()
 
 }
 
-bool GraphicsCommandContext::Initialize()
+bool GraphicsCommandContext::Initialize(std::shared_ptr<CommandQueue> pCommandQueue)
 {
-    m_commandQueue = GlobalQueue();
-    m_swapChain = g_swapChain;
+    m_commandQueue = pCommandQueue;
+    m_swapChain = SharedSwapChainContext()->m_swapChain;
 
     m_commandAllocator = CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
 
@@ -301,6 +285,16 @@ void GraphicsCommandContext::ClearRenderContext(RenderContext* pRenderContext)
     //m_commandList->ClearDepthStencilView(dsvHandle, pDsv->ClearFlags(), pDsv->ClearDepth(), pDsv->ClearStencil(), 0, nullptr);
 }
 
+void GraphicsCommandContext::SetRenderContext()
+{
+    SetRenderContext(SharedSwapChainContext().get());
+}
+
+void GraphicsCommandContext::ClearRenderContext()
+{
+    ClearRenderContext(SharedSwapChainContext().get());
+}
+
 void GraphicsCommandContext::SetRenderContext(SwapChainContext* pRenderContext)
 {
     u32 frameIndex = pRenderContext->m_swapChain->GetCurrentBackBufferIndex();
@@ -328,6 +322,11 @@ void GraphicsCommandContext::ClearRenderContext(SwapChainContext* pRenderContext
 
     m_commandList->ClearRenderTargetView(rtvHandle, colorBuffer.Color(), 0, nullptr);
     m_commandList->ClearDepthStencilView(dsvHandle, depthBuffer.ClearFlags(), depthBuffer.ClearDepth(), depthBuffer.ClearStencil(), 0, nullptr);
+}
+
+void GraphicsCommandContext::SetViewport()
+{
+    SetViewport(&SharedSwapChainContext()->m_viewport);
 }
 
 void GraphicsCommandContext::SetViewport(Viewport* pViewport)

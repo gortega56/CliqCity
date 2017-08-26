@@ -1,10 +1,15 @@
 #pragma once
+#include <memory>
+#ifndef GENERALMACROS_H
+#include "GeneralMacros.h"
+#endif
+
 #ifndef IAPPLICATION_H
 #include "IApplication.h"
 #endif
 
-#ifndef LUZ_H
-#include "Luz.h"
+#ifndef CONSOLE_H
+#include "Console.h"
 #endif
 
 class TimerApp :
@@ -21,5 +26,7 @@ public:
 
     void Update(double delta) override;
     void FixedUpdate(double delta) override;
+
+    Console m_console;
 };
 

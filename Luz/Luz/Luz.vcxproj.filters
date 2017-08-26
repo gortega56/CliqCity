@@ -30,16 +30,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WindowsMessageCenter.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="windows_utils.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
     <ClCompile Include="Console.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Window.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="Scene.cpp">
@@ -49,9 +40,6 @@
       <Filter>Graphics\DirectX12</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\DirectX12\dx12_renderable.cpp">
-      <Filter>Graphics\DirectX12</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\dx12_renderer.cpp">
       <Filter>Graphics\DirectX12</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp">
@@ -70,9 +58,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\DirectX12\Shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="OSWin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\DirectX12\RootSignature.cpp">
@@ -105,6 +90,30 @@
     <ClCompile Include="LzAssert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\Platform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\WindowsPlatform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Window.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\windows_utils.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\WindowsMessageCenter.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\MSPlatformWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Graphics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp">
+      <Filter>Graphics\DirectX12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IApplication.h">
@@ -113,28 +122,16 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="windows_utils.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsMessageCenter.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
     <ClInclude Include="Engine.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Console.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Options.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Timer.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="TypeDefs.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Window.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
@@ -150,9 +147,6 @@
       <Filter>Graphics\DirectX12</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\dx12_renderable.h">
-      <Filter>Graphics\DirectX12</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\dx12_renderer.h">
       <Filter>Graphics\DirectX12</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Renderable.h">
@@ -177,9 +171,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="OSWin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\RenderContext.h">
@@ -223,6 +214,30 @@
     </ClInclude>
     <ClInclude Include="GeneralMacros.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\WindowsPlatform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\WindowsMessageCenter.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Window.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\windows_utils.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\MSPlatformWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Graphics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX12\Dx12Graphics.h">
+      <Filter>Graphics\DirectX12</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

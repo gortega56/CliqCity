@@ -4,7 +4,7 @@
 #include "CommandContext.h"
 #include "DescriptorHeap.h"
 #include "Resource\Texture.h"
-#include "dx12_renderer.h"
+#include "Dx12Graphics.h"
 #include "Resource\ResourceManager.h"
 #include "CommandQueue.h"
 #include "CommandContext.h"

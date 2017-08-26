@@ -98,7 +98,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -110,7 +110,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -124,7 +124,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -142,7 +142,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -153,6 +153,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Graphics\Graphics.cpp" />
     <ClCompile Include="LzAssert.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
@@ -165,7 +166,7 @@
     </ClCompile>
     <ClCompile Include="Graphics\DirectX12\Device.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_renderable.cpp" />
-    <ClCompile Include="Graphics\DirectX12\dx12_renderer.cpp" />
+    <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp" />
     <ClCompile Include="Graphics\DirectX12\Fence.cpp" />
     <ClCompile Include="Graphics\DirectX12\GpuResource.cpp" />
@@ -177,15 +178,18 @@
     <ClCompile Include="Graphics\DirectX12\SwapChain.cpp" />
     <ClCompile Include="Graphics\DirectX12\TextureImpl.cpp" />
     <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
-    <ClCompile Include="OSWin.cpp" />
+    <ClCompile Include="Platform\MSPlatformWindow.cpp" />
+    <ClCompile Include="Platform\Platform.cpp" />
+    <ClCompile Include="Platform\WindowsPlatform.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Window.cpp" />
-    <ClCompile Include="WindowsMessageCenter.cpp" />
-    <ClCompile Include="windows_utils.cpp" />
+    <ClCompile Include="Platform\Window.cpp" />
+    <ClCompile Include="Platform\WindowsMessageCenter.cpp" />
+    <ClCompile Include="Platform\windows_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneralMacros.h" />
+    <ClInclude Include="Graphics\Graphics.h" />
     <ClInclude Include="LzAssert.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\CommandContext.h" />
@@ -194,7 +198,7 @@
     <ClInclude Include="Graphics\DirectX12\DescriptorHeap.h" />
     <ClInclude Include="Graphics\DirectX12\Device.h" />
     <ClInclude Include="Graphics\DirectX12\dx12_renderable.h" />
-    <ClInclude Include="Graphics\DirectX12\dx12_renderer.h" />
+    <ClInclude Include="Graphics\DirectX12\Dx12Graphics.h" />
     <ClInclude Include="Graphics\DirectX12\dx12_internal.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Graphics\DirectX12\Fence.h" />
@@ -212,18 +216,19 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Graphics\Renderable.h" />
     <ClInclude Include="Graphics\DirectX12\PipelineState.h" />
-    <ClInclude Include="OSWin.h" />
+    <ClInclude Include="Platform\MSPlatformWindow.h" />
+    <ClInclude Include="Platform\Platform.h" />
+    <ClInclude Include="Platform\WindowsPlatform.h" />
     <ClInclude Include="Resource\ResourceManager.h" />
     <ClInclude Include="Resource\Texture.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="IApplication.h" />
-    <ClInclude Include="Options.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="TypeDefs.h" />
-    <ClInclude Include="Window.h" />
-    <ClInclude Include="WindowsMessageCenter.h" />
-    <ClInclude Include="windows_utils.h" />
+    <ClInclude Include="Platform\Window.h" />
+    <ClInclude Include="Platform\WindowsMessageCenter.h" />
+    <ClInclude Include="Platform\windows_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Library\DirectXTex\DirectXTex_Desktop_2015_Win10.vcxproj">

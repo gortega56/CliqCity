@@ -4,7 +4,7 @@
 #include "CommandContext.h"
 #include "Device.h"
 #include "CommandQueue.h"
-#include "dx12_renderer.h"
+#include "Dx12Graphics.h"
 #include "Resource\Texture.h"
 
 using namespace Dx12;

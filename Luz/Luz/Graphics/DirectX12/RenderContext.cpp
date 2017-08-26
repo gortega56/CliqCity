@@ -102,7 +102,7 @@ DescriptorHandle RenderContext::DepthStencilView() const
     return m_depthBuffer.DepthStencilViewHandle();
 }
 
-SwapChainContext::SwapChainContext(std::shared_ptr<SwapChain> pSwapChain) : m_swapChain(pSwapChain)
+SwapChainContext::SwapChainContext() : m_swapChain(nullptr)
 {
 
 }
@@ -112,10 +112,14 @@ SwapChainContext::~SwapChainContext()
 
 }
 
-bool SwapChainContext::Initialize(u32 width, u32 height)
-{
-    m_width = width;
-    m_height = height;
+bool SwapChainContext::Initialize(std::shared_ptr<SwapChain> pSwapChain)
+{   
+    m_swapChain = pSwapChain;
+    m_width = pSwapChain->Width();
+    m_height = pSwapChain->Height();
+
+    m_viewport.SetViewportRect(0.0f, 0.0f, (float)m_width, (float)m_height);
+    m_viewport.SetScissorRect(0, 0, m_width, m_height);
 
     for (int i = 0, count = m_swapChain->NumFrameBuffers(); i < count; ++i)
     {
@@ -127,7 +131,7 @@ bool SwapChainContext::Initialize(u32 width, u32 height)
         cb.CreateRenderTargetView();
     }
 
-    if (!m_depthBuffer.Initialize(width, height))
+    if (!m_depthBuffer.Initialize(m_width, m_height))
     {
         return false;
     }

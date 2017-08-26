@@ -11,6 +11,7 @@ namespace Dx12
     class Viewport
     {
     public:
+        Viewport(float topLeftX, float topLeftY, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
         Viewport();
         ~Viewport();
 

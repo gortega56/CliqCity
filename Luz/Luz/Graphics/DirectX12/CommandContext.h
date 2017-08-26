@@ -10,14 +10,8 @@
 #include "d3dx12.h"
 #endif
 
-//struct ID3D12CommandQueue;
-//struct ID3D12CommandAllocator;
-//struct ID3D12CommandList;
-//struct ID3D12GraphicsCommandList;
-
 namespace Dx12
 {
-    class Renderer;
     class Pipeline;
     class GraphicsPipeline;
     class RootSignature;
@@ -71,11 +65,7 @@ namespace Dx12
         CommandContext();
         ~CommandContext();
 
-        //template<class CONTEXT>
-        //static int GetNextAvailable(const std::vector<std::shared_ptr<CONTEXT>>& contexts);
-    
-        //template<class CONTEXT>
-        //static void WaitForAll(std::vector<std::shared_ptr<CONTEXT>>& contexts);
+        static void Initialize();
 
     protected:
         friend class CommandQueue;
@@ -87,15 +77,12 @@ namespace Dx12
     class GraphicsCommandContext : public CommandContext
     {
     public:
-        static std::shared_ptr<CommandQueue> GlobalQueue();
-        static void SetGlobalSwapChain(std::shared_ptr<SwapChain> pSwapChain);
-
-        static std::shared_ptr<GraphicsCommandContext> Create();
+        static std::shared_ptr<GraphicsCommandContext> Create(std::shared_ptr<CommandQueue> pCommandQueue = nullptr);
 
         GraphicsCommandContext();
         ~GraphicsCommandContext();
 
-        bool Initialize();
+        bool Initialize(std::shared_ptr<CommandQueue> pCommandQueue);
 
         ID3D12GraphicsCommandList* CommandList() const { return m_commandList.Get(); }
 
@@ -109,13 +96,16 @@ namespace Dx12
         void SetDescriptorHeap(const DescriptorHeap* pDescriptorHeap);
         void SetDescriptorHeap(std::shared_ptr<const DescriptorHeap> pDescriptorHeap) { return SetDescriptorHeap(pDescriptorHeap.get()); }
 
-
-        void SetRenderContext(RenderContext* pRenderContext);
-        void ClearRenderContext(RenderContext* pRenderContext);
+        void SetRenderContext();
+        void ClearRenderContext();
 
         void SetRenderContext(SwapChainContext* pRenderContext);
         void ClearRenderContext(SwapChainContext* pRenderContext);
+        
+        void SetRenderContext(RenderContext* pRenderContext);
+        void ClearRenderContext(RenderContext* pRenderContext);
 
+        void SetViewport();
         void SetViewport(Viewport* pViewport);
 
         void SetGraphicsRootConstantBufferView(const UploadBuffer* pBuffer, u32 paramIndex = 0);
@@ -132,51 +122,11 @@ namespace Dx12
     protected:
         friend class CommandQueue;
         friend class GpuBuffer;
-        friend class Renderer;
 
     private:
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
         std::shared_ptr<SwapChain> m_swapChain;
     };
-
-    //template<class CONTEXT>
-    //int CommandContext::GetNextAvailable(const std::vector<std::shared_ptr<CONTEXT>>& contexts)
-    //{
-    //    UINT64 min = UINT64_MAX;
-    //    int idx = 0;
-
-    //    // Just look for any ctx that we aren't waiting for
-    //    for (int i = 0, count = (int)contexts.size(); i < count; ++i)
-    //    {
-    //        if (!contexts[i]->GetFence()->IsWaiting())
-    //        {
-    //            return i;
-    //        }
-    //        else
-    //        {
-    //            UINT64 sig = contexts[i]->GetFence()->Signal();
-    //            if (sig < min)
-    //            {
-    //                min = sig;
-    //                idx = i;
-    //            }
-    //        }
-    //    }
-
-    //    contexts[idx]->GetFence()->Wait();
-
-    //    return idx;
-    //}
-
-    //template<class CONTEXT>
-    //void CommandContext::WaitForAll(std::vector<std::shared_ptr<CONTEXT>>& contexts)
-    //{
-    //    for (auto& ctx : contexts)
-    //    {
-    //        ctx->GetFence()->Wait();
-    //    }
-    //}
-
 }
 
 #endif

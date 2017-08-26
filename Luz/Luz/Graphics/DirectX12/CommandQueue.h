@@ -27,6 +27,8 @@ namespace Dx12
         static std::shared_ptr<CommandQueue> CreateGraphicsQueue();
         static std::shared_ptr<CommandQueue> CreateComputeQueue();
 
+        static std::shared_ptr<CommandQueue> SwapChainQueue();
+
         CommandQueue();
         ~CommandQueue();
 
@@ -36,14 +38,8 @@ namespace Dx12
             D3D12_COMMAND_QUEUE_FLAGS flags = D3D12_COMMAND_QUEUE_FLAG_NONE, 
             D3D12_COMMAND_QUEUE_PRIORITY priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL);
 
-        //bool Signal(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
-        //bool Execute(std::shared_ptr<GraphicsCommandContext> pCtx, bool wait = false) const;
-
-        
-
     private:
         ID3D12CommandQueue* m_commandQueue;
-
 
         CommandQueue(const CommandQueue& other) = delete;
     };

@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "dx12_renderable.h"
-#include "dx12_renderer.h"
+#include "Dx12Graphics.h"
 #include "Mesh.h"
 #include "CommandContext.h"
 

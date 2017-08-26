@@ -7,6 +7,8 @@
 #include <memory>
 #include "DirectX12\CommandContext.h"
 #include "Resource\Texture.h"
+#include "Window.h"
+#include "Graphics.h"
 
 #define TEXURE_PATH0 L".\\Assets\\tarmac_0.dds"
 #define TEXURE_PATH1 L".\\Assets\\oldsandbags.png"
@@ -23,6 +25,13 @@ MeshApplication::~MeshApplication()
 
 bool MeshApplication::Initialize()
 {
+    m_window = Window::Create("Mesh Application", 1600, 900, false);
+
+    if (!Graphics::Initialize(m_window.get(), 3))
+    {
+        return false;
+    }
+
     Vertex verts[] =
     {
         // front face
@@ -89,16 +98,18 @@ bool MeshApplication::Initialize()
         20, 23, 21, // second triangle
     };
 
-    Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), std::begin(verts) + 24), std::vector<u32>(std::begin(indices), std::begin(indices) + 36));
+    Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), 
+        std::begin(verts) + 24), 
+        std::vector<u32>(std::begin(indices), 
+        std::begin(indices) + 36));
     
     m_renderable0 = std::make_shared<Renderable>();
-
     if (!m_renderable0->LoadMesh(&mesh))
     {
         return false;
     }
 
-    float aspectRatio = m_engine->Graphics()->AspectRatio();
+    float aspectRatio = m_window->AspectRatio();
 
     m_cbvData0.model = mat4f(1.0f).transpose();
     m_cbvData0.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
@@ -195,7 +206,7 @@ bool MeshApplication::Initialize()
     m_pipeline.SetRasterizerState(&RasterizerState());
     m_pipeline.SetDepthStencilState(&DepthStencilState());
     m_pipeline.SetBlendState(&BlendState());
-    m_pipeline.SetRenderTargets(m_engine->Graphics()->GetRenderContext());
+    m_pipeline.SetRenderTargets();
     
     if (!m_pipeline.Finalize())
     {
@@ -215,6 +226,8 @@ bool MeshApplication::Initialize()
 
 int MeshApplication::Shutdown()
 {
+    Graphics::Shutdown();
+
     return 0;
 }
 
@@ -222,14 +235,12 @@ void MeshApplication::Update(double dt)
 {
     static int frame = 0;
 
-    Renderer* pRenderer = m_engine->Graphics().get();
-
     auto pCtx = Dx12::GraphicsCommandContext::Create();
     pCtx->Reset(&m_pipeline);
 
-    pRenderer->SetRenderContext(pCtx);
-    pRenderer->ClearRenderContext(pCtx);
-    pRenderer->SetViewport(pCtx);
+    pCtx->SetRenderContext();
+    pCtx->ClearRenderContext();
+    pCtx->SetViewport();
 
     pCtx->SetRootSignature(m_rs.get());
 

@@ -2,6 +2,10 @@
 #ifndef DX12_RENDERCONTEXT_H
 #define DX12_RENDERCONTEXT_H
 
+#ifndef DX12_VIEWPORT_H
+#include "Viewport.h"
+#endif
+
 #ifndef DX12_GPURESOURCE_H
 #include "GpuResource.h"
 #endif
@@ -44,22 +48,23 @@ namespace Dx12
 
         std::vector<ColorBuffer> m_colorBuffers;
         DepthBuffer m_depthBuffer;
-    
+
         friend class GraphicsCommandContext;
     };
 
     class SwapChainContext : public RenderContext
     {
     public:
-        SwapChainContext(std::shared_ptr<SwapChain> pSwapChain);
+        SwapChainContext();
         ~SwapChainContext();
-
-        bool Initialize(u32 width, u32 height);
+        
+        bool Initialize(std::shared_ptr<SwapChain> pSwapChain);
 
     protected:
-        std::shared_ptr<SwapChain> m_swapChain;
-
         friend class GraphicsCommandContext;
+        
+        std::shared_ptr<SwapChain> m_swapChain;
+        Viewport m_viewport;
 
         NO_COPY(SwapChainContext)
         NO_MOVE(SwapChainContext)

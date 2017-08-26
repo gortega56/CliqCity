@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "DescriptorHeap.h"
 #include "dx12_internal.h"
-#include "dx12_renderer.h"
+#include "Dx12Graphics.h"
 #include "GpuResource.h"
 #include "Device.h"
 

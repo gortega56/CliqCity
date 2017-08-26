@@ -2,9 +2,9 @@
 #ifndef DX12_GPURESOURCE_H
 #define DX12_GPURESOURCE_H
 
-//#ifndef __D3DX12_H__
-//#include "d3dx12.h"
-//#endif
+#ifndef __D3DX12_H__
+#include "d3dx12.h"
+#endif
 
 #ifndef DX12_DESCRIPTORHEAP_H
 #include "DescriptorHeap.h"
@@ -20,7 +20,6 @@ typedef Internal::Texture2D<Dx12::TextureImpl> Texture2D;
 
 namespace Dx12
 {
-    class Renderer;
     class CommandQueue;
     class GraphicsCommandContext;
     class Device;

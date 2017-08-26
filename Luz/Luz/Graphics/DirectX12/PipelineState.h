@@ -14,9 +14,6 @@
 #include "Shader.h"
 #endif
 
-#include <string>
-#include <vector>
-
 namespace Dx12
 {
     class PixelBuffer;
@@ -59,6 +56,7 @@ namespace Dx12
         void SetSampleQuality(u32 quality) { m_desc.SampleDesc.Quality = quality; }
         void SetSampleMask(u32 mask) { m_desc.SampleMask = mask; }
 
+        void SetRenderTargets();
         void SetRenderTargets(std::shared_ptr<const RenderContext> pRc);
         void SetRasterizerState(RasterizerState* pRS) { m_desc.RasterizerState = pRS->Desc(); }
         void SetDepthStencilState(DepthStencilState* pDSS) { m_desc.DepthStencilState = pDSS->Desc(); }

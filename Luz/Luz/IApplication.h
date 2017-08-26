@@ -2,37 +2,16 @@
 #ifndef IAPPLICATION_H
 #define IAPPLICATION_H
 
-template<class OS, class GFX>
+template<class OpSys>
 class TEngine;
 
-#ifdef _WIN64
+#if _WIN64 || _WIN32
 
-#ifndef OSWIN_H
-#include "OSWin.h"
+#ifndef WINDOWSPLATFORM_H
+#include "WindowsPlatform.h"
 #endif
 
-//#ifndef DX12RENDERER_H
-//#include "Graphics\DirectX12\dx12_renderer.h"
-//#endif
-
-namespace Dx12
-{
-    class Renderer;
-}
-
-typedef TEngine<OSWin, Dx12::Renderer> Engine;
-
-#elif _WIN32
-
-#ifndef OSWIN_H
-#include "OSWin.h"
-#endif
-
-#ifndef DX12RENDERER_H
-#include "Graphics\DirectX12\dx12_renderer.h"
-#endif
-
-typedef TEngine<OSWin, Dx12::Renderer> Engine;
+typedef TEngine<MS::Windows> Engine;
 
 #elif __APPLE__
 #endif

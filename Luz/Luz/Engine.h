@@ -10,193 +10,153 @@
 #include "IApplication.h"
 #endif
 
-#ifndef WINDOW_H
-#include "Window.h"
-#endif
-
-#ifndef CONSOLE_H
-#include "Console.h"
+#ifndef PLATFORM_H
+#include "Platform.h"
 #endif
 
 #include <memory>
 
-struct Options;
-
-template<class OpSys, class GFX>
-class TEngine : public std::enable_shared_from_this<TEngine<OpSys, GFX>>
+template<class OpSys>
+class TEngine : public std::enable_shared_from_this<TEngine<OpSys>>
 {
 public:
-    inline double Total()  { return m_timer.Total(); }
-    inline double Delta() { return m_timer.Delta(); }
+
+#if _WIN64 || _WIN32
+    template<class Application> static void Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
+#elif __APPLE__
+    template<class Application> static void Run(int argc, char* argv[]);
+#endif
 
     TEngine() {}
     ~TEngine() {}
 
-    template<class Application>
-    inline static void Run(const Options& options)
-    {
-        TEngine<OpSys, GFX> engine;
-        engine.Initialize(options);
-        engine.m_timer.Reset();
+    bool Initialize();
+    void Update(double ft);
+    void Shutdown();
 
-        Application app(&engine);
-        if (app.Initialize())
-        {
-            double t = 0.0;
-            double dt = 0.01;
-
-            double accumulator = 0.0;
-
-            while (!engine.m_os->ShouldQuit())
-            {
-                engine.m_timer.Tick();
-
-                double frameTime = engine.m_timer.Delta();
-                engine.Update(frameTime);
-
-                if (frameTime > 0.25)
-                {
-                    frameTime = 0.25;
-                }
-
-                accumulator += frameTime;
-
-                while (accumulator >= dt)
-                {
-                    app.FixedUpdate(dt);
-                    t += dt;
-                    accumulator -= dt;
-                }
-
-
-                app.Update(dt);
-            }
-        }
-        
-        app.Shutdown();
-        engine.Shutdown();
-    }
-
-    int Initialize(const Options& options)
-    {
-        m_os = std::make_shared<OpSys>();
-        m_os->Initialize(options);
-
-        m_graphics = std::make_shared<GFX>(m_os.get(), 1, 3);
-        m_graphics->Initialize(options.WindowWidth, options.WindowHeight, options.FullScreen);
-
-        if (options.UseConsole)
-        {
-            Console::Initialize(&m_console);
-        }
-
-        return 1;
-    }
-
-    int Shutdown()
-    {
-        m_graphics->Shutdown();
-        m_os->Shutdown();
-
-        return 1;
-    }
-
-    void Update(double ft)
-    {
-        m_os->Update(ft);
-    }
-
-    std::shared_ptr<OpSys> OS() { return m_os; }
-    std::shared_ptr<GFX> Graphics() { return m_graphics; }
+    inline double Total()  { return m_timer.Total(); }
+    inline double Delta() { return m_timer.Delta(); }
+    inline std::shared_ptr<OpSys> OS() { return m_os; }
 
 private:
     std::shared_ptr<OpSys> m_os;
-    std::shared_ptr<GFX> m_graphics;
     Timer<seconds> m_timer;
 
-    Console m_console;
+    template<class Application>
+    static void Run(TEngine<OpSys>& engine);
 };
 
-#ifdef _WIN64
 
-#ifndef OSWIN_H
-#include "OSWin.h"
+
+#if _WIN64 || _WIN32
+template<class OpSys>
+template<class Application>
+void TEngine<OpSys>::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+{
+
+    TEngine<OpSys> engine;
+    engine.m_os = std::static_pointer_cast<OpSys>(OpSys::Create(hInstance, hPrevInstance, lpCmdLine, nShowCmd));
+    Run<Application>(engine);
+}
+#elif __APPLE__
+template<class OpSys>
+template<class Application>
+void TEngine<OpSys>::Run(int argc, char* argv[])
+{
+
+}
 #endif
 
-#ifndef DX12RENDERER_H
-#include "DirectX12\dx12_renderer.h"
+template<class OpSys>
+template<class Application>
+void TEngine<OpSys>::Run(TEngine<OpSys>& engine)
+{
+    engine.Initialize();
+    engine.m_timer.Reset();
+
+    Application app(&engine);
+    if (app.Initialize())
+    {
+        double t = 0.0;
+        double dt = 0.01;
+
+        double accumulator = 0.0;
+
+        while (!engine.m_os->ShouldQuit())
+        {
+            engine.m_timer.Tick();
+
+            double frameTime = engine.m_timer.Delta();
+            engine.Update(frameTime);
+
+            if (frameTime > 0.25)
+            {
+                frameTime = 0.25;
+            }
+
+            accumulator += frameTime;
+
+            while (accumulator >= dt)
+            {
+                app.FixedUpdate(dt);
+                t += dt;
+                accumulator -= dt;
+            }
+
+
+            app.Update(dt);
+        }
+    }
+
+    app.Shutdown();
+    engine.Shutdown();
+}
+
+template<class OpSys>
+bool TEngine<OpSys>::Initialize()
+{
+    if (m_os->Initialize())
+    {
+        return true;
+    }
+
+    return false;
+}
+
+template<class OpSys>
+void TEngine<OpSys>::Shutdown()
+{
+    m_os->Shutdown();
+}
+
+template<class OpSys>
+void TEngine<OpSys>::Update(double ft)
+{
+    m_os->Update(ft);
+}
+
+#define DECLARE_WINMAIN(Application)                                                            \
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) \
+{                                                                                               \
+    Engine::Run<Application>(hInstance, hPrevInstance, lpCmdLine, nShowCmd);                    \
+    return 0;                                                                                   \
+}
+
+#define DECLARE_APPLEMAIN(Application)      \
+int main(int argc, char* argv[])            \
+{                                           \
+    Engine::Run<Application>(argc, argv);   \
+    return 0;                               \
+}
+
+
+#if _WIN64 || _WIN32
+
+#ifndef WINDOWSPLATFORM_H
+#include "WindowsPlatform.h"
 #endif
 
-typedef TEngine<OSWin, Dx12::Renderer> Engine;
-typedef Dx12::Renderer Renderer;
-
-#ifndef DX12_SHADER_H
-#include "DirectX12\Shader.h"
-#endif
-
-typedef Dx12::Shader Shader;
-typedef Dx12::InputLayout InputLayout;
-
-#ifndef DX12_PIPELINESTATE_H
-#include "DirectX12\PipelineState.h"
-#endif
-
-typedef Dx12::GraphicsPipeline GraphicsPipeline;
-
-#ifndef DX12_ROOTSIGNATURE_H
-#include "DirectX12\RootSignature.h"
-#endif
-
-typedef Dx12::RootSignature RootSignature;
-
-#ifndef DX12_GPUSTATE_H
-#include "DirectX12\GpuState.h"
-#endif
-
-typedef Dx12::RasterizerState RasterizerState;
-typedef Dx12::DepthStencilState DepthStencilState;
-typedef Dx12::BlendState BlendState;
-
-#elif _WIN32
-
-#ifndef OSWIN_H
-#include "OSWin.h"
-#endif
-
-#ifndef DX12RENDERER_H
-#include "DirectX12\dx12_renderer.h"
-#endif
-
-typedef TEngine<OSWin, Dx12::Renderer> Engine;
-
-typedef Dx12::Renderer Renderer;
-
-#ifndef DX12_SHADER_H
-#include "DirectX12\Shader.h"
-#endif
-
-typedef Dx12::Shader Shader;
-typedef Dx12::InputLayout InputLayout;
-
-#ifndef DX12_PIPELINESTATE_H
-#include "DirectX12\PipelineState.h"
-#endif
-
-typedef Dx12::GraphicsPipeline GraphicsPipeline;
-
-#ifndef DX12_ROOTSIGNATURE_H
-#include "DirectX12\RootSignature.h"
-#endif
-
-typedef Dx12::RootSignature RootSignature;
-
-#ifndef DX12_GPUSTATE_H
-#include "DirectX12\GpuState.h"
-#endif
-
-typedef Dx12::RasterizerState RasterizerState;
-typedef Dx12::DepthStencilState DepthStencilState;
-typedef Dx12::BlendState BlendState;
+typedef TEngine<MS::Windows> Engine;
 
 #elif __APPLE__
 

@@ -45,6 +45,8 @@
 #include "Material.h"
 #endif
 
+class Window;
+
 namespace Dx12
 {
     class UploadBuffer;
@@ -71,6 +73,8 @@ class MeshApplication :
 {
 public:
     using IApplication::IApplication;
+
+    std::shared_ptr<Window> m_window;
 
     Dx12::Shader m_vs;
     Dx12::Shader m_ps;

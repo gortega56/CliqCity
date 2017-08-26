@@ -4,6 +4,7 @@
 #include "GpuResource.h"
 #include "RenderContext.h"
 #include "Device.h"
+#include "Dx12Graphics.h"
 
 using namespace Dx12;
 
@@ -19,6 +20,11 @@ GraphicsPipeline::GraphicsPipeline()
 
 GraphicsPipeline::~GraphicsPipeline()
 {
+}
+
+void GraphicsPipeline::SetRenderTargets()
+{
+    SetRenderTargets(SharedSwapChainContext());
 }
 
 void GraphicsPipeline::SetRenderTargets(std::shared_ptr<const RenderContext> pRenderContext)

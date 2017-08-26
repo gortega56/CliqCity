@@ -10,8 +10,6 @@ __interface IMesh;
 
 namespace Dx12
 {
-    class Renderer;
-
     class Renderable
     {
     public:
