@@ -50,10 +50,16 @@ class Window;
 struct Vertex
 {
     vec3f position;
+    vec3f tangent;
     vec3f normal;
     vec2f uv;
-    Vertex(float x, float y, float z, float nx, float ny, float nz, float u, float v) :
-        position(x, y, z), normal(nx, ny, nz), uv(u, v) {}
+    Vertex(float px, float py, float pz,
+        float nx, float ny, float nz, 
+        float u, float v) :
+        tangent(0.0f, 0.0f, 0.0f),
+        position(px, py, pz), 
+        normal(nx, ny, nz),
+        uv(u, v) {}
 };
 
 struct ConstantBufferData

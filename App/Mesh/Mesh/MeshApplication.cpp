@@ -101,6 +101,37 @@ bool MeshApplication::Initialize()
         20, 23, 21, // second triangle
     };
 
+    for (int i = 4; i < 25; i += 4)
+    {
+        Vertex* v1 = &verts[i - 4];
+        Vertex* v2 = &verts[i - 3];
+        Vertex* v3 = &verts[i - 2];
+        Vertex* v4 = &verts[i - 1];
+
+        float x1 = v2->position.x - v1->position.x;
+        float x2 = v3->position.x - v1->position.x;
+        float y1 = v2->position.y - v1->position.y;
+        float y2 = v3->position.y - v1->position.y;
+        float z1 = v2->position.z - v1->position.z;
+        float z2 = v3->position.z - v1->position.z;
+
+        float s1 = v2->uv.x - v1->uv.x;
+        float s2 = v3->uv.x - v1->uv.x;
+        float t1 = v2->uv.y - v1->uv.y;
+        float t2 = v3->uv.y - v1->uv.y;
+
+        float r = 1.0f / ((s1 * t2) - (s2 * t1));
+        vec3f tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
+        //vec3f bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
+
+        v1->tangent = tangent;
+        v2->tangent = tangent;
+        v3->tangent = tangent;
+        v4->tangent = tangent;
+
+        if (cliqCity::graphicsMath::magnitude(v4->tangent) < 1.0f) __debugbreak();
+    }
+
     Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), 
         std::begin(verts) + 24), 
         std::vector<u32>(std::begin(indices), 
@@ -134,18 +165,21 @@ bool MeshApplication::Initialize()
 
     InputLayout inputLayout;
     inputLayout.AppendPosition3F()
+        .AppendFloat3("TANGENT")
         .AppendNormal3F()
         .AppendUV2()
         .Finalize();
 
-    auto range = Dx12::DescriptorTable(1).AppendRangeSRV(1, 0);
+    auto range = Dx12::DescriptorTable(1).AppendRangeSRV(2, 0);
 
     m_rs = std::make_shared<Dx12::RootSignature>(2);
     m_rs->AllowInputLayout()
         .DenyHS()
         .DenyDS()
         .DenyGS()
-        .AppendRootCBV(0).AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL).AppendAnisotropicWrapSampler(0);
+        .AppendRootCBV(0)
+        .AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL)
+        .AppendAnisotropicWrapSampler(0);
 
     if (!m_rs->Finalize())
     {
@@ -174,7 +208,6 @@ bool MeshApplication::Initialize()
     matBuilder0.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData0);
     matBuilder0.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH0);
     matBuilder0.SetDescriptorTableEntry(1, 0, 1, NORM_PATH0);
-
     m_material0 = matBuilder0.ToImmutable();
     
 
