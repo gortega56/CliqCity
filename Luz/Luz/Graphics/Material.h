@@ -7,15 +7,43 @@ enum class ParamID : int32_t
     INVALID = -1
 };
 
-template<class Base>
-class TMaterial : public Base
-{
-public:
-    using Base::Base;
+//namespace Material
+//{
+//    template<class Base>
+//    class StateTemplate : public Base
+//    {
+//    public:
+//        using Base::Base;
+//
+//        StateTemplate() {}
+//        virtual ~StateTemplate() {}
+//    };
+//
+//    template<class Base>
+//    class BuilderTemplate : public Base
+//    {
+//    public:
+//        using Base::Base;
+//
+//        template<class StateBase>
+//        bool ToImmutable(std::shared_ptr<StateTemplate<StateBase>> outMaterial);
+//
+//        BuilderTemplate() {}
+//        virtual ~BuilderTemplate() {}
+//    };
+//}
 
-    TMaterial() {}
-    virtual ~TMaterial() {}
-};
+
+//
+//template<class Base>
+//class MaterialTemplate : public Base
+//{
+//public:
+//    using Base::Base;
+//
+//    MaterialTemplate() {}
+//    virtual ~MaterialTemplate() {}
+//};
 
 #if _WIN64 || _WIN32
 
@@ -23,8 +51,20 @@ public:
 #include "DirectX12\Material.h"
 #endif
 
-namespace Dx12 { namespace Material { class Immutable; } }
-typedef TMaterial<Dx12::Material::Immutable> MaterialState;
+namespace Dx12 
+{ 
+    namespace Material 
+    { 
+        class Immutable;
+        class Builder;
+    } 
+}
+
+typedef Dx12::Material::Immutable MaterialState;
+typedef Dx12::Material::Builder MaterialBuilder;
+
+//typedef Material::StateTemplate<Dx12::Material::Immutable> MaterialState;
+//typedef Material::BuilderTemplate<Dx12::Material::Builder> MaterialBuilder;
 
 #elif __APPLE__
 #endif

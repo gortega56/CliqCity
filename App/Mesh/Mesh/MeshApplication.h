@@ -47,18 +47,13 @@
 
 class Window;
 
-namespace Dx12
-{
-    class UploadBuffer;
-    class PixelBuffer;
-}
-
 struct Vertex
 {
     vec3f position;
+    vec3f normal;
     vec2f uv;
-    Vertex(float x, float y, float z, float u, float v) :
-        position(x, y, z), uv(u, v) {}
+    Vertex(float x, float y, float z, float nx, float ny, float nz, float u, float v) :
+        position(x, y, z), normal(nx, ny, nz), uv(u, v) {}
 };
 
 struct ConstantBufferData
@@ -86,12 +81,6 @@ public:
 
     std::shared_ptr<MaterialState> m_material0;
     std::shared_ptr<MaterialState> m_material1;
-
-    std::shared_ptr<Dx12::UploadBuffer> m_gpuBuffer0;
-    std::shared_ptr<Dx12::UploadBuffer> m_gpuBuffer1;
-
-    std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer0;
-    std::shared_ptr<Dx12::PixelBuffer> m_srvBuffer1;
 
     ConstantBufferData m_cbvData0;
     ConstantBufferData m_cbvData1;

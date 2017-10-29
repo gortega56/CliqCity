@@ -9,10 +9,13 @@
 #include "Resource\Texture.h"
 #include "Window.h"
 #include "Graphics.h"
+#include "Console.h"
 
-#define TEXURE_PATH0 L".\\Assets\\tarmac_0.dds"
-#define TEXURE_PATH1 L".\\Assets\\oldsandbags.png"
+#define DIFF_PATH0 L".\\Assets\\BrickDiff.dds"
+#define DIFF_PATH1 L".\\Assets\\RockPileDiff.dds"
 
+#define NORM_PATH0 L".\\Assets\\BrickNorm.dds"
+#define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
 
 MeshApplication::MeshApplication()
 {
@@ -35,40 +38,40 @@ bool MeshApplication::Initialize()
     Vertex verts[] =
     {
         // front face
-        { -0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
-        { 0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        { 0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
+        { -0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f },
+        { 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f },
+        { -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f },
+        { 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f },
 
         // right side face
-        { 0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-        { 0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
-        { 0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
+        { 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f },
+        { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f },
+        { 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
 
         // left side face
-        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
-        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
+        { -0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
+        { -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f },
+        { -0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f },
 
         // back face
-        { 0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
-        { 0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
+        { 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f },
+        { -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f },
+        { 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
+        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f },
 
         // top face
-        { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f },
-        { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-        { 0.5f,  0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
+        { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
+        { 0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f },
+        { 0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f },
 
         // bottom face
-        { 0.5f, -0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { 0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 0.0f }
+        { 0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
+        { -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f },
+        { 0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f },
+        { -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f }
     };
 
     u32 indices[] =
@@ -119,55 +122,6 @@ bool MeshApplication::Initialize()
     m_cbvData1.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData1.proj = mat4f::perspectiveLH(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 
-    m_gpuBuffer0 = std::make_shared<Dx12::UploadBuffer>();
-    if (!m_gpuBuffer0->InitializeStructure(&m_cbvData0))
-    {
-        return false;
-    }
-
-    m_gpuBuffer1 = std::make_shared<Dx12::UploadBuffer>();
-    if (!m_gpuBuffer1->InitializeStructure(&m_cbvData1))
-    {
-        return false;
-    }
-
-    ResourceManager rm;
-    auto texture0 = rm.GetResourceFuture<Texture2D>(TEXURE_PATH0).get();
-    
-    m_srvBuffer0 = std::make_shared<Dx12::PixelBuffer>();
-    m_srvBuffer0->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    if (!m_srvBuffer0->InitializeTexture2D(texture0))
-    {
-        return false;
-    }
-    
-    m_srvBuffer0->CreateShaderResourceView();
-
-    auto texture1 = rm.GetResourceFuture<Texture2D>(TEXURE_PATH1).get();
-
-    m_srvBuffer1 = std::make_shared<Dx12::PixelBuffer>();
-    m_srvBuffer1->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    if (!m_srvBuffer1->InitializeTexture2D(texture1))
-    {
-        return false;
-    }
-
-    m_srvBuffer1->CreateShaderResourceView();
-
-    /*    ResourceManager rm;
-    rm.LoadResource<Texture2D>(L"somefuckingtexture", [weakMaterial = std::weak_ptr<Material>(m_material)](std::shared_ptr<const Texture2D> pTexture)
-    {
-        if (!pTexture)
-        {
-            return;
-        }
-
-        if (auto shared = weakMaterial.lock())
-        {
-            shared->SetTexture2D((ParamID)1, pTexture);
-        }
-    });  */  
-
     if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
     {
         return false;
@@ -179,7 +133,10 @@ bool MeshApplication::Initialize()
     }
 
     InputLayout inputLayout;
-    inputLayout.AppendPosition3F().AppendUV2().Finalize();
+    inputLayout.AppendPosition3F()
+        .AppendNormal3F()
+        .AppendUV2()
+        .Finalize();
 
     auto range = Dx12::DescriptorTable(1).AppendRangeSRV(1, 0);
 
@@ -213,13 +170,19 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    m_material0 = std::make_shared<MaterialState>(m_rs);
-    m_material0->SetRootConstantBufferView(m_gpuBuffer0, 0);
-    m_material0->SetShaderResourceViewTableEntry(m_srvBuffer0, 1, 0, 0);
+    MaterialBuilder matBuilder0(m_rs);
+    matBuilder0.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData0);
+    matBuilder0.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH0);
+    matBuilder0.SetDescriptorTableEntry(1, 0, 1, NORM_PATH0);
+
+    m_material0 = matBuilder0.ToImmutable();
     
-    m_material1 = std::make_shared<MaterialState>(m_rs);
-    m_material1->SetRootConstantBufferView(m_gpuBuffer1, 0);
-    m_material1->SetShaderResourceViewTableEntry(m_srvBuffer1, 1, 0, 0);
+
+    MaterialBuilder mb1(m_rs);
+    mb1.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData1);
+    mb1.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH1);
+    mb1.SetDescriptorTableEntry(1, 0, 1, NORM_PATH1);
+    m_material1 = mb1.ToImmutable();
 
     return true;
 }

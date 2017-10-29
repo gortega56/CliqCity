@@ -10,6 +10,8 @@
 #include "CommandContext.h"
 #include "GpuResource.h"
 
+#include <iostream>
+
 using namespace Dx12;
 using namespace Material;
 
@@ -64,12 +66,12 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
 {
     for (int i = 0, count = (int)buildParams.size(); i < count; ++i)
     {
-        auto& param = std::static_pointer_cast<CbvBuildParam>(buildParams[i]);
-
-        if (pRootSignature->m_rootParameters[param->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_CBV) continue;
-
-        auto& uploadBuffer = std::static_pointer_cast<UploadBuffer>(param->m_gpuResource);
-        if (uploadBuffer->Initialize(param->m_data))
+        if (pRootSignature->m_rootParameters[buildParams[i]->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_CBV) continue;
+     
+        auto param = std::static_pointer_cast<CbvBuildParam>(buildParams[i]);
+        auto uploadBuffer = std::static_pointer_cast<UploadBuffer>(param->m_gpuResource);
+        bool success = uploadBuffer->Initialize(param->m_data);
+        if (!success)
         {
             __debugbreak();
         }
@@ -80,24 +82,25 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
 
 void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out)
 {
-    u32 numSrv = 0;
+    std::vector<u32> srvIndices;
     volatile u32 numSrvLoading = 0;
 
     ResourceManager resMgr;
 
     for (int i = 0, count = (int)buildParams.size(); i < count; ++i)
     {
-        auto& param = std::static_pointer_cast<SrvBuildParam>(buildParams[i]);
+        if (pRootSignature->m_rootParameters[buildParams[i]->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE) continue;
+        if (pRootSignature->m_rootParameters[buildParams[i]->m_paramIndex].DescriptorTable.pDescriptorRanges[buildParams[i]->m_rangeIndex].RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_SRV) continue;
 
-        if (pRootSignature->m_rootParameters[param->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE) continue;
-        if (pRootSignature->m_rootParameters[param->m_paramIndex].DescriptorTable.pDescriptorRanges[param->m_rangeIndex].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV) continue;
+        auto param = std::static_pointer_cast<SrvBuildParam>(buildParams[i]);
 
-        numSrv += 1;
+        srvIndices.push_back(i);
         InterlockedIncrement(&numSrvLoading);
         
         resMgr.LoadResource<Texture2D>(param->m_filename, [&param, &numSrvLoading](std::shared_ptr<const Texture2D> pTexture)
         {
             auto pPixelBuffer = std::static_pointer_cast<PixelBuffer>(param->m_gpuResource);
+            pPixelBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             if (!pPixelBuffer->InitializeTexture2D(pTexture))
             {
                 __debugbreak();
@@ -107,27 +110,30 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
         });
     }
 
-    if (numSrv == 0)
+    if (srvIndices.empty())
     {
         return;
     }
 
-    while (numSrvLoading != 0) {}
+    int loops = 0;
+    while (numSrvLoading != 0) { loops++; }
 
-    DescriptorHandle srvHandleStart = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, numSrv);
+    DescriptorHandle srvHandleStart = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, (u32)srvIndices.size());
 
-    for (int i = 0, count = (int)buildParams.size(); i < count; ++i)
+    for (int i = 0, count = (int)srvIndices.size(); i < count; ++i)
     {
-        auto& param = std::static_pointer_cast<SrvBuildParam>(buildParams[i]);
-        if (pRootSignature->m_rootParameters[param->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE) continue;
-        if (pRootSignature->m_rootParameters[param->m_paramIndex].DescriptorTable.pDescriptorRanges[param->m_rangeIndex].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV) continue;
+        auto param = std::static_pointer_cast<SrvBuildParam>(buildParams[srvIndices[i]]);
+        auto pixelBuffer = std::static_pointer_cast<PixelBuffer>(param->m_gpuResource);
+        pixelBuffer->CreateShaderResourceView();
 
-        std::static_pointer_cast<PixelBuffer>(param->m_gpuResource)->CreateShaderResourceView(srvHandleStart, param->m_resourceOffset);
-      //  out->SetRootDescriptorTable(pSrvHeap, param->m_paramIndex, param->m_rangeIndex, param->m_resourceOffset);
+        out->SetShaderResourceViewTableEntry(pixelBuffer, param->m_paramIndex, param->m_rangeIndex, param->m_resourceOffset);
     }
+
+    std::cout << "Finish Load Mat0" << std::endl;
+
 }
 
-std::shared_ptr<const Immutable> Builder::ToImmutable()
+std::shared_ptr<Immutable> Builder::ToImmutable()
 {
     std::sort(m_buildParams.begin(), m_buildParams.end(), [](const std::shared_ptr<BuildParam>& p0, const std::shared_ptr<BuildParam>& p1) 
     { 
@@ -216,8 +222,10 @@ void Immutable::Prepare(GraphicsCommandContext* pGraphicsContext)
     std::vector<ID3D12DescriptorHeap*> descriptorHeaps;
     Dx12::GetDescriptorHeaps(m_descriptorHandles, descriptorHeaps);
 
-    pGraphicsContext->CommandList()->SetDescriptorHeaps((UINT)descriptorHeaps.size(), descriptorHeaps.data());
-
+    if (!descriptorHeaps.empty())
+    {
+        pGraphicsContext->CommandList()->SetDescriptorHeaps((UINT)descriptorHeaps.size(), descriptorHeaps.data());
+    }
 
     for (auto& resParam : m_resourceParams)
     {

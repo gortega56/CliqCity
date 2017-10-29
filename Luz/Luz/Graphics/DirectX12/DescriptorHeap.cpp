@@ -200,7 +200,7 @@ void Dx12::GetDescriptorHeaps(std::vector<DescriptorHandle>& handles, std::vecto
     for (auto& handle : handles)
     {
         auto& uniqueIndices = uniqueIndicesByType[handle.Type()];
-        if (std::find_if(uniqueIndices.begin(), uniqueIndices.end(), [handle](const u32& index) { return handle.Index() == index; }) == uniqueIndices.end())
+        if (std::find_if(uniqueIndices.begin(), uniqueIndices.end(), [&handle](const u32& index) { return handle.Index() == index; }) == uniqueIndices.end())
         {
             uniqueIndices.push_back(handle.Index());
             

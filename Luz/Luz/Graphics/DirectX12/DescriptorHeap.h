@@ -61,6 +61,7 @@ namespace Dx12
         DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 descriptorIndex, u32 descriptorOffset);
         DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 descriptorIndex, u32 descriptorOffset);
         DescriptorHandle();
+        ~DescriptorHandle() = default;
 
         D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle(u32 offset = 0) const;
         D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle(u32 offset = 0) const;

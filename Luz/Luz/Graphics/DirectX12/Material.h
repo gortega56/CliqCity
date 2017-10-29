@@ -71,7 +71,7 @@ namespace Dx12
             Builder(std::shared_ptr<const RootSignature> rootSignature);
             ~Builder() = default;
 
-            std::shared_ptr<const Immutable> ToImmutable();
+            std::shared_ptr<Immutable> ToImmutable();
 
             void SetRootConstantBufferView(u32 paramIndex, u32 resourceOffset, u32 bufferSize, u32 elementSize, u32 numElements, void* data);
             void SetDescriptorTableEntry(u32 paramIndex, u32 rangeIndex, u32 resourceOffset, std::wstring filename);
