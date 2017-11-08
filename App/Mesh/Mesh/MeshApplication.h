@@ -9,10 +9,6 @@
 #include "IApplication.h"
 #endif
 
-//#ifndef LUZ_H
-//#include "Luz.h"
-//#endif
-
 #ifndef TYPEDEFS_H
 #include "TypeDefs.h"
 #endif

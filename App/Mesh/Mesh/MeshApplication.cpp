@@ -122,14 +122,11 @@ bool MeshApplication::Initialize()
 
         float r = 1.0f / ((s1 * t2) - (s2 * t1));
         vec3f tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
-        //vec3f bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
 
         v1->tangent = tangent;
         v2->tangent = tangent;
         v3->tangent = tangent;
         v4->tangent = tangent;
-
-        if (cliqCity::graphicsMath::magnitude(v4->tangent) < 1.0f) __debugbreak();
     }
 
     Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), 
