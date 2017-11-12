@@ -2,7 +2,7 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-class Console
+class LUZ_API Console
 {
 public:
     Console();

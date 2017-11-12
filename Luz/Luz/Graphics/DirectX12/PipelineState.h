@@ -20,7 +20,7 @@ namespace Dx12
     class RenderContext;
     class Device;
 
-    class PipelineState
+    class LUZ_API PipelineState
     {
     public:
         PipelineState() : m_pipelineState(nullptr) {}
@@ -32,7 +32,7 @@ namespace Dx12
         ID3D12PipelineState* m_pipelineState;
     };
 
-    class GraphicsPipeline : public PipelineState
+    class LUZ_API GraphicsPipeline : public PipelineState
     {
     public:
         GraphicsPipeline();

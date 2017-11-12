@@ -10,7 +10,7 @@ class WindowsMessageCenter;
 
 namespace MS
 {
-    class Windows : public Platform
+    class LUZ_API Windows : public Platform
     {
     public:
         Windows(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);

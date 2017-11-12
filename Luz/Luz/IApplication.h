@@ -8,7 +8,7 @@ class TEngine;
 #if _WIN64 || _WIN32
 
 #ifndef WINDOWSPLATFORM_H
-#include "WindowsPlatform.h"
+#include "Platform\WindowsPlatform.h"
 #endif
 
 typedef TEngine<MS::Windows> Engine;
@@ -16,14 +16,14 @@ typedef TEngine<MS::Windows> Engine;
 #elif __APPLE__
 #endif
 
-class IApplication
+class LUZ_API IApplication
 {
 public:
     Engine* m_engine;
 
-    IApplication() {};
-    IApplication(Engine* engine) : m_engine(engine) {}
-    virtual ~IApplication() { };
+    IApplication();
+    IApplication(Engine* engine);
+    virtual ~IApplication();
 
     virtual bool Initialize() = 0;
     virtual int Shutdown() = 0;
@@ -31,10 +31,8 @@ public:
     virtual void Update(double delta) = 0;
     virtual void FixedUpdate(double delta) = 0;
 
-private:
-
-    IApplication(const IApplication& other) = delete;
-    IApplication(const IApplication&& other) = delete;
+    NO_COPY(IApplication)
+    NO_MOVE(IApplication)
 };
 
 #endif APPLICATION_H

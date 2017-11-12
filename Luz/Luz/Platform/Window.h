@@ -2,7 +2,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-class Window
+class LUZ_API Window
 {
 public:
     static std::shared_ptr<Window> Create(std::string caption, i32 width, i32 height, bool fullscreen);

@@ -74,7 +74,7 @@ namespace Dx12
         std::shared_ptr<CommandQueue> m_commandQueue;
     };
 
-    class GraphicsCommandContext : public CommandContext
+    class LUZ_API GraphicsCommandContext : public CommandContext
     {
     public:
         static std::shared_ptr<GraphicsCommandContext> Create(std::shared_ptr<CommandQueue> pCommandQueue = nullptr);

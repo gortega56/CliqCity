@@ -6,8 +6,8 @@ class Window;
 
 namespace Graphics
 {
-    bool Initialize(Window* pWindow, u32 numBackBuffers);
-    void Shutdown();
+    LUZ_API bool Initialize(Window* pWindow, u32 numBackBuffers);
+    LUZ_API void Shutdown();
 }
 
 #if _WIN64 || _WIN32

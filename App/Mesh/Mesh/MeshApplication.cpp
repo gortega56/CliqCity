@@ -7,7 +7,8 @@
 #include <memory>
 #include "DirectX12\CommandContext.h"
 #include "Resource\Texture.h"
-#include "Window.h"
+#include "Resource\Fbx.h"
+#include "Platform\Window.h"
 #include "Graphics.h"
 #include "Console.h"
 
@@ -16,6 +17,10 @@
 
 #define NORM_PATH0 L".\\Assets\\BrickNorm.dds"
 #define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
+
+#define FBX_PATH L".\\Assets\\Prof_Animated.fbx"
+
+Console g_console;
 
 MeshApplication::MeshApplication()
 {
@@ -28,6 +33,11 @@ MeshApplication::~MeshApplication()
 
 bool MeshApplication::Initialize()
 {
+    Console::Initialize(&g_console);
+
+    ResourceManager rm;
+    rm.LoadResource<Resource::Fbx>(FBX_PATH, [](std::shared_ptr<const Resource::Fbx> pFbx) { __debugbreak(); });
+
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
     if (!Graphics::Initialize(m_window.get(), 3))

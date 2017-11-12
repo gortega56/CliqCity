@@ -11,7 +11,7 @@
 
 namespace Dx12
 {
-    class Shader
+    class LUZ_API Shader
     {
     public:
         Shader();
@@ -32,7 +32,7 @@ namespace Dx12
         bool Compile(std::wstring filename, const char* entryPoint, const char* target);
     };
 
-    class InputLayout
+    class LUZ_API InputLayout
     {
     public:
         InputLayout();

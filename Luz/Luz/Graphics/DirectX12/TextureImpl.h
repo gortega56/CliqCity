@@ -9,7 +9,7 @@ namespace DirectX
 
 namespace Dx12
 {
-    class TextureImpl
+    class LUZ_API TextureImpl
     {
     public:
         TextureImpl(std::wstring filename);

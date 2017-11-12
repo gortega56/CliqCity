@@ -65,7 +65,7 @@ namespace Dx12
 
         class Immutable;
 
-        class Builder
+        class LUZ_API Builder
         {
         public:
             Builder(std::shared_ptr<const RootSignature> rootSignature);
@@ -99,7 +99,7 @@ namespace Dx12
             }
         };
 
-        class Immutable
+        class LUZ_API Immutable
         {
         public:
             Immutable(std::shared_ptr<const RootSignature> rootSignature);

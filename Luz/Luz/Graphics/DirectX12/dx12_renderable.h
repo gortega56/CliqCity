@@ -10,7 +10,7 @@ __interface IMesh;
 
 namespace Dx12
 {
-    class Renderable
+    class LUZ_API Renderable
     {
     public:
         Renderable();

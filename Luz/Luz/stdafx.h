@@ -14,6 +14,15 @@
 
 #endif
 
+#ifndef GENERALMACROS_H
+#include "GeneralMacros.h"
+#endif
+
+#ifndef TYPEDEFS_H
+#include "TypeDefs.h"
+#endif
+
+
 #include <stdint.h>
 #include <mutex>
 #include <string>
@@ -30,14 +39,10 @@
 #include <future>
 #include <iterator>
 
-#ifndef TYPEDEFS_H
-#include "TypeDefs.h"
-#endif
-
 #ifndef LZASSERT_H
 #include "LzAssert.h"
 #endif
 
-#ifndef GENERALMACROS_H
-#include "GeneralMacros.h"
+#ifndef LUZEXPORT_H
+#include "LuzExport.h"
 #endif

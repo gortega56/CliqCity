@@ -21,21 +21,21 @@ namespace Dx12
         DESC m_desc;
     };
 
-    class RasterizerState : public GpuState<D3D12_RASTERIZER_DESC>
+    class LUZ_API RasterizerState : public GpuState<D3D12_RASTERIZER_DESC>
     {
     public:
         RasterizerState() { m_desc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); }
         ~RasterizerState() {}
     };
 
-    class BlendState : public GpuState<D3D12_BLEND_DESC>
+    class LUZ_API BlendState : public GpuState<D3D12_BLEND_DESC>
     {
     public:
         BlendState() { m_desc = CD3DX12_BLEND_DESC(D3D12_DEFAULT); }
         ~BlendState() {}
     };
 
-    class DepthStencilState : public GpuState<D3D12_DEPTH_STENCIL_DESC>
+    class LUZ_API DepthStencilState : public GpuState<D3D12_DEPTH_STENCIL_DESC>
     {
     public:
         DepthStencilState() { m_desc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); }

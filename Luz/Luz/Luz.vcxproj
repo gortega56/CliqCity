@@ -25,26 +25,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,25 +71,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
-    <IncludePath>$(SolutionDir);C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Windows Kits\10\Lib\10.0.14393.0\um\$(Platform);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
-    <IncludePath>$(SolutionDir);C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;..\..\Library\GraphicsMath\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Windows Kits\10\Lib\10.0.14393.0\um\$(Platform);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
-    <IncludePath>$(SolutionDir);C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;..\..\Library\GraphicsMath\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Windows Kits\10\Lib\10.0.14393.0\um\$(Platform);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
-    <IncludePath>$(SolutionDir);C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;..\..\Library\GraphicsMath\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\shared;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.14393.0\um;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Windows Kits\10\Lib\10.0.14393.0\um\$(Platform);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -98,11 +98,22 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -110,11 +121,22 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -124,15 +146,24 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -142,18 +173,28 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Platform\;$(ProjectDir);$(ProjectDir)Graphics\;..\..\Library\GraphicsMath\;..\..\Library\DirectXTK12\Inc\;..\..\Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2015_Win10\$(PlatformTarget)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Graphics\Graphics.cpp" />
+    <ClCompile Include="IApplication.cpp" />
     <ClCompile Include="LzAssert.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
@@ -181,6 +222,7 @@
     <ClCompile Include="Platform\MSPlatformWindow.cpp" />
     <ClCompile Include="Platform\Platform.cpp" />
     <ClCompile Include="Platform\WindowsPlatform.cpp" />
+    <ClCompile Include="Resource\Fbx.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Platform\Window.cpp" />
@@ -190,6 +232,7 @@
   <ItemGroup>
     <ClInclude Include="GeneralMacros.h" />
     <ClInclude Include="Graphics\Graphics.h" />
+    <ClInclude Include="LuzExport.h" />
     <ClInclude Include="LzAssert.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\CommandContext.h" />
@@ -219,6 +262,7 @@
     <ClInclude Include="Platform\MSPlatformWindow.h" />
     <ClInclude Include="Platform\Platform.h" />
     <ClInclude Include="Platform\WindowsPlatform.h" />
+    <ClInclude Include="Resource\Fbx.h" />
     <ClInclude Include="Resource\ResourceManager.h" />
     <ClInclude Include="Resource\Texture.h" />
     <ClInclude Include="Scene.h" />
@@ -229,14 +273,6 @@
     <ClInclude Include="Platform\Window.h" />
     <ClInclude Include="Platform\WindowsMessageCenter.h" />
     <ClInclude Include="Platform\windows_utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Library\DirectXTex\DirectXTex_Desktop_2015_Win10.vcxproj">
-      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Library\DirectXTK12\DirectXTK_Desktop_2015_Win10.vcxproj">
-      <Project>{3e0e8608-cd9b-4c76-af33-29ca38f2c9f0}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

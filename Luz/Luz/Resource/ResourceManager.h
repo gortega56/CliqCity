@@ -31,7 +31,7 @@ enum class ResourceID : uint32_t
 //    
 //};
 
-class ResourceManager : public std::enable_shared_from_this<ResourceManager>
+class LUZ_API ResourceManager : public std::enable_shared_from_this<ResourceManager>
 {
 public:
     ResourceManager();

@@ -1,6 +1,31 @@
 #include "stdafx.h"
 #include "Platform.h"
 
+Platform::Platform() : m_shouldQuit(false)
+{
+
+}
+
+Platform::~Platform()
+{
+
+}
+
+bool Platform::Initialize() 
+{ 
+    return false; 
+}
+
+void Platform::Update(double delta)
+{
+
+}
+
+void Platform::Shutdown() 
+{
+
+}
+
 #if _WIN64 || _WIN32
 #include "WindowsPlatform.h"
 

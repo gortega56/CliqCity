@@ -7,15 +7,21 @@
 #elif __APPLE__
 #endif
 
-class Platform
+#ifdef _WINDLL
+#define LUZ_API __declspec(dllexport)
+#else
+#define LUZ_API __declspec(dllimport)
+#endif
+
+class LUZ_API Platform
 {
 public:
-    Platform() : m_shouldQuit(false) {};
-    virtual ~Platform() {};
+    Platform();
+    virtual ~Platform();
 
-    virtual bool Initialize() { return false; }
-    virtual void Update(double delta) {}
-    virtual void Shutdown() {}
+    virtual bool Initialize();
+    virtual void Update(double delta);
+    virtual void Shutdown();
 
     inline bool ShouldQuit() { return m_shouldQuit; }
 

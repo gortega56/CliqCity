@@ -2,10 +2,15 @@
 #ifndef MESH_H
 #define MESH_H
 
+#ifndef LUZEXPORT_H
+#include "LuzExport.h"
+#endif
+
 #include <vector>
 
-__interface IMesh
+__interface LUZ_API IMesh
 {
+public:
     virtual void* VertexData() const = 0;
     virtual void* IndexData() const = 0;
 

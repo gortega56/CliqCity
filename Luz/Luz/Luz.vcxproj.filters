@@ -114,6 +114,12 @@
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp">
       <Filter>Graphics\DirectX12</Filter>
     </ClCompile>
+    <ClCompile Include="Resource\Fbx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IApplication.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IApplication.h">
@@ -238,6 +244,12 @@
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\Dx12Graphics.h">
       <Filter>Graphics\DirectX12</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Fbx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LuzExport.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
