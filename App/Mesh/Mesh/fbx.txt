@@ -1,0 +1,207 @@
+<node name=Charactertranslation=(0, 0, 0)rotation=(0, 0, 0)scaling=(0.01, 0.01, 0.01)>
+  <attribute type=null name=/>
+  <node name=Mesh_GRPtranslation=(0, 0, 0)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+    <attribute type=null name=/>
+    <node name=Mesh_Professor2translation=(0, 0, 0)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+      <attribute type=mesh name=/>
+    </node>
+  </node>
+  <node name=group1translation=(0, 0.752172, 0)rotation=(0, 0, 0)scaling=(0.406156, 0.406156, 0.406156)>
+    <attribute type=null name=/>
+    <node name=Joint_GRPtranslation=(0, 0, 0)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+      <attribute type=null name=/>
+      <node name=Bind_Joint_GRPtranslation=(0, 0, 0)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+        <attribute type=null name=/>
+        <node name=Bind_Hipstranslation=(-0.34611, 7.63247, 0.359386)rotation=(0, 0, 0)scaling=(100, 100, 100)>
+          <attribute type=skeleton name=/>
+          <node name=Bind_Spinetranslation=(0, 0.0128552, -0.000884149)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+            <attribute type=skeleton name=/>
+            <node name=Bind_Spine1translation=(0, 0.0150331, 5.91443e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+              <attribute type=skeleton name=/>
+              <node name=Bind_Spine2translation=(0, 0.0171808, 7.86739e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                <attribute type=skeleton name=/>
+                <node name=Bind_Necktranslation=(0, 0.0193283, -2.86828e-11)rotation=(4.23686e-07, 0, 0)scaling=(1, 1, 1)>
+                  <attribute type=skeleton name=/>
+                  <node name=Bind_Headtranslation=(0, 0.0211028, 0.0021475)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                    <attribute type=skeleton name=/>
+                    <node name=Bind_HeadTop_Endtranslation=(0, 0.0968933, 0.00986027)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                      <attribute type=skeleton name=/>
+                    </node>
+                  </node>
+                </node>
+                <node name=Bind_LeftShouldertranslation=(0.0183566, 0.0122774, -0.000772491)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                  <attribute type=skeleton name=/>
+                  <node name=Bind_LeftArmtranslation=(-1.00282e-11, 0.0397111, -3.47408e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                    <attribute type=skeleton name=/>
+                    <node name=Bind_LeftForeArmtranslation=(6.97088e-12, 0.00961972, 3.05497e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                      <attribute type=skeleton name=/>
+                      <node name=Bind_LeftHandtranslation=(6.03452e-11, 0.0337329, 9.66912e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                        <attribute type=skeleton name=/>
+                        <node name=Bind_LeftHandThumb1translation=(-0.00449519, 0.0045714, 0.00500165)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_LeftHandThumb2translation=(-0.000295375, 0.00649848, -2.53159e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_LeftHandThumb3translation=(-0.00168911, 0.00824163, 3.13413e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_LeftHandThumb4translation=(0.00198449, 0.00593285, 9.30155e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                        <node name=Bind_LeftHandIndex1translation=(-0.00717377, 0.0236246, -0.000695925)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_LeftHandIndex2translation=(-0.000164976, 0.00751221, -8.92736e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_LeftHandIndex3translation=(-4.53681e-05, 0.00644558, 1.02462e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_LeftHandIndex4translation=(0.000210344, 0.00404001, 7.12439e-12)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                        <node name=Bind_LeftHandMiddle1translation=(-0.000390456, 0.023794, 0.000600662)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_LeftHandMiddle2translation=(4.95089e-05, 0.00618435, -1.1184e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_LeftHandMiddle3translation=(-3.41584e-05, 0.00581477, 1.70011e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_LeftHandMiddle4translation=(-1.53505e-05, 0.00364782, -9.7574e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                        <node name=Bind_LeftHandRing1translation=(0.00756423, 0.0206518, -0.000272722)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_LeftHandRing2translation=(5.03439e-05, 0.00445801, -3.60984e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_LeftHandRing3translation=(-8.07941e-06, 0.00460364, -2.46913e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_LeftHandRing4translation=(-4.22642e-05, 0.00275889, -6.49124e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                      </node>
+                      <node name=LeftForeArm_IK_BakingLOCtranslation=(0.480986, 0, 0)rotation=(0, 0, 0)scaling=(0.01, 0.01, 0.01)>
+                        <attribute type=null name=/>
+                      </node>
+                    </node>
+                  </node>
+                </node>
+                <node name=Bind_RightShouldertranslation=(-0.0183566, 0.0122549, -0.000445599)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                  <attribute type=skeleton name=/>
+                  <node name=Bind_RightArmtranslation=(2.36699e-11, 0.039707, -2.84631e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                    <attribute type=skeleton name=/>
+                    <node name=Bind_RightForeArmtranslation=(4.532e-12, 0.00965048, 3.09504e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                      <attribute type=skeleton name=/>
+                      <node name=Bind_RightHandtranslation=(5.65945e-11, 0.0337071, 8.94076e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                        <attribute type=skeleton name=/>
+                        <node name=Bind_RightHandThumb1translation=(0.00507618, 0.00288034, 0.00522312)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_RightHandThumb2translation=(0.00103406, 0.00617993, -3.04956e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_RightHandThumb3translation=(0.000659169, 0.00788279, -8.93396e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_RightHandThumb4translation=(-0.00169323, 0.00551416, -3.04572e-12)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                        <node name=Bind_RightHandIndex1translation=(0.00774132, 0.0198776, -0.000554225)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_RightHandIndex2translation=(4.87285e-06, 0.00787954, 4.91509e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_RightHandIndex3translation=(4.58308e-05, 0.00753991, 1.68724e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_RightHandIndex4translation=(-5.07037e-05, 0.00511087, 9.74088e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                        <node name=Bind_RightHandMiddle1translation=(-8.80235e-05, 0.0202313, -0.000830394)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_RightHandMiddle2translation=(6.15105e-06, 0.00704706, -5.80343e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_RightHandMiddle3translation=(6.81142e-06, 0.00678526, 1.31521e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_RightHandMiddle4translation=(-1.29625e-05, 0.00424219, 1.59172e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                        <node name=Bind_RightHandRing1translation=(-0.0076533, 0.0199717, -0.000418579)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                          <attribute type=skeleton name=/>
+                          <node name=Bind_RightHandRing2translation=(-2.73677e-05, 0.00493298, 1.76823e-10)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                            <attribute type=skeleton name=/>
+                            <node name=Bind_RightHandRing3translation=(-9.20527e-06, 0.00440154, -2.52879e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                              <attribute type=skeleton name=/>
+                              <node name=Bind_RightHandRing4translation=(3.65727e-05, 0.00234653, -5.27567e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                                <attribute type=skeleton name=/>
+                              </node>
+                            </node>
+                          </node>
+                        </node>
+                      </node>
+                      <node name=RightForeArm_IK_BakingLOCtranslation=(-0.480986, 0, 0)rotation=(0, 0, 0)scaling=(0.01, 0.01, 0.01)>
+                        <attribute type=null name=/>
+                      </node>
+                    </node>
+                  </node>
+                </node>
+              </node>
+            </node>
+          </node>
+          <node name=Bind_LeftUpLegtranslation=(0.0240555, -0.00715952, -0.00433455)rotation=(0.664524, 5.12647, 2.34965)scaling=(1, 1, 1)>
+            <attribute type=skeleton name=/>
+            <node name=Bind_LeftLegtranslation=(1.76794e-10, 0.0385116, 2.67723e-11)rotation=(-1.51803, -8.26922, -5.76817)scaling=(1, 1, 1)>
+              <attribute type=skeleton name=/>
+              <node name=Bind_LeftFoottranslation=(-1.05831e-10, 0.0301218, -3.27891e-11)rotation=(0.962841, 0.11002, -2.0401)scaling=(1, 1, 1)>
+                <attribute type=skeleton name=/>
+                <node name=Bind_LeftToeBasetranslation=(-8.40607e-12, 0.0293814, -2.19037e-10)rotation=(-0.0530543, 3.53444, -1.71944)scaling=(1, 1, 1)>
+                  <attribute type=skeleton name=/>
+                  <node name=Bind_LeftToe_Endtranslation=(1.20741e-10, 0.0153187, 1.47297e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                    <attribute type=skeleton name=/>
+                  </node>
+                </node>
+                <node name=LeftFoot_IK_BakingLOCtranslation=(1.10162e-06, 3.06375e-06, 7.26551e-06)rotation=(55.0203, 5.83094, -177.161)scaling=(0.01, 0.01, 0.01)>
+                  <attribute type=null name=/>
+                </node>
+              </node>
+              <node name=LeftLeg_IK_BakingLOCtranslation=(0, 0, 1.92558)rotation=(0, 0, 0)scaling=(0.01, 0.01, 0.01)>
+                <attribute type=null name=/>
+              </node>
+            </node>
+          </node>
+          <node name=Bind_RightUpLegtranslation=(-0.0240555, -0.00715952, -0.00425268)rotation=(0.967126, -5.3254, -2.36908)scaling=(1, 1, 1)>
+            <attribute type=skeleton name=/>
+            <node name=Bind_RightLegtranslation=(-1.35059e-10, 0.0385231, 7.1761e-11)rotation=(-2.21055, 8.98336, 5.47459)scaling=(1, 1, 1)>
+              <attribute type=skeleton name=/>
+              <node name=Bind_RightFoottranslation=(1.79013e-10, 0.0299569, -7.89624e-11)rotation=(1.35579, -0.156593, 2.16572)scaling=(1, 1, 1)>
+                <attribute type=skeleton name=/>
+                <node name=Bind_RightToeBasetranslation=(-4.15887e-11, 0.0287232, 1.81608e-10)rotation=(-0.0598761, -3.6987, 1.85442)scaling=(1, 1, 1)>
+                  <attribute type=skeleton name=/>
+                  <node name=Bind_RightToe_Endtranslation=(-1.22722e-10, 0.0151492, -1.80061e-11)rotation=(0, 0, 0)scaling=(1, 1, 1)>
+                    <attribute type=skeleton name=/>
+                  </node>
+                </node>
+                <node name=RightFoot_IK_BakingLOCtranslation=(-1.3208e-06, 3.20579e-06, 7.57211e-06)rotation=(52.4923, -6.04055, 177.294)scaling=(0.01, 0.01, 0.01)>
+                  <attribute type=null name=/>
+                </node>
+              </node>
+              <node name=RightLeg_IK_BakingLOCtranslation=(0, 0, 1.92558)rotation=(0, 0, 0)scaling=(0.01, 0.01, 0.01)>
+                <attribute type=null name=/>
+              </node>
+            </node>
+          </node>
+        </node>
+      </node>
+    </node>
+  </node>
+</node>

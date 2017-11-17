@@ -35,8 +35,8 @@ bool MeshApplication::Initialize()
 {
     Console::Initialize(&g_console);
 
-    ResourceManager rm;
-    rm.LoadResource<Resource::Fbx>(FBX_PATH, [](std::shared_ptr<const Resource::Fbx> pFbx) { __debugbreak(); });
+    //ResourceManager rm;
+    //rm.LoadResource<Resource::Fbx>(FBX_PATH, [](std::shared_ptr<const Resource::Fbx> pFbx) { __debugbreak(); });
 
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
