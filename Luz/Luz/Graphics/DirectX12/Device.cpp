@@ -14,16 +14,17 @@ struct MakeSharedDevice : public Device
 
 std::shared_ptr<const Device> Device::SharedInstance()
 {
-    static std::shared_ptr<Device> g_device = nullptr;
+    static std::shared_ptr<Device>* g_device = nullptr;
 
     if (!g_device)
     {
-        g_device = std::make_shared<MakeSharedDevice>();
-        bool result = g_device->Initialize();
+        g_device = new std::shared_ptr<Device>();
+        *g_device = std::make_shared<MakeSharedDevice>();
+        bool result = (*g_device)->Initialize();
         LUZASSERT(result);
     }
 
-    return g_device;
+    return *g_device;
 }
 
 Device::Device() : 

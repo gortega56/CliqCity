@@ -13,6 +13,7 @@ using namespace Dx12;
 static SwapChainContext* g_swapChainContext = nullptr;
 
 static ID3D12Debug* g_debug = nullptr;
+static ID3D12DebugDevice* g_debugDevice = nullptr;
 static void EnableDebugLayer();
 static void ConfigureDebugLayer();
 
@@ -69,8 +70,20 @@ bool Dx12::Initialize(Window* pWindow, u32 numBackBuffers)
 
 void Dx12::Shutdown()
 {
+#ifdef _DEBUG
+    auto pDevice = Device::SharedInstance();
+    pDevice->DX()->QueryInterface(IID_PPV_ARGS(&g_debugDevice));
+    if (g_debugDevice)
+    {
+        g_debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+    }
+
+    SAFE_RELEASE(g_debug);
+    SAFE_RELEASE(g_debugDevice);
+#endif
+
     // wait for the gpu to finish all frames
-    CommandAllocatorPool::WaitAll();
+    CommandAllocatorPool::Destroy();
     delete g_swapChainContext;
     DescriptorHeapAllocator::Destroy();
 }

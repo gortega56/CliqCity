@@ -48,6 +48,7 @@ namespace Dx12
         static const u32 sm_maxAllocatorsPerType = 16;
         
         static bool Initialize();
+        static void Destroy();
         static CommandAllocator* Allocate(D3D12_COMMAND_LIST_TYPE type);
         static void WaitAll();
 

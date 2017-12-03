@@ -523,7 +523,7 @@ DepthBuffer::DepthBuffer(D3D12_RESOURCE_STATES resourceState/* = D3D12_RESOURCE_
 
 DepthBuffer::~DepthBuffer()
 {
-    __debugbreak();
+
 }
 
 bool DepthBuffer::Initialize(u32 width, u32 height)

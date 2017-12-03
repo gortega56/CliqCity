@@ -46,12 +46,14 @@ static const D3D12_COMMAND_LIST_TYPE g_commandListTypes[] =
     D3D12_COMMAND_LIST_TYPE_DIRECT,
     D3D12_COMMAND_LIST_TYPE_BUNDLE,
     D3D12_COMMAND_LIST_TYPE_COMPUTE,
-    D3D12_COMMAND_LIST_TYPE_COPY,
+    D3D12_COMMAND_LIST_TYPE_COPY
 };
 
 static const int g_numCommandListTypes = 4;
-static CommandAllocatorPool g_allocatorPools[g_numCommandListTypes];
+static CommandAllocatorPool* g_allocatorPools = nullptr;
 static std::mutex g_allocatorPoolMutex;
+
+static u8 g_memory[sizeof(CommandAllocatorPool) * g_numCommandListTypes];
 
 CommandAllocatorPool::CommandAllocatorPool()
 {
@@ -60,19 +62,35 @@ CommandAllocatorPool::CommandAllocatorPool()
 
 bool CommandAllocatorPool::Initialize()
 {
+    LUZASSERT(!g_allocatorPools);
+
     std::lock_guard<std::mutex> lock(g_allocatorPoolMutex);
 
-    for (int typeIndex = 0; typeIndex < g_numCommandListTypes; ++typeIndex)
+    for (int i = 0; i < g_numCommandListTypes; ++i)
     {
-        D3D12_COMMAND_LIST_TYPE listType = g_commandListTypes[typeIndex];
-        for (u32 i = 0; i < sm_maxAllocatorsPerType; ++i)
+        auto pool = new (&g_memory[sizeof(CommandAllocatorPool) * i]) CommandAllocatorPool();
+        for (u32 j = 0; j < sm_maxAllocatorsPerType; ++j)
         {
-            if (!g_allocatorPools[listType].m_allocators[i].Initialize(listType))
+            if (!pool->m_allocators[j].Initialize(g_commandListTypes[i]))
             {
                 return false;
             }
         }
     }
+
+    g_allocatorPools = reinterpret_cast<CommandAllocatorPool*>(g_memory);
+
+    //for (int typeIndex = 0; typeIndex < g_numCommandListTypes; ++typeIndex)
+    //{
+    //    D3D12_COMMAND_LIST_TYPE listType = g_commandListTypes[typeIndex];
+    //    for (u32 i = 0; i < sm_maxAllocatorsPerType; ++i)
+    //    {
+    //        if (!g_allocatorPools[listType].m_allocators[i].Initialize(listType))
+    //        {
+    //            return false;
+    //        }
+    //    }
+    //}
 
     return true;
 }
@@ -126,6 +144,22 @@ CommandAllocator* CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE type)
     pCommandAllocator->GetFence().IncrementSignal();
     
     return pCommandAllocator;
+}
+
+void CommandAllocatorPool::Destroy()
+{
+    WaitAll();
+
+    LUZASSERT(g_allocatorPools);
+    std::lock_guard<std::mutex> lock(g_allocatorPoolMutex);
+
+    for (int i = 0; i < g_numCommandListTypes; ++i)
+    {
+        g_allocatorPools[i].~CommandAllocatorPool();
+    }
+
+    ZeroMemory(g_memory, sizeof(CommandAllocatorPool) * g_numCommandListTypes);
+    g_allocatorPools = nullptr;
 }
 
 void CommandAllocatorPool::WaitAll()
