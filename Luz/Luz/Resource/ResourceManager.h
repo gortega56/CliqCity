@@ -31,11 +31,11 @@ enum class ResourceID : uint32_t
 //    
 //};
 
-class LUZ_API ResourceManager : public std::enable_shared_from_this<ResourceManager>
+class ResourceManager : public std::enable_shared_from_this<ResourceManager>
 {
 public:
-    ResourceManager();
-    ~ResourceManager();
+    LUZ_API ResourceManager();
+    LUZ_API ~ResourceManager();
 
     template<class RESOURCE>
     void LoadResource(ResourceID id, std::function<void(std::shared_ptr<const RESOURCE>)> onLoaded);

@@ -7,10 +7,8 @@
 #elif __APPLE__
 #endif
 
-#ifdef _WINDLL
-#define LUZ_API __declspec(dllexport)
-#else
-#define LUZ_API __declspec(dllimport)
+#ifndef LUZEXPORT_H
+#include "LuzExport.h"
 #endif
 
 class LUZ_API Platform

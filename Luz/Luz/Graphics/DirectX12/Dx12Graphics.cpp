@@ -70,6 +70,11 @@ bool Dx12::Initialize(Window* pWindow, u32 numBackBuffers)
 
 void Dx12::Shutdown()
 {
+    // wait for the gpu to finish all frames
+    CommandAllocatorPool::Destroy();
+    delete g_swapChainContext;
+    DescriptorHeapAllocator::Destroy();
+
 #ifdef _DEBUG
     auto pDevice = Device::SharedInstance();
     pDevice->DX()->QueryInterface(IID_PPV_ARGS(&g_debugDevice));
@@ -82,10 +87,7 @@ void Dx12::Shutdown()
     SAFE_RELEASE(g_debugDevice);
 #endif
 
-    // wait for the gpu to finish all frames
-    CommandAllocatorPool::Destroy();
-    delete g_swapChainContext;
-    DescriptorHeapAllocator::Destroy();
+    Device::SharedInstance().reset();
 }
 
 SwapChainContext* Dx12::SharedSwapChainContext()
