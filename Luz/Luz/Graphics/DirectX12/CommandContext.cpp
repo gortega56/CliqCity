@@ -169,7 +169,7 @@ void CommandContext::Initialize()
 std::shared_ptr<GraphicsCommandContext> GraphicsCommandContext::Create(std::shared_ptr<CommandQueue> pCommandQueue /*= nullptr*/)
 {
     auto ctx = std::make_shared<GraphicsCommandContext>();
-    bool success = ctx->Initialize(pCommandQueue ? pCommandQueue : CommandQueue::SwapChainQueue());
+    bool success = ctx->Initialize(pCommandQueue ? pCommandQueue : Dx12::SharedSwapChainContext()->m_mainQueue);
     LUZASSERT(success);
     return ctx;
 }
@@ -287,12 +287,12 @@ void GraphicsCommandContext::ClearRenderContext(RenderContext* pRenderContext)
 
 void GraphicsCommandContext::SetRenderContext()
 {
-    SetRenderContext(SharedSwapChainContext().get());
+    SetRenderContext(SharedSwapChainContext());
 }
 
 void GraphicsCommandContext::ClearRenderContext()
 {
-    ClearRenderContext(SharedSwapChainContext().get());
+    ClearRenderContext(SharedSwapChainContext());
 }
 
 void GraphicsCommandContext::SetRenderContext(SwapChainContext* pRenderContext)

@@ -87,7 +87,8 @@ namespace Dx12
     class DescriptorHeapAllocator
     {
     public:
-        static const int sm_handlesPerHeap = 256;
+        static void Initialize();
+        static void Destroy();
 
         DescriptorHeapAllocator() : m_currentHeap(nullptr), m_remainingHandles(sm_handlesPerHeap) {}
         ~DescriptorHeapAllocator() = default;
@@ -100,6 +101,8 @@ namespace Dx12
         DescriptorHandle Allocate(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count = 1);
 
     private:
+        static const int sm_handlesPerHeap = 256;
+
         DescriptorHeap* m_currentHeap;
         u32 m_remainingHandles;
         std::mutex m_allocMutex;

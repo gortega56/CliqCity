@@ -18,14 +18,13 @@ namespace Dx12
 {
     class Device;
     class SwapChain;
+    class CommandQueue;
 
     class RenderContext
     {
     public:
         RenderContext();
         ~RenderContext();
-
-        //bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<SwapChain>, u32 width, u32 height);
 
         inline u32 NumRenderTargetViews() const { return (u32)m_colorBuffers.size(); }
 
@@ -41,6 +40,9 @@ namespace Dx12
 
         DescriptorHandle RenderTargetView(int i) const;
         DescriptorHandle DepthStencilView() const;
+
+        const ColorBuffer* Buffer(int i) const { return &m_colorBuffers[i]; }
+        const DepthBuffer* Depth() const { return &m_depthBuffer; }
 
     protected:
         u32 m_width;
@@ -58,12 +60,14 @@ namespace Dx12
         SwapChainContext();
         ~SwapChainContext();
         
-        bool Initialize(std::shared_ptr<SwapChain> pSwapChain);
+        bool Initialize(std::shared_ptr<SwapChain> pSwapChain, std::shared_ptr<CommandQueue> pMainQueue);
 
     protected:
         friend class GraphicsCommandContext;
         
+        // Find a better place for this shared data..
         std::shared_ptr<SwapChain> m_swapChain;
+        std::shared_ptr<CommandQueue> m_mainQueue;
         Viewport m_viewport;
 
         NO_COPY(SwapChainContext)

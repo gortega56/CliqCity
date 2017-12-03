@@ -97,7 +97,7 @@ bool GpuBuffer::Initialize(u64 bufferSize, u32 elementSize, u32 numElements, voi
 D3D12_VERTEX_BUFFER_VIEW GpuBuffer::VertexBufferView()
 {
     D3D12_VERTEX_BUFFER_VIEW vbv;
-    vbv.BufferLocation = Resource()->GetGPUVirtualAddress();
+    vbv.BufferLocation = m_resource->GetGPUVirtualAddress();
     vbv.StrideInBytes = m_elementSize;
     vbv.SizeInBytes = (UINT)m_bufferSize;
     return vbv;
@@ -106,7 +106,7 @@ D3D12_VERTEX_BUFFER_VIEW GpuBuffer::VertexBufferView()
 D3D12_INDEX_BUFFER_VIEW GpuBuffer::IndexBufferView()
 {
     D3D12_INDEX_BUFFER_VIEW ibv;
-    ibv.BufferLocation = Resource()->GetGPUVirtualAddress();
+    ibv.BufferLocation = m_resource->GetGPUVirtualAddress();
     ibv.Format = IndexFormat(m_elementSize);
     ibv.SizeInBytes = (UINT)m_bufferSize;
     return ibv;
@@ -523,7 +523,7 @@ DepthBuffer::DepthBuffer(D3D12_RESOURCE_STATES resourceState/* = D3D12_RESOURCE_
 
 DepthBuffer::~DepthBuffer()
 {
-
+    __debugbreak();
 }
 
 bool DepthBuffer::Initialize(u32 width, u32 height)

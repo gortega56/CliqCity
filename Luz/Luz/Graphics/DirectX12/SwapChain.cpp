@@ -39,7 +39,7 @@ SwapChain::~SwapChain()
     SAFE_RELEASE(m_swapChain3);
 }
 
-bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen)
+bool SwapChain::Initialize(const Device* pDevice, const CommandQueue* pMainQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen)
 {
     m_width = width;
     m_height = height;
@@ -50,7 +50,7 @@ bool SwapChain::Initialize(std::shared_ptr<const Device> pDevice, std::shared_pt
 
     // Resources are created here but internal to the swap chain
 
-    if (!InitD3D12SwapChain(pDevice->Factory4(), pCmdQueue->GetQueue(), &m_swapChain3, m_hwnd, m_width, m_height, m_format, m_usage, m_swapEffect, numFrameBuffers, m_fullScreen))
+    if (!InitD3D12SwapChain(pDevice->Factory4(), pMainQueue->GetQueue(), &m_swapChain3, m_hwnd, m_width, m_height, m_format, m_usage, m_swapEffect, numFrameBuffers, m_fullScreen))
     {
         return false;
     }

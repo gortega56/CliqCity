@@ -7,7 +7,38 @@
 
 using namespace Dx12;
 
-static DescriptorHeapAllocator g_allocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+static u8 g_memory[sizeof(DescriptorHeapAllocator) * D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+static DescriptorHeapAllocator* g_allocators = nullptr;
+
+void DescriptorHeapAllocator::Initialize()
+{
+    LUZASSERT(!g_allocators);
+    for (int i = 0, count = (int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i < count; ++i)
+    {
+        new(&g_memory[sizeof(DescriptorHeapAllocator) * i]) DescriptorHeapAllocator();
+    }
+
+    g_allocators = reinterpret_cast<DescriptorHeapAllocator*>(g_memory);
+}
+
+void DescriptorHeapAllocator::Destroy()
+{
+    LUZASSERT(g_allocators);
+    for (int i = 0, count = (int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i < count; ++i)
+    {
+        g_allocators[i].~DescriptorHeapAllocator();
+    }
+
+    g_allocators = nullptr;
+    ZeroMemory(g_memory, sizeof(DescriptorHeapAllocator) * D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
+}
+
+//static DescriptorHeapAllocator g_allocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+DescriptorHeap::DescriptorHeap(u32 numDescriptors) : m_descriptorHeap(nullptr), m_descriptorHeapSize(0), m_numDescriptors(numDescriptors)
+{
+
+}
 
 DescriptorHeap::~DescriptorHeap()
 {
@@ -135,11 +166,6 @@ u32 DescriptorHandle::Offset() const
 bool DescriptorHandle::operator==(const DescriptorHandle& other) const
 {
     return m_type == other.m_type && m_descriptorIndex == other.m_descriptorIndex && m_descriptorOffset == other.m_descriptorOffset;
-}
-
-DescriptorHeap::DescriptorHeap(u32 numDescriptors) : m_descriptorHeap(nullptr), m_descriptorHeapSize(0), m_numDescriptors(numDescriptors)
-{
-
 }
 
 DescriptorHandle DescriptorHeapAllocator::Allocate(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count /*= 1*/)

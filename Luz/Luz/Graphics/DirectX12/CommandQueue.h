@@ -27,8 +27,6 @@ namespace Dx12
         static std::shared_ptr<CommandQueue> CreateGraphicsQueue();
         static std::shared_ptr<CommandQueue> CreateComputeQueue();
 
-        static std::shared_ptr<CommandQueue> SwapChainQueue();
-
         CommandQueue();
         ~CommandQueue();
 

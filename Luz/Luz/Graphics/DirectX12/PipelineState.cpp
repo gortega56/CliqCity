@@ -27,16 +27,16 @@ void GraphicsPipeline::SetRenderTargets()
     SetRenderTargets(SharedSwapChainContext());
 }
 
-void GraphicsPipeline::SetRenderTargets(std::shared_ptr<const RenderContext> pRenderContext)
+void GraphicsPipeline::SetRenderTargets(const RenderContext* pRenderContext)
 {
-    m_desc.NumRenderTargets = 1;//pRenderContext->NumRTVs();
+    m_desc.NumRenderTargets = pRenderContext->NumRenderTargetViews();
 
     for (UINT i = 0; i < m_desc.NumRenderTargets; ++i)
     {
-        m_desc.RTVFormats[i] = DXGI_FORMAT_R8G8B8A8_UNORM;// pRenderContext->RTV(i)->Format();
+        m_desc.RTVFormats[i] = pRenderContext->Buffer(i)->Format();
     }
 
-    m_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    m_desc.DSVFormat = pRenderContext->Depth()->Format();
 }
 
 bool GraphicsPipeline::Finalize()

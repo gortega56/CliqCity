@@ -6,14 +6,15 @@
 #include "CommandContext.h"
 #include "RenderContext.h"
 #include "MSPlatformWindow.h"
+#include "DescriptorHeap.h"
 
 using namespace Dx12;
+
+static SwapChainContext* g_swapChainContext = nullptr;
 
 static ID3D12Debug* g_debug = nullptr;
 static void EnableDebugLayer();
 static void ConfigureDebugLayer();
-
-static std::shared_ptr<SwapChainContext> g_swapChainContext = nullptr;
 
 bool Dx12::Initialize(Window* pWindow, u32 numBackBuffers)
 {
@@ -29,14 +30,19 @@ bool Dx12::Initialize(Window* pWindow, u32 numBackBuffers)
 
     auto pDevice = Device::SharedInstance();
 
+    auto pMainQueue = CommandQueue::CreateGraphicsQueue();
+    if (!pMainQueue) return false;
+
+    DescriptorHeapAllocator::Initialize();
+
     // TODO: SwapChainContext will keep this alive, but would like to find a cleaner way to keep shared data around
     auto pSwapChain = 
         std::make_shared<SwapChain>(DXGI_FORMAT_R8G8B8A8_UNORM, 
         DXGI_USAGE_RENDER_TARGET_OUTPUT, 
         DXGI_SWAP_EFFECT_FLIP_DISCARD);
 
-    if (!pSwapChain->Initialize(pDevice, 
-        CommandQueue::SwapChainQueue(), 
+    if (!pSwapChain->Initialize(pDevice.get(), 
+        pMainQueue.get(), 
         handle, 
         numBackBuffers, 
         width, 
@@ -47,9 +53,8 @@ bool Dx12::Initialize(Window* pWindow, u32 numBackBuffers)
     }
 
     // TODO: Need to keep this
-    LUZASSERT(!g_swapChainContext);
-    g_swapChainContext = std::make_shared<SwapChainContext>();
-    if (!g_swapChainContext->Initialize(pSwapChain))
+    g_swapChainContext = new SwapChainContext();
+    if (!g_swapChainContext->Initialize(pSwapChain, pMainQueue))
     {
         return false;
     }
@@ -58,7 +63,7 @@ bool Dx12::Initialize(Window* pWindow, u32 numBackBuffers)
     g_swapChainContext->SetColor(color);
 
     CommandContext::Initialize();
-
+    
     return true;
 }
 
@@ -66,9 +71,11 @@ void Dx12::Shutdown()
 {
     // wait for the gpu to finish all frames
     CommandAllocatorPool::WaitAll();
+    delete g_swapChainContext;
+    DescriptorHeapAllocator::Destroy();
 }
 
-std::shared_ptr<class SwapChainContext> Dx12::SharedSwapChainContext()
+SwapChainContext* Dx12::SharedSwapChainContext()
 {
     return g_swapChainContext;
 }

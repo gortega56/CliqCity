@@ -264,13 +264,14 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
-    double time = m_engine->Total();
+    double time = m_engine->Total() * 0.5f;
     float st = (float)sin(time);
     float ct = (float)cos(time);
 
     mat4f trn = mat4f::translate(vec3f(ct, st, ct) * 6.0f);
     mat4f rot = quatf::rollPitchYaw(st, ct, st).toMatrix4();
+    mat4f scl = mat4f::scale(vec3f(5.0f));
 
-    m_cbvData0.model = (rot * trn * rot).transpose();
-    m_cbvData1.model = (trn * rot * trn).transpose();
+    m_cbvData0.model = (rot * trn * rot * scl).transpose();
+    m_cbvData1.model = (trn * rot * trn * scl).transpose();
 }

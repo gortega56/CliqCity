@@ -25,18 +25,6 @@ std::shared_ptr<CommandQueue> CommandQueue::CreateComputeQueue()
     return queue;
 }
 
-std::shared_ptr<CommandQueue> CommandQueue::SwapChainQueue()
-{
-    // Used to init and render to swap chain back buffers
-    static std::shared_ptr<CommandQueue> g_swapChainQueue = nullptr;
-    if (!g_swapChainQueue)
-    {
-        g_swapChainQueue = CommandQueue::CreateGraphicsQueue();
-    }
-
-    return g_swapChainQueue;
-}
-
 CommandQueue::CommandQueue() : m_commandQueue(nullptr)
 {
 

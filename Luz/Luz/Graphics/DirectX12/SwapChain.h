@@ -29,7 +29,7 @@ namespace Dx12
             DXGI_SWAP_EFFECT swapEffect);
         ~SwapChain();
 
-        bool Initialize(std::shared_ptr<const Device> pDevice, std::shared_ptr<const CommandQueue> pCmdQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen);
+        bool Initialize(const Device* pDevice, const CommandQueue* pMainQueue, HWND hwnd, u32 numFrameBuffers, u32 width, u32 height, bool fullScreen);
         bool Present();
 
         inline IDXGISwapChain* GetSwapChain() const { return m_swapChain; }
@@ -47,7 +47,7 @@ namespace Dx12
         
         inline bool FullScreen() const { return m_fullScreen; }
 
-        inline ID3D12Resource* FrameBuffer(int i) const { return m_frameBuffers[i].Get(); }
+        inline Microsoft::WRL::ComPtr<ID3D12Resource> FrameBuffer(int i) const { return m_frameBuffers[i]; }
         inline u32 NumFrameBuffers() const { return (u32)m_frameBuffers.size(); }
 
         inline u32 GetCurrentBackBufferIndex() const { return m_frameIndex; }

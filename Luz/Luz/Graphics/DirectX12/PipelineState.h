@@ -57,7 +57,7 @@ namespace Dx12
         void SetSampleMask(u32 mask) { m_desc.SampleMask = mask; }
 
         void SetRenderTargets();
-        void SetRenderTargets(std::shared_ptr<const RenderContext> pRc);
+        void SetRenderTargets(const RenderContext* pRc);
         void SetRasterizerState(RasterizerState* pRS) { m_desc.RasterizerState = pRS->Desc(); }
         void SetDepthStencilState(DepthStencilState* pDSS) { m_desc.DepthStencilState = pDSS->Desc(); }
         void SetBlendState(BlendState* pBS) { m_desc.BlendState = pBS->Desc(); }
