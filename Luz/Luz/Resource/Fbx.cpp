@@ -76,7 +76,7 @@ namespace Resource
         FbxDouble3 rotation = pNode->LclRotation.Get();
         FbxDouble3 scaling = pNode->LclScaling.Get();
 
-        fstream << "<node name=" << nodeName 
+        fstream << "<node name=" << nodeName
             << "translation=" << "(" << translation[0] << ", " << translation[1] << ", " << translation[2] << ")"
             << "rotation=" << "(" << rotation[0] << ", " << rotation[1] << ", " << rotation[2] << ")"
             << "scaling=" << "(" << scaling[0] << ", " << scaling[1] << ", " << scaling[2] << ")>" << std::endl;
@@ -100,6 +100,22 @@ namespace Resource
         PrintTabs(fstream);
         fstream << "</node>\n";
         //printf("</node>\n");
+    }
+
+    //template<int T>
+    //static void ReadElement(Fbx* pResource, FbxMesh* pMesh, i32 controlPointIndex, i32 uvIndex, i32 uvLayer, float(&outElement)[T])
+    //{
+    //    FbxGeometryElementUV* uv = pMesh->GetElementUV()
+    //}
+
+    Fbx::Fbx()
+    {
+
+    }
+
+    Fbx::~Fbx()
+    {
+
     }
 
     std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
@@ -192,8 +208,26 @@ namespace Resource
         }
     }
 
+    template<i32 T0, i32 T1>
+    static void ExtractFloat(double (&in)[T0], float (&out)[T1])
+    {
+        for (int i = 0; i < T1; ++i)
+        {
+            out[i] = static_cast<float>(in[i]);
+        }
+    }
+
+    template<i32 T>
+    static void ExtractFloat(double(&in)[T], float(&out)[T])
+    {
+        ExtractFloat<T, T>(in, out);
+    }
+
     void GetMeshAttributes(Fbx* pResource, FbxNode* pNode)
     {
+        auto pAttribute = pNode->GetNodeAttribute();
+        if (!pAttribute || pAttribute->GetAttributeType() != FbxNodeAttribute::eMesh) return;
+
         auto pMesh = pNode->GetMesh();
         if (!pMesh) return;
 
@@ -210,23 +244,47 @@ namespace Resource
                 int controlPoint = pMesh->GetPolygonVertex(polygon, s_counterClockwiseOrder[polyVert]);
                 if (controlPoint == -1) __debugbreak();
 
+                pResource->m_indices.push_back((u32)pResource->m_vertices.size());
+                pResource->m_vertices.emplace_back();
+                Fbx::Vertex& vertex = pResource->m_vertices.back();
+
                 FbxVector4 tangent;
 
                 FbxVector4 position = pMesh->GetControlPointAt(controlPoint);
+                ExtractFloat<4, 3>(position.mData, vertex.Postion);
 
                 FbxVector4 outNormal;
                 if (pMesh->GetPolygonVertexNormal(polygon, polyVert, outNormal))
                 {
-
+                    ExtractFloat<4, 3>(outNormal.mData, vertex.Normal);
                 }
 
                 FbxVector2 outUv;
                 bool unmapped;
                 if (pMesh->GetPolygonVertexUV(polygon, polyVert, uvSetNames.GetStringAt(0), outUv, unmapped))
                 {
-
+                    if (unmapped) __debugbreak();
+                    ExtractFloat<2>(outUv.mData, vertex.UV);
                 }
             }
+        }
+    }
+
+    void GetMeshAttributesRecursively(Fbx* pResource, FbxNode* pNode)
+    {
+        if (!pNode) return;
+
+        auto pAttribute = pNode->GetNodeAttribute();
+        if (!pAttribute) return;
+
+        if (pAttribute->GetAttributeType() == FbxNodeAttribute::eMesh)
+        {
+            GetMeshAttributes(pResource, pNode);
+        }
+
+        for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
+        {
+            GetMeshAttributesRecursively(pResource, pNode->GetChild(i));
         }
     }
 }

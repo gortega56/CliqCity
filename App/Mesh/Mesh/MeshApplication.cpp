@@ -18,7 +18,8 @@
 #define NORM_PATH0 L".\\Assets\\BrickNorm.dds"
 #define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
 
-#define FBX_PATH L".\\Assets\\Prof_Animated.fbx"
+#define FBX_PATH0 L".\\Assets\\/*Prof_Animated*/.fbx"
+#define FBX_PATH1 L".\\Assets\\pencil.fbx"
 
 Console g_console;
 
@@ -35,8 +36,8 @@ bool MeshApplication::Initialize()
 {
     Console::Initialize(&g_console);
 
-    //ResourceManager rm;
-    //rm.LoadResource<Resource::Fbx>(FBX_PATH, [](std::shared_ptr<const Resource::Fbx> pFbx) { __debugbreak(); });
+    ResourceManager rm;
+    rm.LoadResource<Resource::Fbx>(FBX_PATH1, [](std::shared_ptr<const Resource::Fbx> pFbx) { });
 
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
