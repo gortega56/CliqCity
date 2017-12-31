@@ -26,8 +26,8 @@
     <ClCompile Include="MeshApplication.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Library\GraphicsMath\GraphicsMath.vcxproj">
-      <Project>{6b0df065-7618-4147-9fff-aa205d7ef02e}</Project>
+    <ProjectReference Include="..\..\..\Library\GMath\GMath.vcxproj">
+      <Project>{17ff21f5-8eb2-4f33-89e8-21f9a0933273}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Luz\Luz\Luz.vcxproj">
       <Project>{8d96020f-a343-4b9f-a5f7-8af104dd3c28}</Project>
@@ -106,25 +106,25 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)$(Configuration)\$(PlatformTarget);..\..\..\Luz\Luz\Libary;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)$(Configuration)\$(PlatformTarget);..\..\..\Luz\Luz\Libary;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)$(Configuration)\$(PlatformTarget);..\..\..\Luz\Luz\Libary;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Library\GraphicsMath\;..\..\..\Luz\Luz\Library\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)$(Configuration)\$(PlatformTarget);..\..\..\Luz\Luz\Libary;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(Configuration)\$(PlatformTarget)\</IntDir>
@@ -134,10 +134,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Luz.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration)\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -150,10 +150,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Luz.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration)\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -168,12 +168,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Luz.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration)\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -188,12 +188,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\;..\..\..\Library\GraphicsMath\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Luz.lib;GraphicsMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Luz.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration)\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>

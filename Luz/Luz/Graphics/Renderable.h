@@ -6,42 +6,19 @@
 #include "TypeDefs.h"
 #endif
 
-template<typename Enum>
-bool IsSet(Enum lhs, Enum rhs) 
-{
-    (((unsigned)lhs & (unsigned)rhs) != 0);
-}
-
-template <typename Enum>
-void Set(Enum& lhs, Enum& rhs)
-{
-    (unsigned)lhs |= (unsigned)rhs;
-}
+#include <atomic>
 
 template<class Base>
 class TRenderable : public Base
 {
 public:
-    enum class Flags : u32
-    {
-        NONE = 0,
-        SHADOW = 1,
-        DEFFERED = 1 << 1,
-    };
-
     using Base::Base;
     using Base::LoadMesh;
 
-    TRenderable() {}
+    TRenderable() { m_isRenderable.store(false); }
     virtual ~TRenderable() {}
 
-    virtual bool IsRenderable() { return true; }
-    
-    bool HasFlags(Flags flags) { return IsSet<Flags>(m_flags, flags); }
-    void SetFlags(Flags flags) { Set<Flags>(m_flags, flags); }
-
-protected:
-    Flags m_flags;
+    std::atomic<bool> m_isRenderable;
 };
 
 #ifdef _WIN64

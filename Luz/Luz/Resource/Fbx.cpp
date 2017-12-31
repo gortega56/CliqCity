@@ -10,8 +10,8 @@ namespace Resource
 {
     static int s_counterClockwiseOrder[] = { 0, 2, 1 };
 
-    static void GetAttributes(Fbx* pResource, FbxNode* pNode);
-    static void GetAttributesRecursively(Fbx* pResource, FbxNode* pNode);
+    static void GetNodeAttributes(Fbx* pResource, FbxNode* pNode);
+    static void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode);
     static void GetMeshAttributes(Fbx* pResource, FbxNode* pNode);
 
     /* Tab character ("\t") counter */
@@ -102,11 +102,20 @@ namespace Resource
         //printf("</node>\n");
     }
 
-    //template<int T>
-    //static void ReadElement(Fbx* pResource, FbxMesh* pMesh, i32 controlPointIndex, i32 uvIndex, i32 uvLayer, float(&outElement)[T])
-    //{
-    //    FbxGeometryElementUV* uv = pMesh->GetElementUV()
-    //}
+    template<i32 T0, i32 T1>
+    static void ExtractFloat(double(&in)[T0], float(&out)[T1])
+    {
+        for (int i = 0; i < T1; ++i)
+        {
+            out[i] = static_cast<float>(in[i]);
+        }
+    }
+
+    template<i32 T>
+    static void ExtractFloat(double(&in)[T], float(&out)[T])
+    {
+        ExtractFloat<T, T>(in, out);
+    }
 
     Fbx::Fbx()
     {
@@ -116,6 +125,51 @@ namespace Resource
     Fbx::~Fbx()
     {
 
+    }
+
+    Fbx::Vertex* Fbx::GetVertex(u32 i)
+    {
+        Fbx::Vertex* vertex = nullptr;
+        if (m_vertices.size() && i < (u32)m_vertices.size())
+        {
+            vertex = &m_vertices[i];
+        }
+
+        return vertex;
+    }
+
+    u32 Fbx::AddVertex()
+    {
+        u32 i = static_cast<u32>(m_vertices.size());
+        m_indices.push_back(i);
+        m_vertices.emplace_back();
+        return i;
+    }
+
+    u32 Fbx::AddVertex(float(&position)[3], float(&normal)[3], float(&uv)[2])
+    {
+        u32 i = static_cast<u32>(m_vertices.size());
+        m_indices.push_back(i);
+        m_vertices.emplace_back(position, normal, uv);
+        return i;
+    }
+
+    u32 Fbx::AddVertex(double(&position)[4], double(&normal)[4], double(&uv)[2])
+    {
+        float pos[3];
+        float norm[3];
+        float tex[2];
+
+        ExtractFloat<4, 3>(position, pos);
+        ExtractFloat<4, 3>(normal, norm);
+        ExtractFloat<2>(uv, tex);
+
+        return AddVertex(pos, norm, tex);
+    }
+
+    void Fbx::AddIndex(u32 i)
+    {
+        m_indices.push_back(i);
     }
 
     std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
@@ -152,139 +206,218 @@ namespace Resource
         }
 
         fileStream.close();
+        
+
+        auto fbx = std::make_shared<Fbx>();
+        GetNodeAttributesRecursively(fbx.get(), rootNode);
+        fbxScene->Destroy();
         fbxManager->Destroy();
 
-        return nullptr;
+        return fbx;
     }
 
-    void GetAttributes(Fbx* pResource, FbxNode* pNode)
+    void GetNodeAttributes(Fbx* pResource, FbxNode* pNode)
     {
-        LUZASSERT(pResource);
-        if (!pNode) return;
+        LUZASSERT(pResource && pNode);
 
-        GetAttributesRecursively(pResource, pNode);
-    }
-
-    void GetAttributesRecursively(Fbx* pResource, FbxNode* pNode)
-    {
-        LUZASSERT(pResource);
-        if (!pNode) return;
-
-        FbxNodeAttribute* pNodeAttr = pNode->GetNodeAttribute();
-        if (!pNodeAttr) return;
-
-        FbxNodeAttribute::EType type = pNodeAttr->GetAttributeType();
-        switch (type) {
-        case FbxNodeAttribute::eUnknown:
-        case FbxNodeAttribute::eNull:
-        case FbxNodeAttribute::eMarker:
-        case FbxNodeAttribute::eSkeleton:
-            break;
-        case FbxNodeAttribute::eMesh:
-            GetMeshAttributes(pResource, pNode);
-            break;
-        case FbxNodeAttribute::eNurbs:
-        case FbxNodeAttribute::ePatch:
-        case FbxNodeAttribute::eCamera:
-        case FbxNodeAttribute::eCameraStereo:
-        case FbxNodeAttribute::eCameraSwitcher:
-        case FbxNodeAttribute::eLight:
-        case FbxNodeAttribute::eOpticalReference:
-        case FbxNodeAttribute::eOpticalMarker:
-        case FbxNodeAttribute::eNurbsCurve:
-        case FbxNodeAttribute::eTrimNurbsSurface:
-        case FbxNodeAttribute::eBoundary:
-        case FbxNodeAttribute::eNurbsSurface:
-        case FbxNodeAttribute::eShape:
-        case FbxNodeAttribute::eLODGroup:
-        case FbxNodeAttribute::eSubDiv:
-        default:
-            break;
-        }
-
-        for (int i = 0, count = pNode->GetChildCount(); i < count; ++i)
+        for (int i = 0, n = pNode->GetNodeAttributeCount(); i < n; ++i)
         {
-            GetAttributesRecursively(pResource, pNode->GetChild(i));
-        }
-    }
-
-    template<i32 T0, i32 T1>
-    static void ExtractFloat(double (&in)[T0], float (&out)[T1])
-    {
-        for (int i = 0; i < T1; ++i)
-        {
-            out[i] = static_cast<float>(in[i]);
-        }
-    }
-
-    template<i32 T>
-    static void ExtractFloat(double(&in)[T], float(&out)[T])
-    {
-        ExtractFloat<T, T>(in, out);
-    }
-
-    void GetMeshAttributes(Fbx* pResource, FbxNode* pNode)
-    {
-        auto pAttribute = pNode->GetNodeAttribute();
-        if (!pAttribute || pAttribute->GetAttributeType() != FbxNodeAttribute::eMesh) return;
-
-        auto pMesh = pNode->GetMesh();
-        if (!pMesh) return;
-
-        if (pMesh->IsTriangleMesh()) __debugbreak();
-
-        FbxStringList uvSetNames;
-        pMesh->GetUVSetNames(uvSetNames);
-        if (uvSetNames.GetCount() == 0) __debugbreak();
-
-        for (int polygon = 0, numPoly = pMesh->GetPolygonCount(); polygon < numPoly; ++polygon)
-        {
-            for (int polyVert = 0, numPolyVert = pMesh->GetPolygonSize(polygon); polyVert < numPolyVert; ++polyVert)
+            if (FbxNodeAttribute* pNodeAttribute = pNode->GetNodeAttributeByIndex(i))
             {
-                int controlPoint = pMesh->GetPolygonVertex(polygon, s_counterClockwiseOrder[polyVert]);
-                if (controlPoint == -1) __debugbreak();
-
-                pResource->m_indices.push_back((u32)pResource->m_vertices.size());
-                pResource->m_vertices.emplace_back();
-                Fbx::Vertex& vertex = pResource->m_vertices.back();
-
-                FbxVector4 tangent;
-
-                FbxVector4 position = pMesh->GetControlPointAt(controlPoint);
-                ExtractFloat<4, 3>(position.mData, vertex.Postion);
-
-                FbxVector4 outNormal;
-                if (pMesh->GetPolygonVertexNormal(polygon, polyVert, outNormal))
-                {
-                    ExtractFloat<4, 3>(outNormal.mData, vertex.Normal);
-                }
-
-                FbxVector2 outUv;
-                bool unmapped;
-                if (pMesh->GetPolygonVertexUV(polygon, polyVert, uvSetNames.GetStringAt(0), outUv, unmapped))
-                {
-                    if (unmapped) __debugbreak();
-                    ExtractFloat<2>(outUv.mData, vertex.UV);
+                FbxNodeAttribute::EType type = pNodeAttribute->GetAttributeType();
+                switch (type) {
+                case FbxNodeAttribute::eUnknown:
+                case FbxNodeAttribute::eNull:
+                case FbxNodeAttribute::eMarker:
+                case FbxNodeAttribute::eSkeleton:
+                    break;
+                case FbxNodeAttribute::eMesh:
+                    GetMeshAttributes(pResource, pNode);
+                    break;
+                case FbxNodeAttribute::eNurbs:
+                case FbxNodeAttribute::ePatch:
+                case FbxNodeAttribute::eCamera:
+                case FbxNodeAttribute::eCameraStereo:
+                case FbxNodeAttribute::eCameraSwitcher:
+                case FbxNodeAttribute::eLight:
+                case FbxNodeAttribute::eOpticalReference:
+                case FbxNodeAttribute::eOpticalMarker:
+                case FbxNodeAttribute::eNurbsCurve:
+                case FbxNodeAttribute::eTrimNurbsSurface:
+                case FbxNodeAttribute::eBoundary:
+                case FbxNodeAttribute::eNurbsSurface:
+                case FbxNodeAttribute::eShape:
+                case FbxNodeAttribute::eLODGroup:
+                case FbxNodeAttribute::eSubDiv:
+                default:
+                    break;
                 }
             }
         }
     }
 
-    void GetMeshAttributesRecursively(Fbx* pResource, FbxNode* pNode)
+    void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode)
     {
-        if (!pNode) return;
-
-        auto pAttribute = pNode->GetNodeAttribute();
-        if (!pAttribute) return;
-
-        if (pAttribute->GetAttributeType() == FbxNodeAttribute::eMesh)
+        LUZASSERT(pResource);
+        if (pNode)
         {
-            GetMeshAttributes(pResource, pNode);
+            GetNodeAttributes(pResource, pNode);
+
+            for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
+            {
+                GetNodeAttributesRecursively(pResource, pNode->GetChild(i));
+            }
+        }
+    }
+
+
+    static bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3])
+    {
+        int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
+        FbxVector4 position = pMesh->GetControlPointAt(controlPoint);
+        ExtractFloat<4, 3>(position.mData, outPosition);
+        return controlPoint != -1;
+    }
+
+    static bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3])
+    {
+        FbxVector4 normal;
+        bool success = pMesh->GetPolygonVertexNormal(polygon, polygonVertex, normal);
+        if (success)
+        {
+            ExtractFloat<4, 3>(normal.mData, outNormal);
         }
 
-        for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
+        return success;
+    }
+
+    static bool TryGetVertexUV(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, float(&outUV)[2])
+    {
+        FbxVector2 uv;
+        bool unmapped;
+        bool success = (pMesh->GetPolygonVertexUV(polygon, polygonVertex, uvSetNames.GetStringAt(0), uv, unmapped) || unmapped);
+        if (success)
         {
-            GetMeshAttributesRecursively(pResource, pNode->GetChild(i));
+            ExtractFloat<2>(uv.mData, outUV);
+        }
+
+        return success;
+    }
+
+    static void GetVertexAttributes(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, FbxVector4& outPosition, FbxVector4& outNormal, FbxVector2& outTexCoord)
+    {
+        bool unmapped;
+        int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
+        outPosition = pMesh->GetControlPointAt(controlPoint);
+        pMesh->GetPolygonVertexNormal(polygon, polygonVertex, outNormal);
+        pMesh->GetPolygonVertexUV(polygon, polygonVertex, uvSetNames.GetStringAt(0), outTexCoord, unmapped);
+    }
+
+    void GetMeshAttributes(Fbx* pResource, FbxNode* pNode)
+    {
+#if _DEBUG
+        std::cout << pNode->GetName() << std::endl;
+#endif
+
+        auto pMesh = pNode->GetMesh();
+        if (!pMesh) return;
+
+        bool isTri = pMesh->IsTriangleMesh();
+
+        FbxStringList uvSetNames;
+        pMesh->GetUVSetNames(uvSetNames);
+        bool hasUV = uvSetNames.GetCount() != 0;
+
+        for (int polygon = 0, numPoly = pMesh->GetPolygonCount(); polygon < numPoly; ++polygon)
+        {
+            int numPolyVert = pMesh->GetPolygonSize(polygon);
+            if (numPolyVert > 3)
+            {
+                // Triangulate
+                FbxVector4 posAvg = FbxVector4(0.0, 0.0, 0.0);
+                FbxVector4 norAvg = FbxVector4(0.0, 0.0, 0.0);
+                FbxVector2 texAvg = FbxVector2(0.0, 0.0);
+
+                for (int polyVert = 0; polyVert < numPolyVert; ++polyVert)
+                {
+                    FbxVector4 p = FbxVector4(0.0, 0.0, 0.0);
+                    FbxVector4 n = FbxVector4(0.0, 0.0, 0.0);
+                    FbxVector2 t = FbxVector2(0.0, 0.0);
+
+                    GetVertexAttributes(pMesh, polygon, polyVert, uvSetNames, p, n, t);
+
+                    posAvg += p;
+                    norAvg += n;
+                    texAvg += t;
+                }
+
+                posAvg /= numPolyVert;
+                norAvg /= numPolyVert;
+                texAvg /= numPolyVert;
+
+                auto index = pResource->AddVertex();
+                auto vertex = pResource->GetVertex(index);
+                ExtractFloat<4, 3>(posAvg.mData, vertex->Position);
+                ExtractFloat<4, 3>(norAvg.mData, vertex->Normal);
+                ExtractFloat<2>(texAvg.mData, vertex->UV);
+
+                for (int polyVert = 0; polyVert < numPolyVert - 1; ++polyVert)
+                {
+                    FbxVector4 p = FbxVector4(0.0, 0.0, 0.0);
+                    FbxVector4 n = FbxVector4(0.0, 0.0, 0.0);
+                    FbxVector2 t = FbxVector2(0.0, 0.0);
+
+                    GetVertexAttributes(pMesh, polygon, polyVert, uvSetNames, p, n, t);
+
+                    pResource->AddVertex(p.mData, n.mData, t.mData);
+
+                    if (polyVert % 2 == 0)
+                    {
+                        pResource->AddIndex(index);
+                    }
+                }
+            }
+            else
+            {
+                pResource->m_triangles.emplace_back();
+                Fbx::Triangle& tri = pResource->m_triangles.back();
+                for (int polyVert = 0; polyVert < numPolyVert; ++polyVert)
+                {
+                    FbxVector4 pos, norm;
+                    FbxVector2 tex;
+                    GetVertexAttributes(pMesh, polygon, polyVert, uvSetNames, pos, norm, tex);
+                    pResource->AddVertex(pos.mData, norm.mData, tex.mData);
+                }
+            }
+        }
+    }
+
+    void Fbx::WriteVertexData(void* pData, size_t stride, size_t size, Vertex::Flag flags) const
+    {
+        LUZASSERT(size == stride * m_vertices.size())
+
+        for (int i = 0, count = (int)m_vertices.size(); i < count; ++i)
+        {
+            u8* pVertexData = reinterpret_cast<u8*>(pData) + i * stride;
+            auto& vertex = m_vertices[i];
+
+            if ((flags & Fbx::Vertex::Flag::POSITION) != 0)
+            {
+                memcpy_s(pVertexData, 12, vertex.Position, 12);
+                pVertexData += 12;
+            }
+
+            if ((flags & Fbx::Vertex::Flag::NORMAL) != 0)
+            {
+                memcpy_s(pVertexData, 12, vertex.Normal, 12);
+                pVertexData += 12;
+            }
+
+            if ((flags & Fbx::Vertex::Flag::UV) != 0)
+            {
+                memcpy_s(pVertexData, 8, vertex.UV, 8);
+                pVertexData += 8;
+            }
         }
     }
 }

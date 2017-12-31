@@ -24,6 +24,7 @@
 
 
 #include <stdint.h>
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <cassert>

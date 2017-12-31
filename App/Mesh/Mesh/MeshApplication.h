@@ -13,10 +13,6 @@
 #include "TypeDefs.h"
 #endif
 
-#ifndef CGM_H
-#include "cgm.h"
-#endif
-
 #ifndef DX12_SHADER_H
 #include "DirectX12\Shader.h"
 #endif
@@ -41,28 +37,33 @@
 #include "Material.h"
 #endif
 
+#ifndef GMATH_H
+#include "GMath.h"
+#endif
+
 class Window;
 
 struct Vertex
 {
-    vec3f position;
-    vec3f tangent;
-    vec3f normal;
-    vec2f uv;
+    gmath::float3 position;
+    gmath::float3 tangent;
+    gmath::float3 normal;
+    gmath::float2 uv;
     Vertex(float px, float py, float pz,
-        float nx, float ny, float nz, 
+        float nx, float ny, float nz,
         float u, float v) :
         tangent(0.0f, 0.0f, 0.0f),
-        position(px, py, pz), 
+        position(px, py, pz),
         normal(nx, ny, nz),
         uv(u, v) {}
+    Vertex() {}
 };
 
 struct ConstantBufferData
 {
-    mat4f model;
-    mat4f view;
-    mat4f proj;
+    gmath::float4x4 model;
+    gmath::float4x4 view;
+    gmath::float4x4 proj;
 };
 
 class MeshApplication :

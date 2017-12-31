@@ -19,7 +19,9 @@
 #define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
 
 #define FBX_PATH0 L".\\Assets\\/*Prof_Animated*/.fbx"
-#define FBX_PATH1 L".\\Assets\\pencil.fbx"
+#define FBX_PATH1 L".\\Assets\\pencil.FBX"
+
+using namespace gmath;
 
 Console g_console;
 
@@ -36,15 +38,36 @@ bool MeshApplication::Initialize()
 {
     Console::Initialize(&g_console);
 
-    ResourceManager rm;
-    rm.LoadResource<Resource::Fbx>(FBX_PATH1, [](std::shared_ptr<const Resource::Fbx> pFbx) { });
-
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
     if (!Graphics::Initialize(m_window.get(), 3))
     {
         return false;
     }
+
+    m_renderable0 = std::make_shared<Renderable>();
+    std::weak_ptr<Renderable> weakRenderable = m_renderable0;
+    ResourceManager rm;
+    rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
+    {
+        if (!pFbx) return;
+
+        if (auto sharedRenderable = weakRenderable.lock())
+        {
+            Mesh<Vertex, u32> mesh;
+            pFbx->WriteVertices<Vertex>(mesh.Vertices(), [](Vertex& vertex, const Resource::Fbx::Vertex& fbx)
+            {
+                vertex.position = *reinterpret_cast<const float3*>(&fbx.Position[0]);
+                vertex.normal = *reinterpret_cast<const float3*>(&fbx.Normal[0]);
+                vertex.uv = *reinterpret_cast<const float2*>(&fbx.UV[0]);
+            });
+
+            mesh.SetIndices(pFbx->m_indices);
+
+            sharedRenderable->LoadMesh(&mesh);
+            sharedRenderable->m_isRenderable.store(true);
+        }
+    });
 
     Vertex verts[] =
     {
@@ -132,8 +155,8 @@ bool MeshApplication::Initialize()
         float t2 = v3->uv.y - v1->uv.y;
 
         float r = 1.0f / ((s1 * t2) - (s2 * t1));
-        vec3f tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
 
+        float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
         v1->tangent = tangent;
         v2->tangent = tangent;
         v3->tangent = tangent;
@@ -145,21 +168,23 @@ bool MeshApplication::Initialize()
         std::vector<u32>(std::begin(indices), 
         std::begin(indices) + 36));
     
-    m_renderable0 = std::make_shared<Renderable>();
-    if (!m_renderable0->LoadMesh(&mesh))
-    {
-        return false;
-    }
+    //m_renderable0 = std::make_shared<Renderable>();
+    //if (!m_renderable0->LoadMesh(&mesh))
+    //{
+    //    return false;
+    //}
+    //m_renderable0->m_isRenderable.store(true);
 
     float aspectRatio = m_window->AspectRatio();
 
-    m_cbvData0.model = mat4f(1.0f).transpose();
-    m_cbvData0.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData0.proj = mat4f::perspectiveLH(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 
-    m_cbvData1.model = mat4f(1.0f).transpose();
-    m_cbvData1.view = mat4f::lookAtLH(vec3f(0.0f), vec3f(0.0f, 0.0f, -15.0f), vec3f(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData1.proj = mat4f::perspectiveLH(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
+    m_cbvData0.model = float4x4(1.0f).transpose();
+    m_cbvData0.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
+    m_cbvData0.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
+
+    m_cbvData1.model = float4x4(1.0f).transpose();
+    m_cbvData1.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
+    m_cbvData1.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 
     if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
     {
@@ -251,13 +276,19 @@ void MeshApplication::Update(double dt)
     m_material0->UpdateConstantBufferView(0, &m_cbvData0);
     m_material0->Prepare(pCtx.get());
 
-    m_renderable0->Prepare(pCtx.get());
-    m_renderable0->DrawIndexedInstanced(pCtx.get());
-
+    if (m_renderable0->m_isRenderable.load())
+    {
+        m_renderable0->Prepare(pCtx.get());
+        m_renderable0->DrawIndexedInstanced(pCtx.get());
+    }
+    
     m_material1->UpdateConstantBufferView(0, &m_cbvData1);
     m_material1->Prepare(pCtx.get());
 
-    m_renderable0->DrawIndexedInstanced(pCtx.get());
+    if (m_renderable0->m_isRenderable.load())
+    {
+        m_renderable0->DrawIndexedInstanced(pCtx.get());
+    }
 
     pCtx->Present();
     frame++;
@@ -265,14 +296,14 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
-    double time = m_engine->Total() * 0.5f;
-    float st = (float)sin(time);
-    float ct = (float)cos(time);
+    //double time = m_engine->Total() * 0.5f;
+    //float st = (float)sin(time);
+    //float ct = (float)cos(time);
 
-    mat4f trn = mat4f::translate(vec3f(ct, st, ct) * 6.0f);
-    mat4f rot = quatf::rollPitchYaw(st, ct, st).toMatrix4();
-    mat4f scl = mat4f::scale(vec3f(5.0f));
+    //mat4f trn = mat4f::translate(vec3f(ct, st, ct) * 6.0f);
+    //mat4f rot = quatf::rollPitchYaw(st, ct, st).toMatrix4();
+    //mat4f scl = mat4f::scale(vec3f(10.0f));
 
-    m_cbvData0.model = (rot * trn * rot * scl).transpose();
-    m_cbvData1.model = (trn * rot * trn * scl).transpose();
+    //m_cbvData0.model = (rot * trn * rot * scl).transpose();
+    //m_cbvData1.model = (trn * rot * trn * scl).transpose();
 }

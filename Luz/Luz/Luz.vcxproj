@@ -193,6 +193,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Graphics\Graphics.cpp" />
     <ClCompile Include="IApplication.cpp" />
     <ClCompile Include="LzAssert.cpp" />
@@ -230,6 +231,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="Platform\windows_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="GeneralMacros.h" />
     <ClInclude Include="Graphics\Graphics.h" />
     <ClInclude Include="LuzExport.h" />
