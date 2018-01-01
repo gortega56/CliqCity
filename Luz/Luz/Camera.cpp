@@ -1,17 +1,19 @@
 #include "stdafx.h"
 #include "Camera.h"
 
-//Camera::Camera()
-//{
-//
-//}
-//
-//Camera::~Camera()
-//{
-//
-//}
-//
-//vec3f Camera::Forward() const
-//{
-//    return m_view.Inverse().pRows[]
-//}
+using namespace gmath;
+
+Camera::Camera()
+{
+
+}
+
+Camera::~Camera()
+{
+
+}
+
+float3 Camera::Forward() const
+{
+    return { m_view.p_data[0], m_view.p_data[0], m_view.p_data[0] };
+}

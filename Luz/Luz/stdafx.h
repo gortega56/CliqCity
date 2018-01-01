@@ -40,6 +40,10 @@
 #include <future>
 #include <iterator>
 
+#ifndef GMATH_H
+#include "gmath.h"
+#endif
+
 #ifndef LZASSERT_H
 #include "LzAssert.h"
 #endif

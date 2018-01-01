@@ -178,14 +178,14 @@ bool MeshApplication::Initialize()
     float aspectRatio = m_window->AspectRatio();
 
 
-    m_cbvData0.model = float4x4(1.0f).transpose();
+    m_cbvData0.model = float4x4::scale(float3(10.0f));
     m_cbvData0.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData0.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
-
+/*
     m_cbvData1.model = float4x4(1.0f).transpose();
     m_cbvData1.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData1.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
-
+*/
     if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
     {
         return false;
@@ -282,13 +282,13 @@ void MeshApplication::Update(double dt)
         m_renderable0->DrawIndexedInstanced(pCtx.get());
     }
     
-    m_material1->UpdateConstantBufferView(0, &m_cbvData1);
+   /* m_material1->UpdateConstantBufferView(0, &m_cbvData1);
     m_material1->Prepare(pCtx.get());
 
     if (m_renderable0->m_isRenderable.load())
     {
         m_renderable0->DrawIndexedInstanced(pCtx.get());
-    }
+    }*/
 
     pCtx->Present();
     frame++;
