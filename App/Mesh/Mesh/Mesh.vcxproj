@@ -26,7 +26,7 @@
     <ClCompile Include="MeshApplication.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Library\GMath\GMath.vcxproj">
+    <ProjectReference Include="..\..\..\Luz\Luz\Library\GMath\GMath.vcxproj">
       <Project>{17ff21f5-8eb2-4f33-89e8-21f9a0933273}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Luz\Luz\Luz.vcxproj">
@@ -134,7 +134,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Luz.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -150,7 +150,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Luz.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -168,7 +168,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -188,7 +188,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Luz\Luz\Library\GMath\;..\..\..\Luz\Luz\;..\..\..\Luz\Luz\Graphics\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

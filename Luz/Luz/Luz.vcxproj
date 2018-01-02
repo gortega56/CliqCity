@@ -108,10 +108,11 @@
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
 xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
-xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.lib" "$(OutDir)" /y</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -131,10 +132,11 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
 xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
-xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.lib" "$(OutDir)" /y</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -152,7 +154,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
@@ -162,7 +164,8 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
 xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
-xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.lib" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -179,7 +182,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\$(PlatformTarget)\$(Configuration);$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
@@ -189,7 +192,8 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.dll" "$(OutDir)" /y
 xcopy "$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration)\libfbxsdk.lib" "$(OutDir)" /y
-xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y</Command>
+xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration)\DirectXTex.lib" "$(OutDir)" /y
+xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.lib" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -282,6 +286,9 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     </ProjectReference>
     <ProjectReference Include="Library\DirectXTK12\DirectXTK_Desktop_2017_Win10.vcxproj">
       <Project>{3e0e8608-cd9b-4c76-af33-29ca38f2c9f0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="Library\GMath\GMath.vcxproj">
+      <Project>{17ff21f5-8eb2-4f33-89e8-21f9a0933273}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

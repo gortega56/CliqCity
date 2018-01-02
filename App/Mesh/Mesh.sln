@@ -7,7 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mesh", "Mesh\Mesh.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Luz", "..\..\Luz\Luz\Luz.vcxproj", "{8D96020F-A343-4B9F-A5F7-8AF104DD3C28}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMath", "..\..\Library\GMath\GMath.vcxproj", "{17FF21F5-8EB2-4F33-89E8-21F9A0933273}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMath", "..\..\Luz\Luz\Library\GMath\GMath.vcxproj", "{17FF21F5-8EB2-4F33-89E8-21F9A0933273}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
