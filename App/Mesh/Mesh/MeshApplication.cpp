@@ -19,7 +19,7 @@
 #define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
 
 #define FBX_PATH0 L".\\Assets\\/*Prof_Animated*/.fbx"
-#define FBX_PATH1 L".\\Assets\\pencil.FBX"
+#define FBX_PATH1 L".\\Assets\\cube.FBX"
 
 using namespace gmath;
 
@@ -178,7 +178,7 @@ bool MeshApplication::Initialize()
     float aspectRatio = m_window->AspectRatio();
 
 
-    m_cbvData0.model = float4x4::scale(float3(10.0f));
+    m_cbvData0.model = float4x4::scale(float3(1.0f));
     m_cbvData0.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData0.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 /*
@@ -227,8 +227,8 @@ bool MeshApplication::Initialize()
     m_pipeline.SetSampleCount(1);
     m_pipeline.SetSampleQuality(0);
     m_pipeline.SetSampleMask(0xffffffff);
-    m_pipeline.SetRasterizerState(&RasterizerState());
     m_pipeline.SetDepthStencilState(&DepthStencilState());
+    m_pipeline.SetRasterizerState(&RasterizerState()); 
     m_pipeline.SetBlendState(&BlendState());
     m_pipeline.SetRenderTargets();
     

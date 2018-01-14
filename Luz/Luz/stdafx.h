@@ -39,6 +39,10 @@
 #include <iostream>
 #include <future>
 #include <iterator>
+#include <functional>
+#include <utility>
+#include <set>
+#include <unordered_set>
 
 #ifndef GMATH_H
 #include "gmath.h"
@@ -50,4 +54,8 @@
 
 #ifndef LUZEXPORT_H
 #include "LuzExport.h"
+#endif
+
+#ifndef DELEGATE_H
+#include "Delegate.h"
 #endif

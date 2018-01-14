@@ -1,18 +1,27 @@
 #include "stdafx.h"
 #include "Fbx.h"
+#include "gmath.h"
 #include <fbxsdk.h>
 #include <fstream>
 
 #define FBXSDK_SHARED
 #pragma comment(lib, "libfbxsdk.lib")
 
+using namespace gmath;
+
 namespace Resource
 {
-    static int s_counterClockwiseOrder[] = { 0, 2, 1 };
-
     static void GetNodeAttributes(Fbx* pResource, FbxNode* pNode);
     static void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode);
-    static void GetMeshAttributes(Fbx* pResource, FbxNode* pNode);
+    static void GetMeshAttributes(Fbx* pResource, FbxNode* pNode, bool ccw = false);
+
+    static bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3]);
+    static bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3]);
+    static bool TryGetVertexUV(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, float(&outUV)[2]);
+    static void GetVertexAttributes(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, FbxVector4& outPosition, FbxVector4& outNormal, FbxVector2& outTexCoord);
+
+    template<i32 T0, i32 T1> static void ExtractFloat(double(&in)[T0], float(&out)[T1]);
+    template<i32 T> static void ExtractFloat(double(&in)[T], float(&out)[T]);
 
     /* Tab character ("\t") counter */
     int numTabs = 0;
@@ -270,7 +279,6 @@ namespace Resource
         }
     }
 
-
     static bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3])
     {
         int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
@@ -313,7 +321,20 @@ namespace Resource
         pMesh->GetPolygonVertexUV(polygon, polygonVertex, uvSetNames.GetStringAt(0), outTexCoord, unmapped);
     }
 
-    void GetMeshAttributes(Fbx* pResource, FbxNode* pNode)
+    static void CreateVertex(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, Fbx::Vertex& outVertex)
+    {
+        FbxVector4 position = FbxVector4(0.0, 0.0, 0.0);
+        FbxVector4 normal = FbxVector4(0.0, 0.0, 0.0);
+        FbxVector2 uv = FbxVector2(0.0, 0.0);
+
+        GetVertexAttributes(pMesh, polygon, polygonVertex, uvSetNames, position, normal, uv);
+
+        ExtractFloat<4, 3>(position.mData, outVertex.Position);
+        ExtractFloat<4, 3>(normal.mData, outVertex.Normal);
+        ExtractFloat<2>(uv.mData, outVertex.UV);
+    }
+
+    void GetMeshAttributes(Fbx* pResource, FbxNode* pNode, bool ccw /*= false*/)
     {
 #if _DEBUG
         std::cout << pNode->GetName() << std::endl;
@@ -328,65 +349,89 @@ namespace Resource
         pMesh->GetUVSetNames(uvSetNames);
         bool hasUV = uvSetNames.GetCount() != 0;
 
+
         for (int polygon = 0, numPoly = pMesh->GetPolygonCount(); polygon < numPoly; ++polygon)
         {
-            int numPolyVert = pMesh->GetPolygonSize(polygon);
-            if (numPolyVert > 3)
+            int numPolygonVertices = pMesh->GetPolygonSize(polygon);
+          
+            int polygonVertexBegin, polygonVertexEnd, polygonVertexIncr;
+            if (ccw)
             {
+                polygonVertexBegin = 0;
+                polygonVertexEnd = numPolygonVertices;
+                polygonVertexIncr = 1;
+            }
+            else
+            {
+                polygonVertexBegin = numPolygonVertices - 1;
+                polygonVertexEnd = -1;
+                polygonVertexIncr = -1;
+            }
+
+            if (numPolygonVertices > 3)
+            {
+                std::vector<Fbx::Vertex> polygonVertices;
+                polygonVertices.reserve(static_cast<size_t>(numPolygonVertices));
+
                 // Triangulate
-                FbxVector4 posAvg = FbxVector4(0.0, 0.0, 0.0);
-                FbxVector4 norAvg = FbxVector4(0.0, 0.0, 0.0);
-                FbxVector2 texAvg = FbxVector2(0.0, 0.0);
+                FbxVector4 pos = FbxVector4(0.0, 0.0, 0.0);
+                FbxVector4 norm = FbxVector4(0.0, 0.0, 0.0);
+                FbxVector2 uv = FbxVector2(0.0, 0.0);
 
-                for (int polyVert = 0; polyVert < numPolyVert; ++polyVert)
+                int polygonVertex = polygonVertexBegin;
+                while (polygonVertex != polygonVertexEnd)
                 {
-                    FbxVector4 p = FbxVector4(0.0, 0.0, 0.0);
-                    FbxVector4 n = FbxVector4(0.0, 0.0, 0.0);
-                    FbxVector2 t = FbxVector2(0.0, 0.0);
+                    polygonVertices.emplace_back();
+                    auto vertex = &polygonVertices.back();
 
-                    GetVertexAttributes(pMesh, polygon, polyVert, uvSetNames, p, n, t);
+                    CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
 
-                    posAvg += p;
-                    norAvg += n;
-                    texAvg += t;
+                    pos += FbxVector4(vertex->Position[0], vertex->Position[1], vertex->Position[2]);
+                    norm += FbxVector4(vertex->Normal[0], vertex->Normal[1], vertex->Normal[2]);
+                    uv += FbxVector2(vertex->UV[0], vertex->UV[1]);
+
+                    polygonVertex += polygonVertexIncr;
                 }
 
-                posAvg /= numPolyVert;
-                norAvg /= numPolyVert;
-                texAvg /= numPolyVert;
 
-                auto index = pResource->AddVertex();
-                auto vertex = pResource->GetVertex(index);
-                ExtractFloat<4, 3>(posAvg.mData, vertex->Position);
-                ExtractFloat<4, 3>(norAvg.mData, vertex->Normal);
-                ExtractFloat<2>(texAvg.mData, vertex->UV);
+                pos /= numPolygonVertices;
+                norm /= numPolygonVertices;
+                uv /= numPolygonVertices;
 
-                for (int polyVert = 0; polyVert < numPolyVert - 1; ++polyVert)
+                auto index = pResource->AddVertex(pos.mData, norm.mData, uv.mData);
+
+                // Get winding order
+                //float e0[3], e1[3], n[3];
+                //TVec<float, 3>::subtract(polygonVertices[1].Position, polygonVertices[0].Position, e0);
+                //TVec<float, 3>::subtract(polygonVertices[2].Position, polygonVertices[1].Position, e1);
+                //TVec<float, 3>::cross(e0, e1, n);
+                //TVec<float, 3>::normalize(n);
+
+                for (int polygonVertex = 0; polygonVertex < numPolygonVertices; ++polygonVertex)
                 {
-                    FbxVector4 p = FbxVector4(0.0, 0.0, 0.0);
-                    FbxVector4 n = FbxVector4(0.0, 0.0, 0.0);
-                    FbxVector2 t = FbxVector2(0.0, 0.0);
+                    auto currentVertex = &polygonVertices[polygonVertex];
+                    auto nextVertex = (polygonVertex == numPolygonVertices - 1) ? &polygonVertices[0] : &polygonVertices[polygonVertex + 1];
 
-                    GetVertexAttributes(pMesh, polygon, polyVert, uvSetNames, p, n, t);
-
-                    pResource->AddVertex(p.mData, n.mData, t.mData);
-
-                    if (polyVert % 2 == 0)
-                    {
-                        pResource->AddIndex(index);
-                    }
+                    // Adds the center vertex, current vertex, and next vertex in order (triangle fan fashion).
+                    // This will already be in the winding order determined by ccw in the prior block.
+                    pResource->AddIndex(index);
+                    pResource->AddVertex(currentVertex->Position, currentVertex->Normal, currentVertex->UV);
+                    pResource->AddVertex(nextVertex->Position, nextVertex->Normal, nextVertex->UV);
                 }
             }
             else
             {
-                pResource->m_triangles.emplace_back();
-                Fbx::Triangle& tri = pResource->m_triangles.back();
-                for (int polyVert = 0; polyVert < numPolyVert; ++polyVert)
+                int polygonVertex = polygonVertexBegin;
+                while (polygonVertex != polygonVertexEnd)
                 {
-                    FbxVector4 pos, norm;
-                    FbxVector2 tex;
-                    GetVertexAttributes(pMesh, polygon, polyVert, uvSetNames, pos, norm, tex);
-                    pResource->AddVertex(pos.mData, norm.mData, tex.mData);
+                    FbxVector4 position = FbxVector4(0.0, 0.0, 0.0);
+                    FbxVector4 normal = FbxVector4(0.0, 0.0, 0.0);
+                    FbxVector2 uv = FbxVector2(0.0, 0.0);
+
+                    GetVertexAttributes(pMesh, polygon, polygonVertex, uvSetNames, position, normal, uv);
+                    pResource->AddVertex(position.mData, normal.mData, uv.mData);
+
+                    polygonVertex += polygonVertexIncr;
                 }
             }
         }

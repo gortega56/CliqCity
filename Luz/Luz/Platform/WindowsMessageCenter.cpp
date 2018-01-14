@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "WindowsMessageCenter.h"
 
+using namespace Luz;
+
 namespace
 {
     std::vector<std::shared_ptr<WindowsMessageCenter>> gMessageCenters;
@@ -14,6 +16,17 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     }
 
     return DefWindowProc(hwnd, msg, wparam, lparam);
+}
+
+WindowsMessage::WindowsMessage()
+{
+
+}
+
+WindowsMessage::WindowsMessage(HWND inH, UINT inM, WPARAM wp, LPARAM lp) :
+    hwnd(inH), msg(inM), wparam(wp), lparam(lp)
+{
+
 }
 
 WindowsMessageCenter::WindowsMessageCenter()
@@ -54,7 +67,7 @@ void WindowsMessageCenter::RegisterReceiver(const UINT& msg, std::string name, s
     auto map_iter = mReceivers.find(msg);
     if (map_iter == mReceivers.end())
     {
-        mReceivers.insert({ msg, ReceiverCollection() });
+        mReceivers.insert({ msg, std::vector<Receiver>() });
         
         auto& receivers = mReceivers[msg];        
         receivers.push_back({ name, func });
@@ -92,6 +105,44 @@ void WindowsMessageCenter::NotifyReceivers(const WindowsMessage& wm)
     {
         assert(r.func);
         r.func(wm);
+    }
+}
+
+WindowsEvent* WindowsMessageCenter::GetEvent(const UINT& msg)
+{
+    return FindOrCreateEvent(msg);
+}
+
+WindowsEvent* WindowsMessageCenter::FindOrCreateEvent(const UINT& msg)
+{
+    WindowsEvent* result = FindEvent(msg);
+    if (!result)
+    {
+        m_events.insert({ msg, WindowsEvent() });
+    }
+
+    return result;
+}
+
+WindowsEvent* WindowsMessageCenter::FindEvent(const UINT& msg)
+{
+    WindowsEvent* result = nullptr;
+
+    auto iter = m_events.find(msg);
+    if (iter != m_events.end())
+    {
+        result = &iter->second;
+    }
+
+    return result;
+}
+
+void WindowsMessageCenter::Notify(const WindowsMessage wm)
+{
+    WindowsEvent* windowsEvent = FindEvent(wm.msg);
+    if (windowsEvent)
+    {
+        windowsEvent->Broadcast(wm);
     }
 }
 

@@ -1,6 +1,18 @@
 #include "stdafx.h"
 #include "Platform.h"
 
+using namespace Luz;
+
+Notification::Notification() : Notification(Identifier::NONE)
+{
+
+}
+
+Notification::Notification(Identifier id) : ID(id)
+{
+
+}
+
 Platform::Platform() : m_shouldQuit(false)
 {
 

@@ -22,6 +22,8 @@ namespace MS
 
         static HINSTANCE GetHInstance();
 
+        std::shared_ptr<WindowsMessageCenter> GetMessageCenter() { return m_messagePump; }
+
     private:
         static HINSTANCE sm_hinstance;
         HINSTANCE m_prevHinstance;

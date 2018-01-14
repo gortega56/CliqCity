@@ -11,6 +11,26 @@
 #include "LuzExport.h"
 #endif
 
+namespace Luz
+{
+    struct Notification
+    {
+        enum class Identifier : uint64_t
+        {
+            NONE = 0
+        };
+
+        Identifier ID;
+
+        Notification();
+        Notification(Identifier id);
+        ~Notification() = default;
+
+        DEFAULT_COPY(Notification)
+        DEFAULT_MOVE(Notification)
+    };
+}
+
 class LUZ_API Platform
 {
 public:
@@ -22,6 +42,8 @@ public:
     virtual void Shutdown();
 
     inline bool ShouldQuit() { return m_shouldQuit; }
+
+
 
 #if _WIN64 || _WIN32
     static std::shared_ptr<Platform> Create(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);

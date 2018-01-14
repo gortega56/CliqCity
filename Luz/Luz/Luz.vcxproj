@@ -224,6 +224,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="Graphics\DirectX12\SwapChain.cpp" />
     <ClCompile Include="Graphics\DirectX12\TextureImpl.cpp" />
     <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
+    <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\MSPlatformWindow.cpp" />
     <ClCompile Include="Platform\Platform.cpp" />
     <ClCompile Include="Platform\WindowsPlatform.cpp" />
@@ -236,6 +237,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Delegate.h" />
     <ClInclude Include="GeneralMacros.h" />
     <ClInclude Include="Graphics\Graphics.h" />
     <ClInclude Include="LuzExport.h" />
@@ -265,6 +267,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Graphics\Renderable.h" />
     <ClInclude Include="Graphics\DirectX12\PipelineState.h" />
+    <ClInclude Include="Platform\Input.h" />
     <ClInclude Include="Platform\MSPlatformWindow.h" />
     <ClInclude Include="Platform\Platform.h" />
     <ClInclude Include="Platform\WindowsPlatform.h" />
