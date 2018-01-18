@@ -113,7 +113,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     </PostBuildEvent>
     <Link>
       <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;GMath.lib;XInput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -137,7 +137,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     </PostBuildEvent>
     <Link>
       <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;GMath.lib;XInput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -155,7 +155,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;GMath.lib;XInput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -183,7 +183,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\;$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Configuration);$(ProjectDir)Library\FBX\FBX SDK\2017.1\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;GMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;GMath.lib;XInput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>

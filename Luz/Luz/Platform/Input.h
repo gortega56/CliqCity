@@ -1,4 +1,7 @@
 #pragma once
+#ifndef INPUT_H
+#define INPUT_H
+
 #include <xinput.h>
 
 #define PREV_KEY_STATE_BIT 0x40000000
@@ -376,3 +379,5 @@ namespace Luz
 #pragma endregion
 
 }
+
+#endif

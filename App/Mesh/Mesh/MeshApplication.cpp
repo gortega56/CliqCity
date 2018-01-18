@@ -12,6 +12,7 @@
 #include "Graphics.h"
 #include "Console.h"
 
+
 #define DIFF_PATH0 L".\\Assets\\BrickDiff.dds"
 #define DIFF_PATH1 L".\\Assets\\RockPileDiff.dds"
 
@@ -296,6 +297,8 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
+    
+
     //double time = m_engine->Total() * 0.5f;
     //float st = (float)sin(time);
     //float ct = (float)cos(time);
