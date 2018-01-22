@@ -10,7 +10,7 @@ class WindowsMessageCenter;
 
 namespace MS
 {
-    class Windows : public Platform
+    class Windows : public Platform, public std::enable_shared_from_this<Windows>
     {
     public:
         Windows(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);

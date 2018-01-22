@@ -41,9 +41,7 @@ public:
     virtual void Update(double delta);
     virtual void Shutdown();
 
-    inline bool ShouldQuit() { return m_shouldQuit; }
-
-
+    inline bool ShouldQuit() const { return m_shouldQuit; }
 
 #if _WIN64 || _WIN32
     static std::shared_ptr<Platform> Create(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
@@ -53,6 +51,11 @@ public:
 
 protected:
     bool m_shouldQuit;
+
+    inline void SetShouldQuit(bool shouldQuit)
+    {
+        m_shouldQuit = true;
+    }
 
     NO_COPY(Platform)
     NO_MOVE(Platform)

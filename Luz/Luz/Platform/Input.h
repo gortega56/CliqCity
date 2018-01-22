@@ -29,7 +29,7 @@ namespace Luz
 		ScreenPoint& operator= (const ScreenPoint& Int2) { x = Int2.x; y = Int2.y; return *this; }
 	};
 
-	class LUZ_API Input
+	class Input
 	{
 	private:
 		short	mCurrMouseState;
@@ -64,19 +64,19 @@ namespace Luz
 		ScreenPoint prevMousePosition;
 		ScreenPoint delta;
 
-		bool IsMouseActive() const { return mIsMouseActive; }
-		void SetMouseActive(bool active) { mIsMouseActive = active; }
+		bool LUZ_API IsMouseActive() const { return mIsMouseActive; }
+		void LUZ_API SetMouseActive(bool active) { mIsMouseActive = active; }
 
-		bool GetKeyDown(KeyCode key);
-		bool GetKeyUp(KeyCode key);
-		bool GetKey(KeyCode key);
-		bool GetMouseButtonDown(MouseButton button);
-		bool GetMouseButtonUp(MouseButton button);
-		bool GetMouseButton(MouseButton button);
-		bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-		bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-		bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-		float GetGamepadAxis(GamepadAxis axis, short id);
+		bool LUZ_API GetKeyDown(KeyCode key);
+		bool LUZ_API GetKeyUp(KeyCode key);
+		bool LUZ_API GetKey(KeyCode key);
+		bool LUZ_API GetMouseButtonDown(MouseButton button);
+		bool LUZ_API GetMouseButtonUp(MouseButton button);
+		bool LUZ_API GetMouseButton(MouseButton button);
+		bool LUZ_API GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+		bool LUZ_API GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+		bool LUZ_API GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+		float LUZ_API GetGamepadAxis(GamepadAxis axis, short id);
 
         void OnPlatformNotification(const Luz::Notification& notification);
 	};

@@ -17,14 +17,19 @@ namespace MS
 
     bool Windows::Initialize()
     {
-        m_messagePump = WindowsMessageCenter::Create();
-        m_messagePump->RegisterReceiver(WM_QUIT, "WinEngine_QUIT", [&](const WindowsMessage& wm) { m_shouldQuit = true; });
-        m_messagePump->RegisterReceiver(WM_DESTROY, "WinEngine_DESTROY", [](const WindowsMessage& wm) { PostQuitMessage(0); });
-        m_messagePump->RegisterReceiver(WM_CLOSE, "WinEngine_CLOSE", [&](const WindowsMessage& wm)
+        std::weak_ptr<Windows> weak = shared_from_this();
+        auto quit = [weak](const Luz::Notification& wm)
         {
-            // TODO: Figure out multiple windows
-            m_shouldQuit = true;
-        });
+            if (auto shared = weak.lock())
+            {
+                shared->m_shouldQuit = true;
+            }
+        };
+
+        m_messagePump = WindowsMessageCenter::Create();
+        m_messagePump->GetEvent(WM_QUIT)->Bind(quit);
+        m_messagePump->GetEvent(WM_CLOSE)->Bind(quit);
+        m_messagePump->GetEvent(WM_DESTROY)->Bind([](const Luz::Notification& wm) { PostQuitMessage(0); });
 
         return true;
     }

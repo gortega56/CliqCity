@@ -12,7 +12,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     for (auto mc : gMessageCenters)
     {
-        mc->NotifyReceivers({ hwnd, msg, wparam, lparam });
+        mc->Notify({ hwnd, msg, wparam, lparam });
     }
 
     return DefWindowProc(hwnd, msg, wparam, lparam);
@@ -36,7 +36,7 @@ WindowsMessageCenter::WindowsMessageCenter()
 
 WindowsMessageCenter::~WindowsMessageCenter()
 {
-    mReceivers.clear();
+    m_events.clear();
 }
 
 void WindowsMessageCenter::PeekMessages()
@@ -51,60 +51,8 @@ void WindowsMessageCenter::PeekMessages()
         // Check deliberately here.
         if (msg.message == WM_QUIT) 
         {
-            NotifyReceivers({ 0, msg.message, 0, 0 });
+            Notify({ 0, msg.message, 0, 0 });
         }
-    }
-}
-
-void WindowsMessageCenter::RegisterReceiver(const UINT& msg, std::string name, std::function<void(const WindowsMessage&)> func)
-{
-    if (func == nullptr)
-    {
-        // TO DO: Throw exception
-        return;
-    }
-
-    auto map_iter = mReceivers.find(msg);
-    if (map_iter == mReceivers.end())
-    {
-        mReceivers.insert({ msg, std::vector<Receiver>() });
-        
-        auto& receivers = mReceivers[msg];        
-        receivers.push_back({ name, func });
-    }
-    else
-    {
-        auto& receivers = map_iter->second;
-        auto iter = std::find_if(receivers.begin(), receivers.end(), [name](const Receiver& r) { return r.name == name; });
-        if (iter == receivers.end())
-        {
-            receivers.push_back({ name, func });
-        }
-        else
-        {
-            // Replace or throw exception?
-        }
-    }
-}
-
-void WindowsMessageCenter::RemoveReceiver(const UINT& msg, std::string name)
-{
-
-}
-
-void WindowsMessageCenter::NotifyReceivers(const WindowsMessage& wm)
-{
-    auto& iter = mReceivers.find(wm.msg);
-    if (iter == mReceivers.end())
-    {
-        return;
-    }
-
-    auto& receivers = iter->second;
-    for (auto& r : receivers)
-    {
-        assert(r.func);
-        r.func(wm);
     }
 }
 
@@ -118,7 +66,8 @@ WindowsEvent* WindowsMessageCenter::FindOrCreateEvent(const UINT& msg)
     WindowsEvent* result = FindEvent(msg);
     if (!result)
     {
-        m_events.insert({ msg, WindowsEvent() });
+        m_events.emplace(msg, std::move(WindowsEvent()));
+        result = &m_events[msg];
     }
 
     return result;

@@ -29,26 +29,26 @@ int Input::Initialize(std::shared_ptr<Platform> pPlatform)
 
     // Mouse Down
     messageCenter->GetEvent(WM_LBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_MBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_RBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_XBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //
-    //// Mouse Up
-    //messageCenter->GetEvent(WM_LBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_MBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_RBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_XBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //
-    //// Mouse Move
-    //messageCenter->GetEvent(WM_MOUSEMOVE)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //
-    //// Key Down
-    //messageCenter->GetEvent(WM_KEYDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_SYSKEYDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //
-    //// Key Up
-    //messageCenter->GetEvent(WM_KEYUP)->Bind<Input, &Input::OnPlatformNotification>(this);
-    //messageCenter->GetEvent(WM_SYSKEYUP)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_MBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_RBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_XBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
+    
+    // Mouse Up
+    messageCenter->GetEvent(WM_LBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_MBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_RBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_XBUTTONUP)->Bind<Input, &Input::OnPlatformNotification>(this);
+    
+    // Mouse Move
+    messageCenter->GetEvent(WM_MOUSEMOVE)->Bind<Input, &Input::OnPlatformNotification>(this);
+    
+    // Key Down
+    messageCenter->GetEvent(WM_KEYDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_SYSKEYDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
+    
+    // Key Up
+    messageCenter->GetEvent(WM_KEYUP)->Bind<Input, &Input::OnPlatformNotification>(this);
+    messageCenter->GetEvent(WM_SYSKEYUP)->Bind<Input, &Input::OnPlatformNotification>(this);
 
     return 1;
 #elif __APPLE__

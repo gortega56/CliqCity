@@ -8,8 +8,6 @@
 
 LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-
-
 struct WindowsMessage : public Luz::Notification
 {
     HWND	hwnd;
@@ -29,16 +27,11 @@ __interface IWindowsMessageCenterCallback
     virtual void HandleWindowsMessage(const WindowsMessage& wm) = 0;
 };
 
-typedef Luz::Event<void, const Luz::Notification&> WindowsEvent;
+typedef Luz::Event<void(const Luz::Notification&)> WindowsEvent;
 
 class WindowsMessageCenter
 {
 public:
-    struct Receiver
-    {
-        std::string name;
-        std::function<void(const WindowsMessage&)> func;
-    };
     
     static std::shared_ptr<WindowsMessageCenter> Create();
     static void Destroy(std::shared_ptr<WindowsMessageCenter>& mc);
@@ -47,16 +40,12 @@ public:
     ~WindowsMessageCenter();
    
     void PeekMessages();
-    void RegisterReceiver(const UINT& msg, std::string name, std::function<void(const WindowsMessage&)> func);
-    void RemoveReceiver(const UINT& msg, std::string name);
-    void NotifyReceivers(const WindowsMessage& wm);
 
     void Notify(const WindowsMessage wm);
     
     WindowsEvent* GetEvent(const UINT& msg);
 
 private:
-    std::unordered_map<UINT, std::vector<Receiver>> mReceivers;
     std::unordered_map<UINT, WindowsEvent> m_events;
 
     WindowsEvent* FindOrCreateEvent(const UINT& msg);
