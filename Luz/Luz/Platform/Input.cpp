@@ -8,6 +8,99 @@
 
 using namespace Luz;
 
+class PlatformInput
+{
+public:
+#if _WIN64 || _WIN32
+    static KeyCode KeyCodeFromWParam(WPARAM wParam);
+    static void OnKeyDown(Input* pInput, WPARAM wParam, LPARAM lParam);
+    static void OnKeyUp(Input* pInput, WPARAM wParam, LPARAM lParam);
+    static void OnMouseDown(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam);
+    static void OnMouseUp(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam);
+    static void OnMouseMove(Input* pInput, WPARAM wParam, LPARAM lParam);
+#endif
+};
+
+#if _WIN64 || _WIN32
+KeyCode PlatformInput::KeyCodeFromWParam(WPARAM wParam)
+{
+    // any exception from wParam value to keyCode value
+    // must be done here
+    //switch (wParam)
+    //{
+    //default:
+    //	return static_cast<KeyCode>(wParam);
+    //}
+
+    return static_cast<KeyCode>(wParam);
+}
+
+void PlatformInput::OnKeyDown(Input* pInput, WPARAM wParam, LPARAM lParam)
+{
+    // if the previous state is set to 1
+    // the keydown event is recurrent
+    // and there is no need for processing it
+    if (lParam & PREV_KEY_STATE_BIT)
+        return;
+
+    KeyCode code = KeyCodeFromWParam(wParam);
+
+    pInput->mKeysDown.insert(code);
+}
+
+void PlatformInput::OnKeyUp(Input* pInput, WPARAM wParam, LPARAM lParam)
+{
+    KeyCode code = KeyCodeFromWParam(wParam);
+
+    // remove the key from pressed keys
+    pInput->mKeysPressed.erase(code);
+
+    // and add it to up keys
+    pInput->mKeysUp.insert(code);
+}
+
+void PlatformInput::OnMouseDown(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam)
+{
+    if (button == MOUSEBUTTON_X)
+    {
+        // GET_XBUTTON_WPARAM returns n for XBUTTON n
+        short xButton = GET_XBUTTON_WPARAM(wParam);
+
+        // shift xButton to 4 bits to the left
+        // before adding to curr state
+        pInput->mCurrMouseState |= xButton << 4;
+    }
+    else
+    {
+        pInput->mCurrMouseState |= button;
+    }
+}
+
+void PlatformInput::OnMouseUp(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam)
+{
+    if (button == MOUSEBUTTON_X)
+    {
+        // GET_XBUTTON_WPARAM returns n for XBUTTON n
+        short xButton = GET_XBUTTON_WPARAM(wParam);
+
+        // shift xButton to 4 bits to the left
+        // before adding to curr state
+        pInput->mCurrMouseState &= ~(xButton << 4);
+    }
+    else
+    {
+        pInput->mCurrMouseState &= ~button;
+    }
+}
+
+void PlatformInput::OnMouseMove(Input* pInput, WPARAM wParam, LPARAM lParam)
+{
+    pInput->mousePosition.x = GET_X_LPARAM(lParam);
+    pInput->mousePosition.y = GET_Y_LPARAM(lParam);
+}
+
+#endif
+
 Input::Input()
 	: mCurrMouseState(0)
 	, mPrevMouseState(0)
@@ -21,10 +114,10 @@ Input::~Input()
 
 }
 
-int Input::Initialize(std::shared_ptr<Platform> pPlatform)
+int Input::Initialize(Platform* pPlatform)
 {
 #if _WIN64 || _WIN32
-    auto windows = std::static_pointer_cast<MS::Windows>(pPlatform);
+    auto windows = static_cast<MS::Windows*>(pPlatform);
     auto messageCenter = windows->GetMessageCenter();
 
     // Mouse Down
@@ -360,39 +453,39 @@ void Input::OnPlatformNotification(const Notification& notification)
     switch (wm.msg)
     {
     case WM_LBUTTONDOWN:
-        OnMouseDown(MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
         break;
     case WM_MBUTTONDOWN:
-        OnMouseDown(MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
         break;
     case WM_RBUTTONDOWN:
-        OnMouseDown(MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
         break;
     case WM_XBUTTONDOWN:
-        OnMouseDown(MOUSEBUTTON_X, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, MOUSEBUTTON_X, wm.wparam, wm.lparam);
         break;
     case WM_LBUTTONUP:
-        OnMouseUp(MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
         break;
     case WM_MBUTTONUP:
-        OnMouseUp(MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
         break;
     case WM_RBUTTONUP:
-        OnMouseUp(MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
         break;
     case WM_XBUTTONUP:
-        OnMouseUp(MOUSEBUTTON_X, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, MOUSEBUTTON_X, wm.wparam, wm.lparam);
         break;
     case WM_MOUSEMOVE:
-        OnMouseMove(wm.wparam, wm.lparam);
+        PlatformInput::OnMouseMove(this, wm.wparam, wm.lparam);
         break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN: // key down if alt key is presed
-        OnKeyDown(wm.wparam, wm.lparam);
+        PlatformInput::OnKeyDown(this, wm.wparam, wm.lparam);
         break;
     case WM_KEYUP:
     case WM_SYSKEYUP: // key up if alt key is pressed
-        OnKeyUp(wm.wparam, wm.lparam);
+        PlatformInput::OnKeyUp(this, wm.wparam, wm.lparam);
         break;
     default:
         break;
@@ -407,10 +500,8 @@ void Input::OnPlatformNotification(const Notification& notification)
 
 #pragma region Input Processing
 
-void Input::Flush()
+void Input::Update(double deltaSeconds)
 {
-
-
 	// persist all keys pressed at this frame.
 	for (const KeyCode &key : mKeysDown)
 	{
@@ -450,84 +541,5 @@ void Input::Flush()
 		}
 	}
 }
-
-KeyCode Input::KeyCodeFromWParam(WPARAM wParam)
-{
-	// any exception from wParam value to keyCode value
-	// must be done here
-	//switch (wParam)
-	//{
-	//default:
-	//	return static_cast<KeyCode>(wParam);
-	//}
-
-	return static_cast<KeyCode>(wParam);
-}
-
-void Input::OnKeyDown(WPARAM wParam, LPARAM lParam)
-{
-	// if the previous state is set to 1
-	// the keydown event is recurrent
-	// and there is no need for processing it
-	if (lParam & PREV_KEY_STATE_BIT)
-		return;
-
-	KeyCode code = KeyCodeFromWParam(wParam);
-
-	mKeysDown.insert(code);
-}
-
-void Input::OnKeyUp(WPARAM wParam, LPARAM lParam)
-{
-	KeyCode code = KeyCodeFromWParam(wParam);
-
-	// remove the key from pressed keys
-	mKeysPressed.erase(code);
-
-	// and add it to up keys
-	mKeysUp.insert(code);
-}
-
-void Input::OnMouseDown(MouseButton button, WPARAM wParam, LPARAM lParam)
-{
-	if (button == MOUSEBUTTON_X)
-	{
-		// GET_XBUTTON_WPARAM returns n for XBUTTON n
-		short xButton = GET_XBUTTON_WPARAM(wParam);
-
-		// shift xButton to 4 bits to the left
-		// before adding to curr state
-		mCurrMouseState |= xButton << 4;
-	}
-	else
-	{
-		mCurrMouseState |= button;
-	}
-}
-
-void Input::OnMouseUp(MouseButton button, WPARAM wParam, LPARAM lParam)
-{
-	if (button == MOUSEBUTTON_X)
-	{
-		// GET_XBUTTON_WPARAM returns n for XBUTTON n
-		short xButton = GET_XBUTTON_WPARAM(wParam);
-
-		// shift xButton to 4 bits to the left
-		// before adding to curr state
-		mCurrMouseState &= ~(xButton << 4);
-	}
-	else
-	{
-		mCurrMouseState &= ~button;
-	}
-}
-
-void Input::OnMouseMove(WPARAM wParam, LPARAM lParam)
-{
-	mousePosition.x = GET_X_LPARAM(lParam);
-	mousePosition.y = GET_Y_LPARAM(lParam);
-}
-
-
 
 #pragma endregion

@@ -13,6 +13,8 @@
 
 namespace Luz
 {
+    class Input;
+
     struct Notification
     {
         enum class Identifier : uint64_t
@@ -31,31 +33,30 @@ namespace Luz
     };
 }
 
-class LUZ_API Platform
+class Platform
 {
 public:
-    Platform();
-    virtual ~Platform();
+    LUZ_API Platform();
+    virtual LUZ_API ~Platform();
 
-    virtual bool Initialize();
-    virtual void Update(double delta);
-    virtual void Shutdown();
+    virtual LUZ_API bool Initialize();
+    virtual LUZ_API void BeginUpdate(double delta);
+    virtual LUZ_API void EndUpdate(double delta);
+    virtual LUZ_API void Shutdown();
 
-    inline bool ShouldQuit() const { return m_shouldQuit; }
+    inline bool LUZ_API ShouldQuit() const { return m_shouldQuit; }
 
 #if _WIN64 || _WIN32
-    static std::shared_ptr<Platform> Create(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
+    static std::shared_ptr<Platform> LUZ_API Create(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
 #elif __APPLE__
-    static std::shared_ptr<Platform> Create(int argc, char* argv[]);
+    static std::shared_ptr<Platform> LUZ_API Create(int argc, char* argv[]);
 #endif
 
-protected:
-    bool m_shouldQuit;
+    std::shared_ptr<Luz::Input> LUZ_API GetInput();
 
-    inline void SetShouldQuit(bool shouldQuit)
-    {
-        m_shouldQuit = true;
-    }
+protected:
+    std::shared_ptr<Luz::Input> m_input;
+    bool m_shouldQuit;
 
     NO_COPY(Platform)
     NO_MOVE(Platform)

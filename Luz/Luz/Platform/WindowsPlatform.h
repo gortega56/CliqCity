@@ -17,7 +17,8 @@ namespace MS
         ~Windows();
 
         bool Initialize() override;
-        void Update(double delta) override;
+        void BeginUpdate(double delta) override;
+        void EndUpdate(double delta) override;
         void Shutdown() override;
 
         static HINSTANCE GetHInstance();

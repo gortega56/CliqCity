@@ -7,6 +7,7 @@
 #define PREV_KEY_STATE_BIT 0x40000000
 
 class Platform;
+class PlatformInput;
 
 namespace Luz
 {
@@ -32,6 +33,8 @@ namespace Luz
 	class Input
 	{
 	private:
+        friend class PlatformInput;
+
 		short	mCurrMouseState;
 		short	mPrevMouseState;
 		bool    mIsMouseActive;
@@ -43,28 +46,18 @@ namespace Luz
 		std::unordered_set<KeyCode>	mKeysUp;
 		std::unordered_set<KeyCode>	mKeysPressed;
 
-		static KeyCode KeyCodeFromWParam(WPARAM wParam);
-
-		void OnKeyDown(WPARAM wParam, LPARAM lParam);
-		void OnKeyUp(WPARAM wParam, LPARAM lParam);
-		void OnMouseDown(MouseButton button, WPARAM wParam, LPARAM lParam);
-		void OnMouseUp(MouseButton button, WPARAM wParam, LPARAM lParam);
-		void OnMouseMove(WPARAM wParam, LPARAM lParam);
-
-	protected:
-
-		int Initialize(std::shared_ptr<Platform> pPlatform);
-		void Flush();
-
-		Input();
-		~Input();
-
 	public:
 		ScreenPoint mousePosition;
 		ScreenPoint prevMousePosition;
 		ScreenPoint delta;
 
-		bool LUZ_API IsMouseActive() const { return mIsMouseActive; }
+		Input();
+		~Input();
+
+		int Initialize(Platform* pPlatform);
+		void Update(double delta);
+		
+        bool LUZ_API IsMouseActive() const { return mIsMouseActive; }
 		void LUZ_API SetMouseActive(bool active) { mIsMouseActive = active; }
 
 		bool LUZ_API GetKeyDown(KeyCode key);

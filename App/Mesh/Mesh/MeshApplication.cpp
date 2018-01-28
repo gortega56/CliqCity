@@ -11,7 +11,7 @@
 #include "Platform\Window.h"
 #include "Graphics.h"
 #include "Console.h"
-
+#include "Platform\Input.h"
 
 #define DIFF_PATH0 L".\\Assets\\BrickDiff.dds"
 #define DIFF_PATH1 L".\\Assets\\RockPileDiff.dds"
@@ -297,7 +297,37 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
-    
+    auto pInput = m_engine->OS()->GetInput();
+    if (pInput)
+    {
+        float twoPi = 6.28318530718f;
+        float incr = twoPi / 48.0f;
+
+        static euler rotation = euler(0.0f, 0.0f, 0.0f);
+        if (pInput->GetKey(Luz::KeyCode::KEYCODE_LEFT))
+        {
+            rotation.y += incr;
+        }
+
+        if (pInput->GetKey(Luz::KeyCode::KEYCODE_RIGHT))
+        {
+            rotation.y -= incr;
+        }
+
+        if (pInput->GetKey(Luz::KeyCode::KEYCODE_DOWN))
+        {
+            rotation.x -= incr;
+        }
+
+        if (pInput->GetKey(Luz::KeyCode::KEYCODE_UP))
+        {
+            rotation.x += incr;
+        }
+
+        float4x4 r;
+        quaternion(rotation).to_matrix(r);
+        m_cbvData0.model = r.transpose();
+    }
 
     //double time = m_engine->Total() * 0.5f;
     //float st = (float)sin(time);

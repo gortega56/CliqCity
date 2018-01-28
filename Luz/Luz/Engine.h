@@ -31,7 +31,8 @@ public:
     ~TEngine() {}
 
     bool Initialize();
-    void Update(double ft);
+    void BeginUpdate(double ft);
+    void EndUpdate(double ft);
     void Shutdown();
 
     inline double Total()  { return m_timer.Total(); }
@@ -87,7 +88,7 @@ void TEngine<OpSys>::Run(TEngine<OpSys>& engine)
             engine.m_timer.Tick();
 
             double frameTime = engine.m_timer.Delta();
-            engine.Update(frameTime);
+            engine.BeginUpdate(frameTime);
 
             if (frameTime > 0.25)
             {
@@ -105,6 +106,8 @@ void TEngine<OpSys>::Run(TEngine<OpSys>& engine)
 
 
             app.Update(dt);
+
+            engine.EndUpdate(frameTime);
         }
     }
 
@@ -130,9 +133,15 @@ void TEngine<OpSys>::Shutdown()
 }
 
 template<class OpSys>
-void TEngine<OpSys>::Update(double ft)
+void TEngine<OpSys>::BeginUpdate(double ft)
 {
-    m_os->Update(ft);
+    m_os->BeginUpdate(ft);
+}
+
+template<class OpSys>
+void TEngine<OpSys>::EndUpdate(double ft)
+{
+    m_os->EndUpdate(ft);
 }
 
 #define DECLARE_WINMAIN(Application)                                                            \

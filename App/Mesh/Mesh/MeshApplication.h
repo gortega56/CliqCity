@@ -1,6 +1,7 @@
 #pragma once
 #ifndef MESHAPPLICATION_H
 #define MESHAPPLICATION_H
+#include <unordered_set>
 #include <mutex>
 #include <wrl.h>
 #include "GeneralMacros.h"

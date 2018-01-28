@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Platform.h"
+#include "Input.h"
 
 using namespace Luz;
 
@@ -13,7 +14,9 @@ Notification::Notification(Identifier id) : ID(id)
 
 }
 
-Platform::Platform() : m_shouldQuit(false)
+Platform::Platform() : 
+    m_input(std::make_shared<Input>()),
+    m_shouldQuit(false)
 {
 
 }
@@ -25,12 +28,18 @@ Platform::~Platform()
 
 bool Platform::Initialize() 
 { 
-    return false; 
+    m_input->Initialize(this);
+
+    return true; 
 }
 
-void Platform::Update(double delta)
+void Platform::BeginUpdate(double delta)
 {
+}
 
+void Platform::EndUpdate(double delta)
+{
+    m_input->Update(delta);
 }
 
 void Platform::Shutdown() 
@@ -38,6 +47,10 @@ void Platform::Shutdown()
 
 }
 
+std::shared_ptr<Luz::Input> Platform::GetInput()
+{
+    return m_input;
+}
 #if _WIN64 || _WIN32
 #include "WindowsPlatform.h"
 

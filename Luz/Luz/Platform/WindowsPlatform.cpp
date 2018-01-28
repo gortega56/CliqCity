@@ -17,6 +17,7 @@ namespace MS
 
     bool Windows::Initialize()
     {
+
         std::weak_ptr<Windows> weak = shared_from_this();
         auto quit = [weak](const Luz::Notification& wm)
         {
@@ -31,12 +32,19 @@ namespace MS
         m_messagePump->GetEvent(WM_CLOSE)->Bind(quit);
         m_messagePump->GetEvent(WM_DESTROY)->Bind([](const Luz::Notification& wm) { PostQuitMessage(0); });
 
+        Platform::Initialize();
         return true;
     }
 
-    void Windows::Update(double delta)
+    void Windows::BeginUpdate(double delta)
     {
+        Platform::BeginUpdate(delta);
         m_messagePump->PeekMessages();
+    }
+
+    void Windows::EndUpdate(double delta)
+    {
+        Platform::EndUpdate(delta);
     }
 
     void Windows::Shutdown()
