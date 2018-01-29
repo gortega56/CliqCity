@@ -29,9 +29,13 @@ public:
     virtual size_t IndexDataSize() const = 0;
 };
 
+
+
 template<class Vertex, class Index>
 class Mesh : public IMesh
 {
+    typedef gmath::float4 float4;
+    typedef gmath::float3 float3;
 public:
     Mesh()
     {
@@ -96,14 +100,19 @@ public:
 
     void GenerateTangents()
     {
-        std::map<int, std::vector<gmath::float3>> sharedTangentMap;
-        std::map<int, std::vector<gmath::float3>> sharedBitangentMap;
+        //std::map<int, std::vector<gmath::float3>> sharedTangentMap;
+        //std::map<int, std::vector<gmath::float3>> sharedBitangentMap;
 
-        for (int i = 3, numVertices = (int)m_vertices.size(); i < numVertices; ++i)
+        std::vector<float3> tangents(m_vertices.size());
+        std::vector<float3> bitangents(m_vertices.size());
+        memset(tangents.data(), 0, sizeof(float3) * tangents.size());
+        memset(bitangents.data(), 0, sizeof(float3) * bitangents.size());
+
+        for (int i = 3, numIndices = (int)m_indices.size(); i < numIndices; i += 3)
         {
-            Vertex& v0 = m_vertices[i - 3];
-            Vertex& v1 = m_vertices[i - 2];
-            Vertex& v2 = m_vertices[i - 1];
+            Vertex& v0 = m_vertices[m_indices[i - 3]];
+            Vertex& v1 = m_vertices[m_indices[i - 2]];
+            Vertex& v2 = m_vertices[m_indices[i - 1]];
 
             float x1 = v1.Position.x - v0.Position.x;
             float x2 = v2.Position.x - v0.Position.x;
@@ -119,44 +128,28 @@ public:
 
             float r = 1.0f / ((s1 * t2) - (s2 * t1));
 
-            gmath::float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
-            gmath::float3 bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
+            float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
+            float3 bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
 
-            for (int j = 3; j >= 0; j--) {
-                int index = i - j;
-                if (sharedTangentMap.find(index) == sharedTangentMap.end()) {
-                    std::vector<gmath::float3> tangents = { tangent };
-                    std::vector<gmath::float3> bitangents = { bitangent };
-                    sharedTangentMap.insert({ index, tangents });
-                    sharedBitangentMap.insert({ index, bitangents });
-                }
-                else {
-                    sharedTangentMap.at(index).push_back(tangent);
-                    sharedBitangentMap.at(index).push_back(bitangent);
-                }
-            }
+            tangents[m_indices[i - 3]] += tangent;
+            tangents[m_indices[i - 2]] += tangent;
+            tangents[m_indices[i - 1]] += tangent;
+
+            bitangents[m_indices[i - 3]] += bitangent;
+            bitangents[m_indices[i - 2]] += bitangent;
+            bitangents[m_indices[i - 1]] += bitangent;
         }
 
-        for (unsigned int i = 0; i < (unsigned int)m_vertices.size(); i++)
+        for (int i = 0, numIndices = (int)m_indices.size(); i < numIndices; i++)
         {
-            std::vector<gmath::float3>& faceTangents = sharedTangentMap.at(i);
-            std::vector<gmath::float3>& faceBitangents = sharedBitangentMap.at(i);
-            gmath::float3 vertexTangent = { 0.0f, 0.0f, 0.0f };
-            gmath::float3 vertexBitangent = { 0.0f, 0.0f, 0.0f };
-            gmath::float3& vertexNormal = m_vertices[i].Normal;
+            Vertex& vertex = m_vertices[m_indices[i]];
+            float3& tangent = tangents[m_indices[i]];
+            float3& bitangent = bitangents[m_indices[i]];
+            float3& normal = vertex.Normal;
 
-            for (unsigned int j = 0; j < faceTangents.size(); j++) {
-                vertexTangent += gmath::float4(faceTangents[j]);
-                vertexBitangent += gmath::float4(faceBitangents[j]);
-            }
-
-            vertexBitangent /= (float)faceBitangents.size();
-            vertexTangent = gmath::normalize(vertexTangent / (float)faceTangents.size());
-            vertexTangent = gmath::normalize((vertexTangent - vertexNormal * gmath::dot(vertexNormal, vertexTangent)));
-            float w = gmath::dot(gmath::cross(vertexNormal, vertexTangent), vertexBitangent);
-            m_vertices[i].Tangent = (w < 0.0f) ? vertexTangent * -1.0f : vertexTangent;
+            vertex.Tangent = gmath::normalize((tangent - normal * gmath::dot(normal, tangent)));
+            vertex.Tangent.w = (gmath::dot(gmath::cross(normal, tangent), bitangent) < 0.0f) ? -1.0f : 1.0f;
         }
-
     }
 
 private:

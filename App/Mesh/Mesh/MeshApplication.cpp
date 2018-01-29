@@ -200,7 +200,7 @@ bool MeshApplication::Initialize()
 
     InputLayout inputLayout;
     inputLayout
-        .AppendFloat3("TANGENT")
+        .AppendFloat4("TANGENT")
         .AppendPosition3F()
         .AppendNormal3F()
         .AppendUV2()
