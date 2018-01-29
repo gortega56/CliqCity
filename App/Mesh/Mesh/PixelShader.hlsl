@@ -29,7 +29,11 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     float3 l = float3(0.0f, 0.5f, -0.5f);
 
-    float4 color = float4(0.8, 0.8f, 0.8f, 1.0f);
+   float4 color = float4(0.8, 0.8f, 0.8f, 1.0f);
+    //float4 color = float4(1.0f, 0.0f, 0.0f, 1.0f);/*
+    //float4 color = float4(0.0f, 1.0f, 0.0f, 1.0f);
+    //float4 color = float4(0.0f, 0.0f, 1.0f, 1.0f);*/
+    
     float4 diff = diffuseTexture.Sample(samp, input.uv);
 
     float nDotL = dot(l, n);

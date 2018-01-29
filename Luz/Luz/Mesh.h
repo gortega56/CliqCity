@@ -6,7 +6,12 @@
 #include "LuzExport.h"
 #endif
 
+#ifndef GMATH_H
+#include "gmath.h"
+#endif
+
 #include <vector>
+#include <map>
 
 __interface LUZ_API IMesh
 {
@@ -88,6 +93,71 @@ public:
 
     inline void SetVertices(std::vector<Vertex>&& vertices) { m_vertices = std::move(vertices); }
     inline void SetIndices(std::vector<Index>&& indices) { m_indices = std::move(indices); }
+
+    void GenerateTangents()
+    {
+        std::map<int, std::vector<gmath::float3>> sharedTangentMap;
+        std::map<int, std::vector<gmath::float3>> sharedBitangentMap;
+
+        for (int i = 3, numVertices = (int)m_vertices.size(); i < numVertices; ++i)
+        {
+            Vertex& v0 = m_vertices[i - 3];
+            Vertex& v1 = m_vertices[i - 2];
+            Vertex& v2 = m_vertices[i - 1];
+
+            float x1 = v1.Position.x - v0.Position.x;
+            float x2 = v2.Position.x - v0.Position.x;
+            float y1 = v1.Position.y - v0.Position.y;
+            float y2 = v2.Position.y - v0.Position.y;
+            float z1 = v1.Position.z - v0.Position.z;
+            float z2 = v2.Position.z - v0.Position.z;
+
+            float s1 = v1.UV.x - v0.UV.x;
+            float s2 = v2.UV.x - v0.UV.x;
+            float t1 = v1.UV.y - v0.UV.y;
+            float t2 = v2.UV.y - v0.UV.y;
+
+            float r = 1.0f / ((s1 * t2) - (s2 * t1));
+
+            gmath::float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
+            gmath::float3 bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
+
+            for (int j = 3; j >= 0; j--) {
+                int index = i - j;
+                if (sharedTangentMap.find(index) == sharedTangentMap.end()) {
+                    std::vector<gmath::float3> tangents = { tangent };
+                    std::vector<gmath::float3> bitangents = { bitangent };
+                    sharedTangentMap.insert({ index, tangents });
+                    sharedBitangentMap.insert({ index, bitangents });
+                }
+                else {
+                    sharedTangentMap.at(index).push_back(tangent);
+                    sharedBitangentMap.at(index).push_back(bitangent);
+                }
+            }
+        }
+
+        for (unsigned int i = 0; i < (unsigned int)m_vertices.size(); i++)
+        {
+            std::vector<gmath::float3>& faceTangents = sharedTangentMap.at(i);
+            std::vector<gmath::float3>& faceBitangents = sharedBitangentMap.at(i);
+            gmath::float3 vertexTangent = { 0.0f, 0.0f, 0.0f };
+            gmath::float3 vertexBitangent = { 0.0f, 0.0f, 0.0f };
+            gmath::float3& vertexNormal = m_vertices[i].Normal;
+
+            for (unsigned int j = 0; j < faceTangents.size(); j++) {
+                vertexTangent += gmath::float4(faceTangents[j]);
+                vertexBitangent += gmath::float4(faceBitangents[j]);
+            }
+
+            vertexBitangent /= (float)faceBitangents.size();
+            vertexTangent = gmath::normalize(vertexTangent / (float)faceTangents.size());
+            vertexTangent = gmath::normalize((vertexTangent - vertexNormal * gmath::dot(vertexNormal, vertexTangent)));
+            float w = gmath::dot(gmath::cross(vertexNormal, vertexTangent), vertexBitangent);
+            m_vertices[i].Tangent = (w < 0.0f) ? vertexTangent * -1.0f : vertexTangent;
+        }
+
+    }
 
 private:
     std::vector<Vertex> m_vertices;

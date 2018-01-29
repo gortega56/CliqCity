@@ -224,6 +224,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="Graphics\DirectX12\SwapChain.cpp" />
     <ClCompile Include="Graphics\DirectX12\TextureImpl.cpp" />
     <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
+    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\MSPlatformWindow.cpp" />
     <ClCompile Include="Platform\Platform.cpp" />

@@ -58,12 +58,13 @@ bool MeshApplication::Initialize()
             Mesh<Vertex, u32> mesh;
             pFbx->WriteVertices<Vertex>(mesh.Vertices(), [](Vertex& vertex, const Resource::Fbx::Vertex& fbx)
             {
-                vertex.position = *reinterpret_cast<const float3*>(&fbx.Position[0]);
-                vertex.normal = *reinterpret_cast<const float3*>(&fbx.Normal[0]);
-                vertex.uv = *reinterpret_cast<const float2*>(&fbx.UV[0]);
+                vertex.Position = *reinterpret_cast<const float3*>(&fbx.Position[0]);
+                vertex.Normal = *reinterpret_cast<const float3*>(&fbx.Normal[0]);
+                vertex.UV = *reinterpret_cast<const float2*>(&fbx.UV[0]);
             });
 
-            mesh.SetIndices(pFbx->m_indices);
+            mesh.SetIndices(pFbx->GetIndices());
+            mesh.GenerateTangents();
 
             sharedRenderable->LoadMesh(&mesh);
             sharedRenderable->m_isRenderable.store(true);
@@ -143,25 +144,25 @@ bool MeshApplication::Initialize()
         Vertex* v3 = &verts[i - 2];
         Vertex* v4 = &verts[i - 1];
 
-        float x1 = v2->position.x - v1->position.x;
-        float x2 = v3->position.x - v1->position.x;
-        float y1 = v2->position.y - v1->position.y;
-        float y2 = v3->position.y - v1->position.y;
-        float z1 = v2->position.z - v1->position.z;
-        float z2 = v3->position.z - v1->position.z;
+        float x1 = v2->Position.x - v1->Position.x;
+        float x2 = v3->Position.x - v1->Position.x;
+        float y1 = v2->Position.y - v1->Position.y;
+        float y2 = v3->Position.y - v1->Position.y;
+        float z1 = v2->Position.z - v1->Position.z;
+        float z2 = v3->Position.z - v1->Position.z;
 
-        float s1 = v2->uv.x - v1->uv.x;
-        float s2 = v3->uv.x - v1->uv.x;
-        float t1 = v2->uv.y - v1->uv.y;
-        float t2 = v3->uv.y - v1->uv.y;
+        float s1 = v2->UV.x - v1->UV.x;
+        float s2 = v3->UV.x - v1->UV.x;
+        float t1 = v2->UV.y - v1->UV.y;
+        float t2 = v3->UV.y - v1->UV.y;
 
         float r = 1.0f / ((s1 * t2) - (s2 * t1));
 
         float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
-        v1->tangent = tangent;
-        v2->tangent = tangent;
-        v3->tangent = tangent;
-        v4->tangent = tangent;
+        v1->Tangent = tangent;
+        v2->Tangent = tangent;
+        v3->Tangent = tangent;
+        v4->Tangent = tangent;
     }
 
     Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), 
@@ -198,8 +199,9 @@ bool MeshApplication::Initialize()
     }
 
     InputLayout inputLayout;
-    inputLayout.AppendPosition3F()
+    inputLayout
         .AppendFloat3("TANGENT")
+        .AppendPosition3F()
         .AppendNormal3F()
         .AppendUV2()
         .Finalize();

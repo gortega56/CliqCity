@@ -24,7 +24,7 @@ namespace Dx12
     class LUZ_API RasterizerState : public GpuState<D3D12_RASTERIZER_DESC>
     {
     public:
-        RasterizerState() { m_desc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); m_desc.FillMode = D3D12_FILL_MODE_WIREFRAME; }
+        RasterizerState() { m_desc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); /*m_desc.FillMode = D3D12_FILL_MODE_WIREFRAME;*/ }
         ~RasterizerState() {}
     };
 

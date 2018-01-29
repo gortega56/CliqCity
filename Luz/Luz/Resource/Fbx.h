@@ -75,13 +75,6 @@ namespace Resource
 
         void AddIndex(u32 i);
 
-        std::vector<Triangle> m_triangles;
-        std::vector<Vertex> m_vertices;
-        std::vector<u32> m_indices;
-        std::unordered_map<i32, u32> m_indicesByControlPointIndex;
-        std::unordered_map<i32, JointBlend> m_blendByControlPointIndex;
-        Vertex::Flag m_vertexFlags;
-
         void LUZ_API WriteVertexData(void* pData, size_t stride, size_t size, Vertex::Flag flags) const;
 
         template<class VertexType>
@@ -94,6 +87,16 @@ namespace Resource
                 writer(outVertices[i], m_vertices[i]);
             }
         }
+
+        const std::vector<u32>& GetIndices() const { return m_indices; }
+
+    private:
+        std::vector<Triangle> m_triangles;
+        std::vector<Vertex> m_vertices;
+        std::vector<u32> m_indices;
+        std::unordered_map<i32, u32> m_indicesByControlPointIndex;
+        std::unordered_map<i32, JointBlend> m_blendByControlPointIndex;
+        Vertex::Flag m_vertexFlags;
     };
 
     inline Fbx::Vertex::Flag operator&(const Fbx::Vertex::Flag& lhs, const Fbx::Vertex::Flag& rhs)

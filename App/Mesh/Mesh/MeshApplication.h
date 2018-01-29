@@ -46,17 +46,17 @@ class Window;
 
 struct Vertex
 {
-    gmath::float3 position;
-    gmath::float3 tangent;
-    gmath::float3 normal;
-    gmath::float2 uv;
+    gmath::float3 Tangent;
+    gmath::float3 Position;
+    gmath::float3 Normal;
+    gmath::float2 UV;
     Vertex(float px, float py, float pz,
         float nx, float ny, float nz,
         float u, float v) :
-        tangent(0.0f, 0.0f, 0.0f),
-        position(px, py, pz),
-        normal(nx, ny, nz),
-        uv(u, v) {}
+        Tangent(0.0f, 0.0f, 0.0f),
+        Position(px, py, pz),
+        Normal(nx, ny, nz),
+        UV(u, v) {}
     Vertex() {}
 };
 

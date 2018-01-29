@@ -1,5 +1,5 @@
-<node name=Cubetranslation=(0, 0, 0)rotation=(-90, 0, 0)scaling=(100, 100, 100)>
-  <attribute type=mesh name=Cube/>
+<node name=Cubetranslation=(-20.8001, 62.0087, 100.003)rotation=(-90, 0, 0)scaling=(100, 100, 100)>
+  <attribute type=mesh name=Cube.001/>
 </node>
 <node name=Lamptranslation=(407.625, 590.386, -100.545)rotation=(47.5336, 107.221, 10.7437)scaling=(100, 100, 100)>
   <attribute type=light name=Lamp/>
