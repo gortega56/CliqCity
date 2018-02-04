@@ -31,11 +31,15 @@ namespace Resource
 #endif
 
     static bool g_convertCoordinate = false;
-    static bool g_reversePolygons = false;
+    static bool g_reverseWindingOrder = false;
 
     static void GetNodeAttributes(Fbx* pResource, FbxNode* pNode);
     static void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode);
     static void GetMeshAttributes(Fbx* pResource, FbxNode* pNode);
+
+    static bool TryWindingOrder(Fbx* pResource, u32 i0, u32 i1, u32 i2);
+    static void TriangulatePolygonAdditive(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices);
+    static void TriangulatePolygon(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices);
 
     static bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3]);
     static bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3]);
@@ -48,6 +52,12 @@ namespace Resource
     static void ConvertCoordinateSystem(FbxAMatrix& matrix);
 
     template<typename ... Args> static std::string string_format(const std::string& format, Args ... args);
+    static std::string ToString(FbxVector4& vector);
+    static std::string ToString(FbxVector2& vector);
+    static std::string ToString(float(&vector)[4]);
+    static std::string ToString(float(&vector)[3]);
+    static std::string ToString(float(&vector)[2]);
+
     template<i32 T0, i32 T1> static void ExtractFloat(double(&in)[T0], float(&out)[T1]);
     template<i32 T> static void ExtractFloat(double(&in)[T], float(&out)[T]);
 
@@ -120,74 +130,28 @@ namespace Resource
         {
             int numPolygonVertices = pMesh->GetPolygonSize(polygon);
 
-            int polygonVertexBegin, polygonVertexEnd, polygonVertexIncr;
-            if (g_reversePolygons)
-            {
-                polygonVertexBegin = numPolygonVertices - 1;
-                polygonVertexEnd = -1;
-                polygonVertexIncr = -1;                
-            }
-            else
-            {
-                polygonVertexBegin = 0;
-                polygonVertexEnd = numPolygonVertices;
-                polygonVertexIncr = 1;
-            }
-
             if (numPolygonVertices > 3)
             {
-                std::vector<u32> polygonVertexIndices;
-                polygonVertexIndices.reserve(static_cast<size_t>(numPolygonVertices));
-
-                // Triangulate
-                float position[3] = { 0.0f, 0.0f, 0.0f };
-                float normal[3] = { 0.0f, 0.0f, 0.0f };
-                float uv[2] = { 0.0f, 0.0f };
-
-                for (int polygonVertex = 0; polygonVertex < numPolygonVertices; ++polygonVertex)
-                {
-                    u32 polygonIndex = pResource->AddVertex();
-                    auto vertex = pResource->GetVertex(polygonIndex);
-                    CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
-                    polygonVertexIndices.push_back(polygonIndex);
-
-                    TVec<float, 3>::add(position, vertex->Position);
-                    TVec<float, 3>::add(normal, vertex->Normal);
-                    TVec<float, 2>::add(uv, vertex->UV);
-                }
-
-                float inv = 1.0f / numPolygonVertices;
-                TVec<float, 3>::mul(position, inv);
-                TVec<float, 3>::mul(normal, inv);
-                TVec<float, 2>::mul(uv, inv);
-
-                auto index = pResource->AddVertex(position, normal, uv);
-
-                for (int polygonVertexIndex = 0, numPolygonVertexIndices = (int)polygonVertexIndices.size(); polygonVertexIndex < numPolygonVertexIndices; ++polygonVertexIndex)
-                {
-                    u32 currentIndex = polygonVertexIndices[polygonVertexIndex];
-                    u32 nextIndex = (polygonVertexIndex == numPolygonVertexIndices - 1) ? polygonVertexIndices[0] : polygonVertexIndices[polygonVertexIndex + 1];
-
-                    if (g_reversePolygons)
-                    {
-                        pResource->AddIndex(index);
-                        pResource->AddIndex(currentIndex);
-                        pResource->AddIndex(nextIndex);
-                    }
-                    else
-                    {
-                        pResource->AddIndex(nextIndex);
-                        pResource->AddIndex(currentIndex);
-                        pResource->AddIndex(index);
-
-                        /*          std::cout << index << ": " << ToString(pResource->GetVertex(index)->Position) << std::endl;
-                        std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
-                        std::cout << nextIndex << ": " << ToString(pResource->GetVertex(nextIndex)->Position) << std::endl;*/
-                    }
-                }
+                // TODO: Figure out when it would be better to add a vertex to avoid degenerate triangles...
+                //TriangulatePolygonAdditive(pMesh, pResource, uvSetNames, polygon, numPolygonVertices);
+                TriangulatePolygon(pMesh, pResource, uvSetNames, polygon, numPolygonVertices);
             }
             else
             {
+                int polygonVertexBegin, polygonVertexEnd, polygonVertexIncr;
+                if (g_reverseWindingOrder)
+                {
+                    polygonVertexBegin = numPolygonVertices - 1;
+                    polygonVertexEnd = -1;
+                    polygonVertexIncr = -1;
+                }
+                else
+                {
+                    polygonVertexBegin = 0;
+                    polygonVertexEnd = numPolygonVertices;
+                    polygonVertexIncr = 1;
+                }
+
                 int polygonVertex = polygonVertexBegin;
                 while (polygonVertex != polygonVertexEnd)
                 {
@@ -205,7 +169,122 @@ namespace Resource
         }
     }
 
-    static bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3])
+    bool TryWindingOrder(Fbx* pResource, u32 i0, u32 i1, u32 i2)
+    {
+        auto v0 = pResource->GetVertex(i0);
+        auto v1 = pResource->GetVertex(i1);
+        auto v2 = pResource->GetVertex(i2);
+
+        float e0[3], e1[3], n[3];
+        TVec<float, 3>::subtract(v1->Position, v0->Position, e0);
+        TVec<float, 3>::subtract(v1->Position, v2->Position, e1);
+        TVec<float, 3>::cross(e0, e1, n);
+
+        float i[3] = { 1.0f, 0.0f, 0.0f };
+        float j[3] = { 0.0f, 1.0f, 0.0f };
+        float k[3] = { 0.0f, 0.0f, 1.0f };
+
+        float di = TVec<float, 3>::dot(n, i);
+        float dj = TVec<float, 3>::dot(n, j);
+        float dk = TVec<float, 3>::dot(n, k);
+
+        return (di < 0.0f || dj < 0.0f || dk < 0.0f);
+    }
+
+    void TriangulatePolygonAdditive(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices)
+    {
+        std::vector<u32> polygonVertexIndices;
+        polygonVertexIndices.reserve(static_cast<size_t>(numPolygonVertices));
+
+        // Triangulate
+        float position[3] = { 0.0f, 0.0f, 0.0f };
+        float normal[3] = { 0.0f, 0.0f, 0.0f };
+        float uv[2] = { 0.0f, 0.0f };
+
+        for (int polygonVertex = 0; polygonVertex < numPolygonVertices; ++polygonVertex)
+        {
+            u32 polygonIndex = pResource->AddVertex();
+            auto vertex = pResource->GetVertex(polygonIndex);
+            CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
+            polygonVertexIndices.push_back(polygonIndex);
+
+            TVec<float, 3>::add(position, vertex->Position);
+            TVec<float, 3>::add(normal, vertex->Normal);
+            TVec<float, 2>::add(uv, vertex->UV);
+        }
+
+        float inv = 1.0f / numPolygonVertices;
+        TVec<float, 3>::mul(position, inv);
+        TVec<float, 3>::mul(normal, inv);
+        TVec<float, 2>::mul(uv, inv);
+
+        auto index = pResource->AddVertex(position, normal, uv);
+
+        for (int polygonVertexIndex = 0, numPolygonVertexIndices = (int)polygonVertexIndices.size(); polygonVertexIndex < numPolygonVertexIndices; ++polygonVertexIndex)
+        {
+            u32 currentIndex = polygonVertexIndices[polygonVertexIndex];
+            u32 nextIndex = (polygonVertexIndex == numPolygonVertexIndices - 1) ? polygonVertexIndices[0] : polygonVertexIndices[polygonVertexIndex + 1];
+
+            if (g_reverseWindingOrder)
+            {
+                pResource->AddIndex(index);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(nextIndex);
+            }
+            else
+            {
+                pResource->AddIndex(nextIndex);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(index);
+
+                /*          std::cout << index << ": " << ToString(pResource->GetVertex(index)->Position) << std::endl;
+                std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
+                std::cout << nextIndex << ": " << ToString(pResource->GetVertex(nextIndex)->Position) << std::endl;*/
+            }
+        }
+    }
+
+    void TriangulatePolygon(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices)
+    {
+        std::vector<u32> polygonVertexIndices;
+        polygonVertexIndices.reserve(static_cast<size_t>(numPolygonVertices));
+
+        for (int polygonVertex = 0; polygonVertex < numPolygonVertices; ++polygonVertex)
+        {
+            u32 polygonIndex = pResource->AddVertex();
+            auto vertex = pResource->GetVertex(polygonIndex);
+            CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
+            polygonVertexIndices.push_back(polygonIndex);
+        }
+
+        // TODO: Pick best starting vertex (for now picking vertex @ first index)
+        u32 index = polygonVertexIndices[0];
+
+        for (int polygonVertexIndex = 1, numPolygonVertexIndices = static_cast<int>(polygonVertexIndices.size()) - 1; polygonVertexIndex < numPolygonVertexIndices; ++polygonVertexIndex)
+        {
+            u32 currentIndex = polygonVertexIndices[polygonVertexIndex];
+            u32 nextIndex = polygonVertexIndices[polygonVertexIndex + 1];
+
+            if (g_reverseWindingOrder)
+            {
+                pResource->AddIndex(index);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(nextIndex);
+            }
+            else
+            {
+                pResource->AddIndex(nextIndex);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(index);
+
+                //std::cout << nextIndex << ": " << ToString(pResource->GetVertex(nextIndex)->Position) << std::endl;
+                //std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
+                //std::cout << index << ": " << ToString(pResource->GetVertex(index)->Position) << std::endl;
+            }
+        }
+    }
+
+    bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3])
     {
         int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
         FbxVector4 position = pMesh->GetControlPointAt(controlPoint);
@@ -213,7 +292,7 @@ namespace Resource
         return controlPoint != -1;
     }
 
-    static bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3])
+    bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3])
     {
         FbxVector4 normal;
         bool success = pMesh->GetPolygonVertexNormal(polygon, polygonVertex, normal);
@@ -225,7 +304,7 @@ namespace Resource
         return success;
     }
 
-    static bool TryGetVertexUV(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, float(&outUV)[2])
+    bool TryGetVertexUV(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, float(&outUV)[2])
     {
         FbxVector2 uv;
         bool unmapped;
@@ -238,7 +317,7 @@ namespace Resource
         return success;
     }
 
-    static void GetVertexAttributes(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, FbxVector4& outPosition, FbxVector4& outNormal, FbxVector2& outTexCoord)
+    void GetVertexAttributes(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, FbxVector4& outPosition, FbxVector4& outNormal, FbxVector2& outTexCoord)
     {
         bool unmapped;
         int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
@@ -254,7 +333,7 @@ namespace Resource
         }
     }
 
-    static void CreateVertex(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, Fbx::Vertex& outVertex)
+    void CreateVertex(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, Fbx::Vertex& outVertex)
     {
         FbxVector4 position = FbxVector4(0.0, 0.0, 0.0);
         FbxVector4 normal = FbxVector4(0.0, 0.0, 0.0);
@@ -267,29 +346,30 @@ namespace Resource
         ExtractFloat<2>(uv.mData, outVertex.UV);
     }
 
-    static void ConvertCoordinateSystem(FbxVector4& vector)
+    void ConvertCoordinateSystem(FbxVector4& vector)
     {
         // Negate x-axis
         vector.mData[0] = -vector.mData[0];
     }
 
-    static void ConvertCoordinateSystem(FbxVector2& vector)
+    void ConvertCoordinateSystem(FbxVector2& vector)
     {
         vector.mData[0] = 1.0 - vector.mData[0];
     }
 
-    static void ConvertCoordinateSystem(FbxAMatrix& matrix)
+    void ConvertCoordinateSystem(FbxAMatrix& matrix)
     {
         auto pDouble = static_cast<double*>(matrix);
 
+        // Negate first row
         pDouble[ 4] = -pDouble[ 4];
         pDouble[ 8] = -pDouble[ 8];
         pDouble[12] = -pDouble[12];
 
+        // Negate first column
         pDouble[1] = -pDouble[1];
         pDouble[2] = -pDouble[2];
         pDouble[3] = -pDouble[3];
-
     }
 
     template<typename ... Args>
@@ -297,15 +377,9 @@ namespace Resource
     {
         size_t size = 64;
         std::unique_ptr<char[]> buf(new char[size]);
-        _snprintf_s(buf.get(), size, size, format.c_str(), args ...);
+        int i = _snprintf_s(buf.get(), size, size, format.c_str(), args ...);
         return std::string(buf.get(), buf.get() + size); // We don't want the '\0' inside
     }
-
-    static std::string ToString(FbxVector4& vector);
-    static std::string ToString(FbxVector2& vector);
-    static std::string ToString(float(&vector)[4]);
-    static std::string ToString(float(&vector)[3]);
-    static std::string ToString(float(&vector)[2]);
 
     std::string ToString(FbxVector4& vector)
     {
@@ -333,7 +407,7 @@ namespace Resource
     }
 
     template<i32 T0, i32 T1>
-    static void ExtractFloat(double(&in)[T0], float(&out)[T1])
+    void ExtractFloat(double(&in)[T0], float(&out)[T1])
     {
         for (int i = 0; i < T1; ++i)
         {
@@ -342,7 +416,7 @@ namespace Resource
     }
 
     template<i32 T>
-    static void ExtractFloat(double(&in)[T], float(&out)[T])
+    void ExtractFloat(double(&in)[T], float(&out)[T])
     {
         ExtractFloat<T, T>(in, out);
     }
@@ -420,7 +494,7 @@ namespace Resource
         fbxImporter->Destroy();
 
         g_convertCoordinate = !(fbxScene->GetGlobalSettings().GetAxisSystem() == FBX_DEFAULT_AXIS);
-        g_reversePolygons = (g_convertCoordinate) ? (FBX_WINDING_ORDER == TriWindingOrder::TRI_WINDING_ORDER_CW) : (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW); 
+        g_reverseWindingOrder = (g_convertCoordinate) ? (FBX_WINDING_ORDER == TriWindingOrder::TRI_WINDING_ORDER_CW) : (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW); 
 
         FbxNode* rootNode = fbxScene->GetRootNode();
         if (rootNode)

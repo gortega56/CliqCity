@@ -105,11 +105,15 @@ public:
         memset(tangents.data(), 0, sizeof(float3) * tangents.size());
         memset(bitangents.data(), 0, sizeof(float3) * bitangents.size());
 
-        for (int i = 3, numIndices = (int)m_indices.size(); i < numIndices; i += 3)
+        for (int i = 3, numIndices = (int)m_indices.size(); i <= numIndices; i += 3)
         {
-            Vertex& v0 = m_vertices[m_indices[i - 3]];
-            Vertex& v1 = m_vertices[m_indices[i - 2]];
-            Vertex& v2 = m_vertices[m_indices[i - 1]];
+            Index i0 = m_indices[i - 3];
+            Index i1 = m_indices[i - 2];
+            Index i2 = m_indices[i - 1];
+
+            Vertex& v0 = m_vertices[i0];
+            Vertex& v1 = m_vertices[i1];
+            Vertex& v2 = m_vertices[i2];
 
             float x1 = v1.Position.x - v0.Position.x;
             float x2 = v2.Position.x - v0.Position.x;
@@ -128,20 +132,21 @@ public:
             float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
             float3 bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
 
-            tangents[m_indices[i - 3]] += tangent;
-            tangents[m_indices[i - 2]] += tangent;
-            tangents[m_indices[i - 1]] += tangent;
+            tangents[i0] += tangent;
+            tangents[i1] += tangent;
+            tangents[i2] += tangent;
 
-            bitangents[m_indices[i - 3]] += bitangent;
-            bitangents[m_indices[i - 2]] += bitangent;
-            bitangents[m_indices[i - 1]] += bitangent;
+            bitangents[i0] += bitangent;
+            bitangents[i1] += bitangent;
+            bitangents[i2] += bitangent;
         }
 
         for (int i = 0, numIndices = (int)m_indices.size(); i < numIndices; i++)
         {
-            Vertex& vertex = m_vertices[m_indices[i]];
-            float3& tangent = tangents[m_indices[i]];
-            float3& bitangent = bitangents[m_indices[i]];
+            Index index = m_indices[i];
+            Vertex& vertex = m_vertices[index];
+            float3& tangent = tangents[index];
+            float3& bitangent = bitangents[index];
             float3& normal = vertex.Normal;
 
             vertex.Tangent = gmath::normalize((tangent - normal * gmath::dot(normal, tangent)));
