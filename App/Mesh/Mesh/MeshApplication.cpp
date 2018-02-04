@@ -23,7 +23,7 @@
 #define FBX_PATH1 L".\\Assets\\cube.FBX"
 
 using namespace gmath;
-
+static float g_scale = 5.0f;
 Console g_console;
 
 MeshApplication::MeshApplication()
@@ -180,7 +180,7 @@ bool MeshApplication::Initialize()
     float aspectRatio = m_window->AspectRatio();
 
 
-    m_cbvData0.model = float4x4::scale(float3(1.0f));
+    m_cbvData0.model = float4x4::scale(float3(g_scale));
     m_cbvData0.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
     m_cbvData0.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 /*
@@ -328,7 +328,7 @@ void MeshApplication::FixedUpdate(double dt)
 
         float4x4 r;
         quaternion(rotation).to_matrix(r);
-        m_cbvData0.model = r.transpose();
+        m_cbvData0.model = (r * float4x4::scale(g_scale)).transpose();
     }
 
     //double time = m_engine->Total() * 0.5f;

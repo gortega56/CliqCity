@@ -100,9 +100,6 @@ public:
 
     void GenerateTangents()
     {
-        //std::map<int, std::vector<gmath::float3>> sharedTangentMap;
-        //std::map<int, std::vector<gmath::float3>> sharedBitangentMap;
-
         std::vector<float3> tangents(m_vertices.size());
         std::vector<float3> bitangents(m_vertices.size());
         memset(tangents.data(), 0, sizeof(float3) * tangents.size());
@@ -148,7 +145,7 @@ public:
             float3& normal = vertex.Normal;
 
             vertex.Tangent = gmath::normalize((tangent - normal * gmath::dot(normal, tangent)));
-            vertex.Tangent.w = (gmath::dot(gmath::cross(normal, tangent), bitangent) < 0.0f) ? -1.0f : 1.0f;
+            vertex.Tangent.w = (gmath::dot(gmath::cross(normal, tangent), bitangent) > 0.0f) ? 1.0f : -1.0f;
         }
     }
 

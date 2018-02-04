@@ -24,19 +24,20 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         n.x, n.y, n.z
     };
    
-    float3 normTex = normalTexture.Sample(samp, input.uv).xyz * 2.0f - 1.0f;
-    n = mul(normTex, tbn);
+    float3 ns = normalTexture.Sample(samp, input.uv).xyz;
+    float3 tns = ns * 2.0f - 1.0f;
+    n = mul(tns, tbn);
 
-    float3 l = float3(0.0f, 0.5f, -0.5f);
+    float3 l = float3(0.0f, -0.5f, 0.5f);
 
-   float4 color = float4(0.8, 0.8f, 0.8f, 1.0f);
+    float4 color = float4(0.8, 0.8f, 0.8f, 1.0f);
     //float4 color = float4(1.0f, 0.0f, 0.0f, 1.0f);/*
     //float4 color = float4(0.0f, 1.0f, 0.0f, 1.0f);
     //float4 color = float4(0.0f, 0.0f, 1.0f, 1.0f);*/
     
     float4 diff = diffuseTexture.Sample(samp, input.uv);
 
-    float nDotL = dot(l, n);
+    float nDotL = dot(n, -l);
 
     return color * diff * saturate(nDotL);
 }

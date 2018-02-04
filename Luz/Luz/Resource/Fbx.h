@@ -46,7 +46,6 @@ namespace Resource
             };
         };
 
-
         struct Triangle
         {
             Vertex Vertices[3];
