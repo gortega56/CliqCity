@@ -227,15 +227,15 @@ namespace Resource
 
             if (g_reverseWindingOrder)
             {
-                pResource->AddIndex(index);
-                pResource->AddIndex(currentIndex);
                 pResource->AddIndex(nextIndex);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(index);
             }
             else
             {
-                pResource->AddIndex(nextIndex);
-                pResource->AddIndex(currentIndex);
                 pResource->AddIndex(index);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(nextIndex);
 
                 /*          std::cout << index << ": " << ToString(pResource->GetVertex(index)->Position) << std::endl;
                 std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
@@ -267,15 +267,16 @@ namespace Resource
 
             if (g_reverseWindingOrder)
             {
-                pResource->AddIndex(index);
-                pResource->AddIndex(currentIndex);
                 pResource->AddIndex(nextIndex);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(index);
             }
             else
             {
-                pResource->AddIndex(nextIndex);
-                pResource->AddIndex(currentIndex);
+
                 pResource->AddIndex(index);
+                pResource->AddIndex(currentIndex);
+                pResource->AddIndex(nextIndex);
 
                 //std::cout << nextIndex << ": " << ToString(pResource->GetVertex(nextIndex)->Position) << std::endl;
                 //std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
@@ -421,6 +422,41 @@ namespace Resource
         ExtractFloat<T, T>(in, out);
     }
 
+    std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
+    {
+        auto fbx = std::make_shared<Fbx>();
+
+        FbxManager* fbxManager = FbxManager::Create();
+
+        FbxIOSettings* ios = FbxIOSettings::Create(fbxManager, IOSROOT);
+        fbxManager->SetIOSettings(ios);
+
+        FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
+        if (!fbxImporter->Initialize(std::string(filename.begin(), filename.end()).c_str(), -1, fbxManager->GetIOSettings()))
+        {
+            return nullptr;
+        }
+
+        FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
+        fbxImporter->Import(fbxScene);
+        fbxImporter->Destroy();
+
+        g_convertCoordinate = fbxScene->GetGlobalSettings().GetAxisSystem() != FBX_DEFAULT_AXIS;
+        g_reverseWindingOrder = (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW);
+
+        FbxNode* rootNode = fbxScene->GetRootNode();
+        if (rootNode)
+        {
+            GetNodeAttributesRecursively(fbx.get(), rootNode);
+        }
+
+        fbxScene->Destroy();
+        fbxManager->Destroy();
+
+        return fbx;
+    }
+
+
     Fbx::Fbx()
     {
 
@@ -472,69 +508,6 @@ namespace Resource
     void Fbx::AddIndex(u32 i)
     {
         m_indices.push_back(i);
-    }
-
-    std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
-    {
-        auto fbx = std::make_shared<Fbx>();
-
-        FbxManager* fbxManager = FbxManager::Create();
-
-        FbxIOSettings* ios = FbxIOSettings::Create(fbxManager, IOSROOT);
-        fbxManager->SetIOSettings(ios);
-
-        FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
-        if (!fbxImporter->Initialize(std::string(filename.begin(), filename.end()).c_str(), -1, fbxManager->GetIOSettings()))
-        {
-            return nullptr;
-        }
-
-        FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
-        fbxImporter->Import(fbxScene);
-        fbxImporter->Destroy();
-
-        g_convertCoordinate = !(fbxScene->GetGlobalSettings().GetAxisSystem() == FBX_DEFAULT_AXIS);
-        g_reverseWindingOrder = (g_convertCoordinate) ? (FBX_WINDING_ORDER == TriWindingOrder::TRI_WINDING_ORDER_CW) : (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW); 
-
-        FbxNode* rootNode = fbxScene->GetRootNode();
-        if (rootNode)
-        {
-            GetNodeAttributesRecursively(fbx.get(), rootNode);
-        }
-        
-        fbxScene->Destroy();
-        fbxManager->Destroy();
-
-        return fbx;
-    }
-
-    void Fbx::WriteVertexData(void* pData, size_t stride, size_t size, Vertex::Flag flags) const
-    {
-        LUZASSERT(size == stride * m_vertices.size())
-
-        for (int i = 0, count = (int)m_vertices.size(); i < count; ++i)
-        {
-            u8* pVertexData = reinterpret_cast<u8*>(pData) + i * stride;
-            auto& vertex = m_vertices[i];
-
-            if ((flags & Fbx::Vertex::Flag::POSITION) != 0)
-            {
-                memcpy_s(pVertexData, 12, vertex.Position, 12);
-                pVertexData += 12;
-            }
-
-            if ((flags & Fbx::Vertex::Flag::NORMAL) != 0)
-            {
-                memcpy_s(pVertexData, 12, vertex.Normal, 12);
-                pVertexData += 12;
-            }
-
-            if ((flags & Fbx::Vertex::Flag::UV) != 0)
-            {
-                memcpy_s(pVertexData, 8, vertex.UV, 8);
-                pVertexData += 8;
-            }
-        }
     }
 }
 

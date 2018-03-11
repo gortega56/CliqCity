@@ -230,6 +230,8 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="Platform\Platform.cpp" />
     <ClCompile Include="Platform\WindowsPlatform.cpp" />
     <ClCompile Include="Resource\Fbx.cpp" />
+    <ClCompile Include="Resource\MeshResourceUtility.cpp" />
+    <ClCompile Include="Resource\ObjResource.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Platform\Window.cpp" />
@@ -273,6 +275,8 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Platform\Platform.h" />
     <ClInclude Include="Platform\WindowsPlatform.h" />
     <ClInclude Include="Resource\Fbx.h" />
+    <ClInclude Include="Resource\MeshResourceUtility.h" />
+    <ClInclude Include="Resource\ObjResource.h" />
     <ClInclude Include="Resource\ResourceManager.h" />
     <ClInclude Include="Resource\Texture.h" />
     <ClInclude Include="Scene.h" />
