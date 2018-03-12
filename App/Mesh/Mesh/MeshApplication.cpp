@@ -8,6 +8,7 @@
 #include "DirectX12\CommandContext.h"
 #include "Resource\Texture.h"
 #include "Resource\Fbx.h"
+#include "Resource\ObjResource.h"
 #include "Platform\Window.h"
 #include "Graphics.h"
 #include "Console.h"
@@ -21,6 +22,10 @@
 
 #define FBX_PATH0 L".\\Assets\\/*Prof_Animated*/.fbx"
 #define FBX_PATH1 L".\\Assets\\cube.FBX"
+
+#define SPONZA_OBJ_PATH L".\\Assets\\sponza_obj\\sponza.obj"
+#define SPONZA_MTL_PATH L".\\Assets\\sponza_obj\\sponza.mtl"
+#define SPONZA_TEX_PATH L".\\Assets\\sponza_textures\\textures\\"
 
 using namespace gmath;
 static float g_scale = 5.0f;
@@ -49,6 +54,12 @@ bool MeshApplication::Initialize()
     m_renderable0 = std::make_shared<Renderable>();
     std::weak_ptr<Renderable> weakRenderable = m_renderable0;
     ResourceManager rm;
+
+    rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [](std::shared_ptr<const Resource::Obj> pObj)
+    {
+
+    });
+
     rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
     {
         if (!pFbx) return;

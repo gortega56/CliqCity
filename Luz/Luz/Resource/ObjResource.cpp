@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "ObjResource.h"
 #include <fstream>
+#include <sstream>
 
 namespace Resource
 {
@@ -57,13 +58,47 @@ namespace Resource
     static const char* g_positionFormat = "v %f %f %f";
     static const char* g_normalFormat = "vn %f %f %f";
     static const char* g_uvFormat = "vt %f %f";
-    static const char* g_faceFormat = "f %d/%d/%d %d/%d/%d %d/%d/%d";
+    static const char* g_faceFormatPTN = "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d";
+    static const char* g_faceFormatPN = "f %d//%d %d//%d %d//%d %d//%d";
+    static const char* g_faceFormatPT = "f %d/%d %d/%d %d/%d %d/%d";
 
     static const u32 g_maxChar = 100;
     
+    static void ReadFace(const char* line, i32(&dest)[12], bool& isTri);
+
     static void ReadFormat(const char* line, const char* format, u32(&dest)[9]);
     static void ReadFormat(const char* line, const char* format, float(&dest)[3]);
     static void ReadFormat(const char* line, const char* format, float(&dest)[2]);
+
+    static void ReadFace(const char* line, i32(&dest)[12], bool& isTri)
+    {
+        i32 idx = 0, verts = 0;
+        memset(dest, -1, sizeof(i32) * 12);
+
+        std::stringstream lss = std::stringstream(line);
+        std::string ltok, ttok;
+
+        while (std::getline(lss, ltok, ' '))
+        {
+            if (ltok[0] == 'f') continue;
+
+            i32 attempts = 0;
+
+            std::stringstream tss = std::stringstream(ltok);
+            while (std::getline(tss, ttok, '/'))
+            {
+                sscanf_s(ttok.c_str(), "%d", &dest[idx++]);
+                attempts += 1;
+            }
+
+            // Handle "%d/%d" format
+            if (attempts == 2) idx += 1;
+
+            verts += 1;
+        }
+
+        isTri = (verts == 3);
+    }
 
     static void ReadFormat(const char* line, const char* format, u32(&dest)[9])
     {
@@ -91,7 +126,7 @@ namespace Resource
             using Position = TArray<float, 3>;
             using Normal = TArray<float, 3>;
             using UV = TArray<float, 2>;
-            using Face = TArray<u32, 9>;
+            using Face = TArray<i32, 12>;
 
             using VertexIndirect = TArray<u32, 3>;
             using VertexIndirectHash = TArrayHash<u32, 3>;
@@ -128,37 +163,55 @@ namespace Resource
                 else if (line[0] == 'f')
                 {
                     faces.emplace_back();
-                    ReadFormat(line, g_faceFormat, faces.back().Data);
-
                     Face* pFace = &faces.back();
 
-                    for (size_t i = 0; i < 3; ++i)
+                    bool isTri = false;
+                    ReadFace(line, pFace->Data, isTri);
+
+                    if (isTri)
                     {
-                        VertexIndirect vi;
-                        vi.Data[0] = pFace->Data[3 * i + 0] - 1;
-                        vi.Data[1] = pFace->Data[3 * i + 1] - 1;
-                        vi.Data[2] = pFace->Data[3 * i + 2] - 1;
-
-                        auto iter = indirects.find(vi);
-                        if (iter == indirects.end())
+                        for (size_t i = 0; i < 3; ++i)
                         {
-                            // New vertex: Create and store for look up later
-                            u32 index = static_cast<u32>(pResource->m_vertices.size());
-                            pResource->m_vertices.emplace_back();
-                            pResource->m_indices.push_back(index);
-                            indirects.insert({ vi, index });
+                            i32 p = pFace->Data[3 * i + 0] - 1;
+                            i32 t = pFace->Data[3 * i + 1];
+                            i32 n = pFace->Data[3 * i + 2];
+                            
+                            // -1 is invalid... don't ruin it.
+                            if (t != -1) t -= 1;
+                            if (n != -1) n -= 1;
 
-                            Vertex* pVertex = &pResource->m_vertices[index];
-                            memcpy_s(pVertex->Position, sizeof(Position), positions[vi.Data[0]].Data, sizeof(Position));
-                            memcpy_s(pVertex->UV, sizeof(UV), uvs[vi.Data[1]].Data, sizeof(UV));
-                            memcpy_s(pVertex->Normal, sizeof(Normal), normals[vi.Data[2]].Data, sizeof(Normal));
-                        }
-                        else
-                        {
-                            // Existing vertex.. just push the index
-                            pResource->m_indices.push_back(iter->second);
+                            VertexIndirect vi;
+                            vi.Data[0] = p;
+                            vi.Data[1] = t;
+                            vi.Data[2] = n;
+
+                            auto iter = indirects.find(vi);
+                            if (iter == indirects.end())
+                            {
+                                // New vertex: Create and store for look up later
+                                u32 index = static_cast<u32>(pResource->m_vertices.size());
+                                pResource->m_vertices.emplace_back();
+                                pResource->m_indices.push_back(index);
+                                indirects.insert({ vi, index });
+
+                                Vertex* pVertex = &pResource->m_vertices[index];
+                                memcpy_s(pVertex->Position, sizeof(Position), positions[vi.Data[0]].Data, sizeof(Position));
+                                if (vi.Data[1] != -1) memcpy_s(pVertex->UV, sizeof(UV), uvs[vi.Data[1]].Data, sizeof(UV));
+                                if (vi.Data[2] != -1) memcpy_s(pVertex->Normal, sizeof(Normal), normals[vi.Data[2]].Data, sizeof(Normal));
+                            }
+                            else
+                            {
+                                // Existing vertex.. just push the index
+                                pResource->m_indices.push_back(iter->second);
+                            }
                         }
                     }
+                    else
+                    {
+
+                    }
+
+                    
                 }
             }
         }

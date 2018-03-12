@@ -13,10 +13,10 @@ namespace Resource
     public:
         typedef Vertex1 Vertex;
 
-        static std::shared_ptr<const Obj> Load(const std::wstring& filename);
+        static std::shared_ptr<const Obj> LUZ_API Load(const std::wstring& filename);
 
-        Obj();
-        ~Obj();
+        LUZ_API Obj();
+        LUZ_API ~Obj();
 
     private:
         std::vector<Vertex> m_vertices;
