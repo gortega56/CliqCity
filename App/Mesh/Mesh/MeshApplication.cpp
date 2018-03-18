@@ -9,6 +9,7 @@
 #include "Resource\Texture.h"
 #include "Resource\Fbx.h"
 #include "Resource\ObjResource.h"
+#include "Resource\MtlResource.h"
 #include "Platform\Window.h"
 #include "Graphics.h"
 #include "Console.h"
@@ -54,6 +55,11 @@ bool MeshApplication::Initialize()
     m_renderable0 = std::make_shared<Renderable>();
     std::weak_ptr<Renderable> weakRenderable = m_renderable0;
     ResourceManager rm;
+
+    rm.LoadResource<Resource::Mtl>(SPONZA_MTL_PATH, [](std::shared_ptr<const Resource::Mtl> pObj)
+    {
+
+    });
 
     rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [](std::shared_ptr<const Resource::Obj> pObj)
     {

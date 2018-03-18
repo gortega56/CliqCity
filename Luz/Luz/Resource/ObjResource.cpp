@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "ObjResource.h"
-#include <fstream>
-#include <sstream>
+
 
 namespace Resource
 {
@@ -210,10 +209,10 @@ namespace Resource
                     {
 
                     }
-
-                    
                 }
             }
+
+            fileStream.close();
         }
 
         return pResource;

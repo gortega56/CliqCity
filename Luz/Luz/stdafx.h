@@ -43,6 +43,8 @@
 #include <utility>
 #include <set>
 #include <unordered_set>
+#include <fstream>
+#include <sstream>
 
 #ifndef GMATH_H
 #include "gmath.h"
