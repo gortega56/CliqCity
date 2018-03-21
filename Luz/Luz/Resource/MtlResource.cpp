@@ -13,6 +13,24 @@ namespace Resource
 
     }
 
+    const Mtl::Material* Mtl::GetMaterial(const std::string name) const
+    {
+        const Material* pMaterial = nullptr;
+
+        auto iter = m_materials.find(name);
+        if (iter != m_materials.end())
+        {
+            pMaterial = &iter->second;
+        }
+
+        return pMaterial;
+    }
+
+    size_t Mtl::NumMaterials() const
+    {
+        return m_materials.size();
+    }
+
     Mtl::Material* Mtl::FindOrCreateMaterial(const std::string& name)
     {
         return &m_materials[name];

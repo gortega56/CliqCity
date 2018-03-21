@@ -34,6 +34,9 @@ namespace Resource
         Mtl();
         ~Mtl();
 
+        const Material* GetMaterial(const std::string name) const;
+        size_t NumMaterials() const;
+
     private:
         std::unordered_map<std::string, Material> m_materials;
 

@@ -7,7 +7,7 @@ namespace Resource
 {
     using Position = TArray<float, 3>;
     using Normal = TArray<float, 3>;
-    using UV = TArray<float, 2>;
+    using UV = TArray<float, 3>;
 
     using VertexIndirect = TArray<u32, 3>;
     using VertexIndirectHash = TArrayHash<u32, 3>;
@@ -27,22 +27,21 @@ namespace Resource
     {
         std::shared_ptr<Obj> pResource;
 
-        auto filename_str = std::string(filename.begin(), filename.end());
-        std::ifstream fileStream(filename_str.c_str());
+        auto fs = std::string(filename.begin(), filename.end());
+        std::ifstream fileStream(fs.c_str());
         if (fileStream.is_open())
         {
-            std::string lastMaterialName;
+            pResource = std::make_shared<Obj>();
+            
             std::vector<Position> positions;
             std::vector<Normal> normals;
             std::vector<UV> uvs;
             std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual> indirects;
-            
-            pResource = std::make_shared<Obj>();
-
             std::unordered_map<std::string, Mesh::Builder> builders;
+            std::vector<std::string> materialNames;
+            i32 materialIndex = -1;
+            
             Mesh::Builder* pMeshBuilder = nullptr;
-
-            std::atomic<u32> numMtlLoading = 0;
 
             while (fileStream.good())
             {
@@ -69,6 +68,9 @@ namespace Resource
 
                     float* uv = uvs.back().Data;
                     fileStream >> uv[0] >> uv[1];
+
+                    // Store index for texture array later
+                    uv[2] = materialIndex;
                 }
                 else if (statement.compare("vn") == 0)
                 {
@@ -79,7 +81,27 @@ namespace Resource
                 }
                 else if (statement.compare("usemtl") == 0)
                 {
-                    fileStream >> lastMaterialName;
+                    std::string materialName;
+                    fileStream >> materialName;
+
+                    i32 mi = -1;
+                    for (i32 i = 0; i < (i32)materialNames.size(); ++i)
+                    {
+                        if (materialName == materialNames[i])
+                        {
+                            mi = i;
+                            break;
+                        }
+                    }
+
+                    // Did we find the material name?
+                    if (mi == -1)
+                    {
+                        materialNames.push_back(materialName);
+                        mi = (i32)materialNames.size() - 1;
+                    }
+
+                    materialIndex = mi;
                 }
                 else if (statement.compare("mtllib") == 0)
                 {
@@ -107,7 +129,6 @@ namespace Resource
                 {
                     if (!pMeshBuilder) pMeshBuilder = &builders[""];
 
-                    pMeshBuilder->MaterialName = lastMaterialName;
                     pMeshBuilder->Faces.emplace_back();
                     
                     Mesh::Face* pFace = &pMeshBuilder->Faces.back();
@@ -177,10 +198,11 @@ namespace Resource
 
             fileStream.close();
 
+            // wait for mtls so we can associate with meshes with mats
             // if this == expected -> atomic = desired. return true;
             // else expected == this. return false
             u32 expected = pResource->m_numMtlLoading.load();
-            while (!numMtlLoading.compare_exchange_strong(expected, 0))
+            while (!pResource->m_numMtlLoading.compare_exchange_strong(expected, 0))
             {
                 Sleep(0);
             }

@@ -14,20 +14,24 @@ namespace Resource
     {
         struct Mesh
         {
+            struct Vertex
+            {
+                float Position[3];
+                float Normal[3];
+                float UV[3];
+            };
+
             struct Face : public TArray<i32, 12>
             {
-                bool HasNormals;
-                bool HasUvs;
-                bool IsTri;
+                bool HasNormals = false;
+                bool HasUvs = false;
+                bool IsTri = false;
             };
 
             struct Builder
             {
-                std::string MaterialName;
                 std::vector<Face> Faces;
             };
-
-            typedef Vertex1 Vertex;
 
             std::string Name;               
             std::vector<Vertex> Vertices;
