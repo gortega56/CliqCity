@@ -4,6 +4,56 @@
 
 namespace Resource
 {
+    template<typename T, size_t N>
+    struct TArray
+    {
+        T Data[N];
+
+        TArray(T(&src)[N]);
+        TArray();
+    };
+
+    template<typename T, size_t N>
+    TArray<T, N>::TArray(T(&src)[N])
+    {
+        memcpy_s(Data, sizeof(T) * N, src, sizeof(T) * N);
+    }
+
+    template<typename T, size_t N>
+    TArray<T, N>::TArray()
+    {
+        memset(Data, static_cast<T>(0), sizeof(T) * N);
+    }
+
+    template<typename T, size_t N>
+    struct TArrayHash
+    {
+        size_t operator()(const TArray<T, N>& o) const
+        {
+            size_t hash = 0;
+            for (size_t i = 0; i < N; ++i)
+            {
+                hash = hash * 31 + std::hash<T>{}(o.Data[i]);
+            }
+
+            return hash;
+        }
+    };
+
+    template<typename T, size_t N>
+    struct TArrayEqual
+    {
+        bool operator()(const TArray<T, N>& lhs, const TArray<T, N>& rhs) const
+        {
+            for (size_t i = 0; i < N; ++i)
+            {
+                if (lhs.Data[i] != rhs.Data[i]) return false;
+            }
+
+            return true;
+        }
+    };
+
     struct Vertex0
     {
         float Position[3];

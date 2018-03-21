@@ -13,7 +13,7 @@ namespace Resource
 
     }
 
-    Mtl::Material* Mtl::FindOrCreateMaterial(const std::string name)
+    Mtl::Material* Mtl::FindOrCreateMaterial(const std::string& name)
     {
         return &m_materials[name];
     }

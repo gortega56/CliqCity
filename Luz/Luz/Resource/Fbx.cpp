@@ -422,41 +422,6 @@ namespace Resource
         ExtractFloat<T, T>(in, out);
     }
 
-    std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
-    {
-        auto fbx = std::make_shared<Fbx>();
-
-        FbxManager* fbxManager = FbxManager::Create();
-
-        FbxIOSettings* ios = FbxIOSettings::Create(fbxManager, IOSROOT);
-        fbxManager->SetIOSettings(ios);
-
-        FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
-        if (!fbxImporter->Initialize(std::string(filename.begin(), filename.end()).c_str(), -1, fbxManager->GetIOSettings()))
-        {
-            return nullptr;
-        }
-
-        FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
-        fbxImporter->Import(fbxScene);
-        fbxImporter->Destroy();
-
-        g_convertCoordinate = fbxScene->GetGlobalSettings().GetAxisSystem() != FBX_DEFAULT_AXIS;
-        g_reverseWindingOrder = (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW);
-
-        FbxNode* rootNode = fbxScene->GetRootNode();
-        if (rootNode)
-        {
-            GetNodeAttributesRecursively(fbx.get(), rootNode);
-        }
-
-        fbxScene->Destroy();
-        fbxManager->Destroy();
-
-        return fbx;
-    }
-
-
     Fbx::Fbx()
     {
 
@@ -509,5 +474,40 @@ namespace Resource
     {
         m_indices.push_back(i);
     }
+
+    std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
+    {
+        auto fbx = std::make_shared<Fbx>();
+
+        FbxManager* fbxManager = FbxManager::Create();
+
+        FbxIOSettings* ios = FbxIOSettings::Create(fbxManager, IOSROOT);
+        fbxManager->SetIOSettings(ios);
+
+        FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
+        if (!fbxImporter->Initialize(std::string(filename.begin(), filename.end()).c_str(), -1, fbxManager->GetIOSettings()))
+        {
+            return nullptr;
+        }
+
+        FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
+        fbxImporter->Import(fbxScene);
+        fbxImporter->Destroy();
+
+        g_convertCoordinate = fbxScene->GetGlobalSettings().GetAxisSystem() != FBX_DEFAULT_AXIS;
+        g_reverseWindingOrder = (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW);
+
+        FbxNode* rootNode = fbxScene->GetRootNode();
+        if (rootNode)
+        {
+            GetNodeAttributesRecursively(fbx.get(), rootNode);
+        }
+
+        fbxScene->Destroy();
+        fbxManager->Destroy();
+
+        return fbx;
+    }
+
 }
 

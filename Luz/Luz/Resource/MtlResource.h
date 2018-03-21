@@ -34,10 +34,10 @@ namespace Resource
         Mtl();
         ~Mtl();
 
-        Material* FindOrCreateMaterial(const std::string name);
-
     private:
         std::unordered_map<std::string, Material> m_materials;
+
+        Material* FindOrCreateMaterial(const std::string& name);
     };
 }
 
