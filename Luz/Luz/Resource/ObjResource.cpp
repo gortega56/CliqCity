@@ -15,7 +15,7 @@ namespace Resource
 
     Obj::Obj()
     {
-
+        m_numMtlLoading.store(0);
     }
 
     Obj::~Obj()
@@ -87,17 +87,17 @@ namespace Resource
                     fileStream >> mtlFilename;
 
                     std::weak_ptr<Obj> weakObj = pResource;
-                    numMtlLoading.fetch_add(1);
+                    pResource->m_numMtlLoading.fetch_add(1);
 
                     ResourceManager rm;
-                    rm.LoadResource<Mtl>(std::wstring(mtlFilename.begin(), mtlFilename.end()), [weakObj, &numMtlLoading](std::shared_ptr<const Mtl> pMtl)
+                    rm.LoadResource<Mtl>(std::wstring(mtlFilename.begin(), mtlFilename.end()), [weakObj](std::shared_ptr<const Mtl> pMtl)
                     {
-                        numMtlLoading.fetch_sub(1);
-
                         if (auto pObj = weakObj.lock())
                         {
+                            pObj->m_numMtlLoading.fetch_sub(1);
                             if (pMtl)
                             {
+                                std::lock_guard<std::mutex> lock(pObj->m_mtlMutex);
                                 pObj->m_mtls.push_back(pMtl);
                             }
                         }
@@ -177,8 +177,10 @@ namespace Resource
 
             fileStream.close();
 
-            u32 expected = 0;
-            while (numMtlLoading.compare_exchange_strong(expected, 0))
+            // if this == expected -> atomic = desired. return true;
+            // else expected == this. return false
+            u32 expected = pResource->m_numMtlLoading.load();
+            while (!numMtlLoading.compare_exchange_strong(expected, 0))
             {
                 Sleep(0);
             }
@@ -196,7 +198,7 @@ namespace Resource
                 {
                     size_t numFaceVertices = (face.IsTri) ? 3 : 6;
 
-                    for (size_t i = 0; i < 6; ++i)
+                    for (size_t i = 0; i < numFaceVertices; ++i)
                     {
                         VertexIndirect vi;
                         vi.Data[0] = face.Data[3 * (i % 3) + 0] - 1;

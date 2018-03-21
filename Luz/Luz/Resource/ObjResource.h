@@ -43,8 +43,11 @@ namespace Resource
         LUZ_API ~Obj();
 
     private:
-        std::vector<Mesh> m_meshes;
+        std::atomic<u32> m_numMtlLoading;
+        std::mutex m_mtlMutex;
         std::vector<std::shared_ptr<const Mtl>> m_mtls;
+        std::vector<Mesh> m_meshes;
+
     };
 }
 
