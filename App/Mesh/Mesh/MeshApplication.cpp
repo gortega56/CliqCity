@@ -56,14 +56,24 @@ bool MeshApplication::Initialize()
     std::weak_ptr<Renderable> weakRenderable = m_renderable0;
     ResourceManager rm;
 
+
+
     rm.LoadResource<Resource::Mtl>(SPONZA_MTL_PATH, [](std::shared_ptr<const Resource::Mtl> pObj)
     {
-
+       
     });
 
-    rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [](std::shared_ptr<const Resource::Obj> pObj)
-    {
+    std::weak_ptr<MeshApplication> weakApp = shared_from_this();
 
+    rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [weakApp](std::shared_ptr<const Resource::Obj> pObj)
+    {
+        if (auto app = weakApp.lock())
+        {
+            if (pObj)
+            {
+                pObj->Export<
+            }
+        }
     });
 
     rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)

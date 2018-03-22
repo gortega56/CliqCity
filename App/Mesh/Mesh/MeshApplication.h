@@ -68,7 +68,7 @@ struct ConstantBufferData
 };
 
 class MeshApplication :
-    public IApplication
+    public IApplication, public std::enable_shared_from_this<MeshApplication>
 {
 public:
     using IApplication::IApplication;
@@ -80,6 +80,8 @@ public:
     Dx12::GraphicsPipeline m_pipeline;
 
     std::shared_ptr<Dx12::RootSignature> m_rs;
+
+    std::vector<std::shared_ptr<Renderable>> m_renderables;
 
     std::shared_ptr<Renderable> m_renderable0;
 

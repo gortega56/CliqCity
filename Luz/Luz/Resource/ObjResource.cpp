@@ -70,7 +70,7 @@ namespace Resource
                     fileStream >> uv[0] >> uv[1];
 
                     // Store index for texture array later
-                    uv[2] = materialIndex;
+                    uv[2] = (float)materialIndex;
                 }
                 else if (statement.compare("vn") == 0)
                 {
@@ -250,6 +250,7 @@ namespace Resource
                 }
             }
         }
+
 
         return pResource;
     }
