@@ -83,8 +83,6 @@ public:
 
     std::vector<std::shared_ptr<Renderable>> m_renderables;
 
-    std::shared_ptr<Renderable> m_renderable0;
-
     std::shared_ptr<MaterialState> m_material0;
     std::shared_ptr<MaterialState> m_material1;
 

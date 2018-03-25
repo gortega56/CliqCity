@@ -54,19 +54,10 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    m_renderable0 = std::make_shared<Renderable>();
-    std::weak_ptr<Renderable> weakRenderable = m_renderable0;
-    ResourceManager rm;
-
-
-
-    //rm.LoadResource<Resource::Mtl>(SPONZA_MTL_PATH, [](std::shared_ptr<const Resource::Mtl> pObj)
-    //{
-    //   
-    //});
-
     std::weak_ptr<MeshApplication> weakApp = shared_from_this();
     std::vector<Mesh<Vertex, u32>> meshes;
+
+    ResourceManager rm;
     rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [weakApp, &meshes](std::shared_ptr<const Resource::Obj> pObj)
     {
         if (auto app = weakApp.lock())
@@ -107,112 +98,6 @@ bool MeshApplication::Initialize()
     //        sharedRenderable->m_isRenderable.store(true);
     //    }
     //});
-
-    //Vertex verts[] =
-    //{
-    //    // front face
-    //    { -0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f },
-    //    { 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f },
-    //    { -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f },
-    //    { 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f },
-
-    //    // right side face
-    //    { 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f },
-    //    { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f },
-    //    { 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f },
-    //    { 0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-
-    //    // left side face
-    //    { -0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-    //    { -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f },
-    //    { -0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f },
-    //    { -0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f },
-
-    //    // back face
-    //    { 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f },
-    //    { -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f },
-    //    { 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
-    //    { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f },
-
-    //    // top face
-    //    { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
-    //    { 0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f },
-    //    { 0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f },
-    //    { -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f },
-
-    //    // bottom face
-    //    { 0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
-    //    { -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f },
-    //    { 0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f },
-    //    { -0.5f, -0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f }
-    //};
-
-    //u32 indices[] =
-    //{
-    //    // ffront face
-    //    0, 1, 2, // first triangle
-    //    0, 3, 1, // second triangle
-
-    //    // left face
-    //    4, 5, 6, // first triangle
-    //    4, 7, 5, // second triangle
-
-    //    // right face
-    //    8, 9, 10, // first triangle
-    //    8, 11, 9, // second triangle
-
-    //    // back face
-    //    12, 13, 14, // first triangle
-    //    12, 15, 13, // second triangle
-
-    //    // top face
-    //    16, 17, 18, // first triangle
-    //    16, 19, 17, // second triangle
-
-    //    // bottom face
-    //    20, 21, 22, // first triangle
-    //    20, 23, 21, // second triangle
-    //};
-
-    //for (int i = 4; i < 25; i += 4)
-    //{
-    //    Vertex* v1 = &verts[i - 4];
-    //    Vertex* v2 = &verts[i - 3];
-    //    Vertex* v3 = &verts[i - 2];
-    //    Vertex* v4 = &verts[i - 1];
-
-    //    float x1 = v2->Position.x - v1->Position.x;
-    //    float x2 = v3->Position.x - v1->Position.x;
-    //    float y1 = v2->Position.y - v1->Position.y;
-    //    float y2 = v3->Position.y - v1->Position.y;
-    //    float z1 = v2->Position.z - v1->Position.z;
-    //    float z2 = v3->Position.z - v1->Position.z;
-
-    //    float s1 = v2->UV.x - v1->UV.x;
-    //    float s2 = v3->UV.x - v1->UV.x;
-    //    float t1 = v2->UV.y - v1->UV.y;
-    //    float t2 = v3->UV.y - v1->UV.y;
-
-    //    float r = 1.0f / ((s1 * t2) - (s2 * t1));
-
-    //    float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
-    //    v1->Tangent = tangent;
-    //    v2->Tangent = tangent;
-    //    v3->Tangent = tangent;
-    //    v4->Tangent = tangent;
-    //}
-
-    //Mesh<Vertex, u32> mesh(std::vector<Vertex>(std::begin(verts), 
-    //    std::begin(verts) + 24), 
-    //    std::vector<u32>(std::begin(indices), 
-    //    std::begin(indices) + 36));
-    
-    //m_renderable0 = std::make_shared<Renderable>();
-    //if (!m_renderable0->LoadMesh(&mesh))
-    //{
-    //    return false;
-    //}
-    //m_renderable0->m_isRenderable.store(true);
 
     float aspectRatio = m_window->AspectRatio();
 
