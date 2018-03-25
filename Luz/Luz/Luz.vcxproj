@@ -289,6 +289,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Platform\Window.h" />
     <ClInclude Include="Platform\WindowsMessageCenter.h" />
     <ClInclude Include="Platform\windows_utils.h" />
+    <ClInclude Include="VertexTraits.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Library\DirectXTex\DirectXTex_Desktop_2017_Win10.vcxproj">

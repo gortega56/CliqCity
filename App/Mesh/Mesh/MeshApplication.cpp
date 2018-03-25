@@ -64,14 +64,14 @@ bool MeshApplication::Initialize()
     });
 
     std::weak_ptr<MeshApplication> weakApp = shared_from_this();
-
-    rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [weakApp](std::shared_ptr<const Resource::Obj> pObj)
+    std::vector<Mesh<Vertex, u32>> meshes;
+    rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [weakApp, &meshes](std::shared_ptr<const Resource::Obj> pObj)
     {
         if (auto app = weakApp.lock())
         {
             if (pObj)
             {
-                pObj->Export<
+                pObj->Export(meshes);
             }
         }
     });

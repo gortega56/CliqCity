@@ -287,5 +287,8 @@
     <ClInclude Include="Resource\MtlResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VertexTraits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

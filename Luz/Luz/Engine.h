@@ -75,8 +75,8 @@ void TEngine<OpSys>::Run(TEngine<OpSys>& engine)
     engine.Initialize();
     engine.m_timer.Reset();
 
-    Application app(&engine);
-    if (app.Initialize())
+    std::shared_ptr<Application> app = std::make_shared<Application>(&engine);
+    if (app->Initialize())
     {
         double t = 0.0;
         double dt = 0.01;
@@ -99,19 +99,19 @@ void TEngine<OpSys>::Run(TEngine<OpSys>& engine)
 
             while (accumulator >= dt)
             {
-                app.FixedUpdate(dt);
+                app->FixedUpdate(dt);
                 t += dt;
                 accumulator -= dt;
             }
 
 
-            app.Update(dt);
+            app->Update(dt);
 
             engine.EndUpdate(frameTime);
         }
     }
 
-    app.Shutdown();
+    app->Shutdown();
     engine.Shutdown();
 }
 
