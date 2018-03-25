@@ -3,7 +3,7 @@ struct VS_INPUT
     float4 tangent : TANGENT;
     float3 pos : POSITION;
     float3 norm : NORMAL;
-    float2 uv : TEXCOORD;
+    float3 uv : TEXCOORD;
 };
 
 struct VS_OUTPUT
@@ -30,6 +30,6 @@ VS_OUTPUT main(VS_INPUT input)
     output.tangent = mul(input.tangent.xyz, (float3x3)model);
     output.bitangent = mul(cross(input.norm, input.tangent.xyz) * input.tangent.w, (float3x3)model);
     output.norm = mul(input.norm, (float3x3)model);
-    output.uv = input.uv;
+    output.uv = input.uv.xy;
     return output;
 }

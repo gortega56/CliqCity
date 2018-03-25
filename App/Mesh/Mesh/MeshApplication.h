@@ -49,14 +49,14 @@ struct Vertex
     gmath::float4 Tangent;
     gmath::float3 Position;
     gmath::float3 Normal;
-    gmath::float2 UV;
+    gmath::float3 UV;
     Vertex(float px, float py, float pz,
         float nx, float ny, float nz,
         float u, float v) :
         Tangent(0.0f, 0.0f, 0.0f, 0.0f),
         Position(px, py, pz),
         Normal(nx, ny, nz),
-        UV(u, v) {}
+        UV(u, v, -1.0f) {}
     Vertex() {}
 };
 

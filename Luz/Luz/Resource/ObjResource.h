@@ -49,11 +49,15 @@ namespace Resource
 
         i32 GetNumMeshes() const;
 
+        bool IsValid(const Mesh& mesh) const;
+
         template<typename VertexType, typename IndexType>
         void Export(std::vector<::Mesh<VertexType, IndexType>>& meshes) const;
 
         template<typename VertexType, typename IndexType>
         void ExportMeshAtIndex(const i32 index, std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects, ::Mesh<VertexType, IndexType>& mesh) const;
+
+        
 
     private:
         std::vector<Position> m_positions;
@@ -66,6 +70,14 @@ namespace Resource
         std::vector<std::shared_ptr<const Mtl>> m_mtls;
     
         Mesh* FindOrCreateMesh(const std::string name);
+
+        template<typename VertexType, typename IndexType>
+        void AddFaceVertex(
+            const Mesh::Face& face, 
+            const VertexIndirect& vi, 
+            std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects,
+            std::vector<VertexType>& vertices,
+            std::vector<IndexType>& indices) const;
     };
         
     template<typename VertexType, typename IndexType>
@@ -84,9 +96,6 @@ namespace Resource
     template<typename VertexType, typename IndexType>
     void Obj::ExportMeshAtIndex(const i32 index, std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects, ::Mesh<VertexType, IndexType>& mesh) const
     {
-        auto& positions = m_positions;
-        auto& normals = m_normals;
-        auto& uvs = m_uvs;
         const Mesh& exportMesh = m_meshes[index];
 
         std::vector<VertexType> vertices;
@@ -97,50 +106,28 @@ namespace Resource
 
         for (auto& face : exportMesh.Faces)
         {
-            size_t numFaceVertices = (face.IsTri) ? 3 : 6;
-
-            for (size_t i = 0; i < numFaceVertices; ++i)
+            // Always add the first 3 vertices
+            for (size_t i = 0; i < 3; ++i)
             {
                 VertexIndirect vi;
-                vi.Data[0] = face.Data[3 * (i % 3) + 0] - 1;
-                vi.Data[1] = face.Data[3 * (i % 3) + 1] - 1;
-                vi.Data[2] = face.Data[3 * (i % 3) + 2] - 1;
+                vi.Data[0] = face.Data[3 * i + 0] - 1;
+                vi.Data[1] = face.Data[3 * i + 1] - 1;
+                vi.Data[2] = face.Data[3 * i + 2] - 1;
 
-                auto iter = indirects.find(vi);
-                if (iter == indirects.end())
+                AddFaceVertex(face, vi, indirects, vertices, indices);
+            }
+
+            // Add the other half of the quad
+            if (!face.IsTri)
+            {
+                for (size_t i = 2; i < 5; ++i)
                 {
-                    // New vertex: Create and store for look up later
-                    u32 index = static_cast<u32>(vertices.size());
-                    vertices.emplace_back();
-                    indices.push_back(index);
-                    indirects.insert({ vi, index });
+                    VertexIndirect vi;
+                    vi.Data[0] = face.Data[3 * (i % 4) + 0] - 1;
+                    vi.Data[1] = face.Data[3 * (i % 4) + 1] - 1;
+                    vi.Data[2] = face.Data[3 * (i % 4) + 2] - 1;
 
-                    VertexType* pVertex = &vertices[index];
-                    if (Geometry::VertexTraits<VertexType>::Position)
-                    {
-                        memcpy_s(&pVertex->Position, sizeof(Position), positions[vi.Data[0]].Data, sizeof(Position));
-                    }
-
-                    if (Geometry::VertexTraits<VertexType>::UV)
-                    {
-                        if (face.HasUvs)
-                        {
-                            memcpy_s(&pVertex->UV, sizeof(UV), uvs[vi.Data[1]].Data, sizeof(UV));
-                        }
-                    }
-
-                    if (Geometry::VertexTraits<VertexType>::Normal)
-                    {
-                        if (face.HasNormals)
-                        {
-                            memcpy_s(&pVertex->Normal, sizeof(Normal), normals[vi.Data[2]].Data, sizeof(Normal));
-                        }
-                    }
-                }
-                else
-                {
-                    // Existing vertex.. just push the index
-                    indices.push_back(iter->second);
+                    AddFaceVertex(face, vi, indirects, vertices, indices);
                 }
             }
         }
@@ -148,9 +135,54 @@ namespace Resource
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
 
-        if (Geometry::VertexTraits<VertexType>::Tangent)
+        if (Geometry::VertexTraits<VertexType>::Tangent && Geometry::VertexTraits<VertexType>::UV)
         {
             mesh.GenerateTangents();
+        }
+    }
+
+    template<typename VertexType, typename IndexType>
+    void Obj::AddFaceVertex(const Obj::Mesh::Face& face,
+        const VertexIndirect& vi,
+        std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects,
+        std::vector<VertexType>& vertices,
+        std::vector<IndexType>& indices) const
+    {
+        auto iter = indirects.find(vi);
+        if (iter == indirects.end())
+        {
+            // New vertex: Create and store for look up later
+            u32 index = static_cast<u32>(vertices.size());
+            vertices.emplace_back();
+            indices.push_back(index);
+            indirects.insert({ vi, index });
+
+            VertexType* pVertex = &vertices[index];
+            if (Geometry::VertexTraits<VertexType>::Position)
+            {
+                memcpy_s(&pVertex->Position, sizeof(Position), m_positions[vi.Data[0]].Data, sizeof(Position));
+            }
+
+            if (Geometry::VertexTraits<VertexType>::UV)
+            {
+                if (face.HasUvs)
+                {
+                    memcpy_s(&pVertex->UV, sizeof(UV), m_uvs[vi.Data[1]].Data, sizeof(UV));
+                }
+            }
+
+            if (Geometry::VertexTraits<VertexType>::Normal)
+            {
+                if (face.HasNormals)
+                {
+                    memcpy_s(&pVertex->Normal, sizeof(Normal), m_normals[vi.Data[2]].Data, sizeof(Normal));
+                }
+            }
+        }
+        else
+        {
+            // Existing vertex.. just push the index
+            indices.push_back(iter->second);
         }
     }
 }

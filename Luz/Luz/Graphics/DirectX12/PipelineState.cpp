@@ -15,8 +15,8 @@ PipelineState::~PipelineState()
 
 GraphicsPipeline::GraphicsPipeline()
 {
+    ZeroMemory(&m_desc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 }
-
 
 GraphicsPipeline::~GraphicsPipeline()
 {

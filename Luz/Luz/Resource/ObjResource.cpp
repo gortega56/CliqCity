@@ -15,6 +15,11 @@ namespace Resource
 
     }
 
+    bool Obj::IsValid(const Obj::Mesh& mesh) const
+    {
+        return mesh.Faces.size() != 0;
+    }
+
     i32 Obj::GetNumMeshes() const
     {
         return static_cast<i32>(m_meshes.size());
@@ -51,6 +56,7 @@ namespace Resource
         {
             pResource = std::make_shared<Obj>();
             
+            std::vector<Mesh>& meshes = pResource->m_meshes;
             std::vector<std::string> materialNames;
             i32 materialIndex = -1;
             
@@ -202,9 +208,9 @@ namespace Resource
                         i32* pN = &pFace->Data[i * 3 + 1];
                         i32 p = *pP, t = *pT, n = *pN;
 
-                        if (p < 0) *pP = (i32)positions.size() + (p - 1);
-                        if (t < 0) *pT = (i32)uvs.size() + (t - 1);
-                        if (n < 0) *pN = (i32)normals.size() + (n - 1);
+                        if (p < 0) *pP = ((i32)positions.size() - 1) + p;
+                        if (t < 0) *pT = ((i32)uvs.size() - 1) + t;
+                        if (n < 0) *pN = ((i32)normals.size() - 1) + n;
                     }
 
                     pFace->HasNormals = hasNormals;
@@ -224,6 +230,7 @@ namespace Resource
                 Sleep(0);
             }
 
+            meshes.erase(std::remove_if(meshes.begin(), meshes.end(), [pResource](const Mesh& mesh) { return !pResource->IsValid(mesh); }), meshes.end());
             //for (auto& kvp : builders)
             //{
             //    Mesh::Builder* pMeshBuilder = &kvp.second;
