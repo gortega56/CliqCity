@@ -87,17 +87,17 @@ inline gmath::float3 Transform::GetScale() const
 
 inline gmath::float3 Transform::GetRight() const
 {
-    return m_right;
+    return m_rotation * m_right;
 }
 
 inline gmath::float3 Transform::GetUp() const
 {
-    return m_up;
+    return m_rotation * m_up;
 }
 
 inline gmath::float3 Transform::GetForward() const
 {
-    return m_forward;
+    return m_rotation * m_forward;
 }
 
 inline Transform* Transform::GetParent() const

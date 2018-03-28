@@ -55,6 +55,8 @@ gmath::float4x4 OrthographicCamera::GetProjection()
         m_projection.p_data[13] = 0.0f;
         m_projection.p_data[14] = 0.0f;
         m_projection.p_data[15] = 1.0f;
+
+        m_projectionDirty = false;
     }
 
     return m_projection;
@@ -115,6 +117,7 @@ inline gmath::float4x4 PerspectiveCamera::GetProjection()
 #elif
         m_projection = float4x4::perspective_lh(m_fov, m_aspectRatio, m_near, m_far);
 #endif
+        m_projectionDirty = false;
     }
 
     return m_projection;

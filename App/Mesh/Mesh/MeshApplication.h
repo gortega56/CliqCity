@@ -42,6 +42,10 @@
 #include "GMath.h"
 #endif
 
+#ifndef CAMERACONTROLLER_H
+#include "CameraController.h"
+#endif
+
 class Window;
 
 struct Vertex
@@ -88,6 +92,8 @@ public:
 
     ConstantBufferData m_cbvData0;
     ConstantBufferData m_cbvData1;
+
+    Luz::CameraController m_cameraController;
 
     MeshApplication();
     ~MeshApplication();

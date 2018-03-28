@@ -30,6 +30,7 @@
 #define SPONZA_MTL_PATH L".\\Assets\\sponza_obj\\sponza.mtl"
 #define SPONZA_TEX_PATH L".\\Assets\\sponza_textures\\textures\\"
 
+using namespace Luz;
 using namespace gmath;
 static float g_scale = 5.0f;
 Console g_console;
@@ -53,6 +54,19 @@ bool MeshApplication::Initialize()
     {
         return false;
     }
+
+    m_cameraController = CameraController(m_engine->OS()->GetInput());
+
+    PerspectiveCamera* pCamera = m_cameraController.GetCamera();
+    pCamera->GetTransform()->SetPosition(0.0f, 0.0f, -15.0f);
+    pCamera->SetFieldOfView(3.14f * 0.5f);
+    pCamera->SetAspectRatio(m_window->AspectRatio());
+    pCamera->SetNear(0.1f);
+    pCamera->SetFar(1000.0f);
+
+    m_cbvData0.model = float4x4(1.0f);
+    m_cbvData0.view = pCamera->GetView().transpose();
+    m_cbvData0.proj = pCamera->GetProjection().transpose();
 
     std::weak_ptr<MeshApplication> weakApp = shared_from_this();
     std::vector<Mesh<Vertex, u32>> meshes;
@@ -99,11 +113,7 @@ bool MeshApplication::Initialize()
     //    }
     //});
 
-    float aspectRatio = m_window->AspectRatio();
 
-    m_cbvData0.model = float4x4::scale(float3(g_scale));
-    m_cbvData0.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData0.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
 /*
     m_cbvData1.model = float4x4(1.0f).transpose();
     m_cbvData1.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
@@ -215,46 +225,7 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
-    auto pInput = m_engine->OS()->GetInput();
-    if (pInput)
-    {
-        float twoPi = 6.28318530718f;
-        float incr = twoPi / 48.0f;
+    m_cameraController.Update(dt);
 
-        static euler rotation = euler(0.0f, 0.0f, 0.0f);
-        if (pInput->GetKey(Luz::KeyCode::KEYCODE_LEFT))
-        {
-            rotation.y += incr;
-        }
-
-        if (pInput->GetKey(Luz::KeyCode::KEYCODE_RIGHT))
-        {
-            rotation.y -= incr;
-        }
-
-        if (pInput->GetKey(Luz::KeyCode::KEYCODE_DOWN))
-        {
-            rotation.x -= incr;
-        }
-
-        if (pInput->GetKey(Luz::KeyCode::KEYCODE_UP))
-        {
-            rotation.x += incr;
-        }
-
-        float4x4 r;
-        quaternion(rotation).to_matrix(r);
-        m_cbvData0.model = (r * float4x4::scale(g_scale)).transpose();
-    }
-
-    //double time = m_engine->Total() * 0.5f;
-    //float st = (float)sin(time);
-    //float ct = (float)cos(time);
-
-    //mat4f trn = mat4f::translate(vec3f(ct, st, ct) * 6.0f);
-    //mat4f rot = quatf::rollPitchYaw(st, ct, st).toMatrix4();
-    //mat4f scl = mat4f::scale(vec3f(10.0f));
-
-    //m_cbvData0.model = (rot * trn * rot * scl).transpose();
-    //m_cbvData1.model = (trn * rot * trn * scl).transpose();
+    m_cbvData0.view = m_cameraController.GetCamera()->GetView().transpose();
 }

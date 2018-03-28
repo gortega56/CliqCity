@@ -95,7 +95,7 @@ inline gmath::float4x4 Camera::GetView()
     return m_view;
 }
 
-Transform* Camera::GetTransform()
+inline Transform* Camera::GetTransform()
 {
     return &m_transform;
 }

@@ -32,6 +32,7 @@ float4x3 Transform::GetWorld()
 
         m_local = float4x3::scale(m_scale) * orientation * float4x3::translate(m_position);
         m_world = (m_parent == nullptr) ? m_local : m_local * m_parent->GetWorld();
+        m_isDirty = false;
     }
 
     return m_world;
