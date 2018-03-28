@@ -13,7 +13,7 @@ Transform::Transform()
     , m_up(0.0f, 1.0f, 0.0f)
     , m_forward(0.0f, 0.0f, 1.0f)
     , m_parent(nullptr)
-    , m_isDirty(false)
+    , m_isDirty(true)
 {
 
 }

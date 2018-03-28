@@ -15,6 +15,8 @@ public:
     LUZ_API gmath::float4x4 GetProjection();
     LUZ_API gmath::float4x4 GetView();
 
+    LUZ_API Transform* GetTransform();
+
 protected:
     gmath::float4x4 m_projection;
     gmath::float4x4 m_view;
@@ -25,6 +27,7 @@ protected:
 class OrthographicCamera : public Camera
 {
 public:
+    LUZ_API OrthographicCamera(const float& width, const float& height, const float& nearPlane, const float& farPlane);
     LUZ_API OrthographicCamera();
     LUZ_API ~OrthographicCamera() = default;
 
@@ -52,6 +55,7 @@ private:
 class PerspectiveCamera : public Camera
 {
 public:
+    LUZ_API PerspectiveCamera(const float& fov, const float& aspectRatio, const float& nearPlane, const float& farPlane);
     LUZ_API PerspectiveCamera();
     LUZ_API ~PerspectiveCamera() = default;
 
@@ -89,6 +93,11 @@ inline gmath::float4x4 Camera::GetView()
     }
 
     return m_view;
+}
+
+Transform* Camera::GetTransform()
+{
+    return &m_transform;
 }
 
 inline float OrthographicCamera::GetWidth() const

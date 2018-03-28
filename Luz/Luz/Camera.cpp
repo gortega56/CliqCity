@@ -10,13 +10,24 @@ Camera::Camera()
 
 }
 
+OrthographicCamera::OrthographicCamera(const float& width, const float& height, const float& nearPlane, const float& farPlane)
+    : Camera()
+    , m_width(width)
+    , m_height(height)
+    , m_near(nearPlane)
+    , m_far(farPlane)
+    , m_projectionDirty(true)
+{
+ 
+}
+
 OrthographicCamera::OrthographicCamera()
     : Camera()
     , m_width(0.0f)
     , m_height(0.0f)
     , m_near(0.0f)
     , m_far(0.0f)
-    , m_projectionDirty(false)
+    , m_projectionDirty(true)
 {
 
 }
@@ -71,6 +82,17 @@ void OrthographicCamera::SetFar(const float& farPlane)
 {
     m_far = farPlane;
     m_projectionDirty = true;
+}
+
+PerspectiveCamera::PerspectiveCamera(const float& fov, const float& aspectRatio, const float& nearPlane, const float& farPlane)
+    : Camera()
+    , m_fov(fov)
+    , m_aspectRatio(aspectRatio)
+    , m_near(nearPlane)
+    , m_far(farPlane)
+    , m_projectionDirty(true)
+{
+
 }
 
 PerspectiveCamera::PerspectiveCamera()
