@@ -238,6 +238,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="Platform\Window.cpp" />
     <ClCompile Include="Platform\WindowsMessageCenter.cpp" />
     <ClCompile Include="Platform\windows_utils.cpp" />
+    <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -285,6 +286,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="IApplication.h" />
     <ClInclude Include="Timer.h" />
+    <ClInclude Include="Transform.h" />
     <ClInclude Include="TypeDefs.h" />
     <ClInclude Include="Platform\Window.h" />
     <ClInclude Include="Platform\WindowsMessageCenter.h" />
