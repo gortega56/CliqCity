@@ -62,7 +62,7 @@ bool MeshApplication::Initialize()
     pCamera->SetFieldOfView(3.14f * 0.5f);
     pCamera->SetAspectRatio(m_window->AspectRatio());
     pCamera->SetNear(0.1f);
-    pCamera->SetFar(1000.0f);
+    pCamera->SetFar(3000.0f);
 
     m_cbvData0.model = float4x4(1.0f);
     m_cbvData0.view = pCamera->GetView().transpose();

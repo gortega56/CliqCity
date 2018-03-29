@@ -44,8 +44,11 @@ namespace Luz
 
             if (m_input->GetMouseButton(MOUSEBUTTON_RIGHT))
             {
-                pTransform->RotateYaw(-(mouseX - m_mouseX) * g_radian * m_horizontalTurnSpeed);
-                pTransform->RotatePitch(-(mouseY - m_mouseY) * g_radian * m_verticalTurnSpeed);
+                euler rotation = pTransform->GetEuler();
+                rotation.pitch += (mouseY - m_mouseY) * g_radian * m_verticalTurnSpeed;
+                rotation.yaw += (mouseX - m_mouseX) * g_radian * m_horizontalTurnSpeed;
+                rotation.roll = 0.0f;
+                pTransform->SetRotation(rotation);
             }
 
             m_mouseX = mouseX;
@@ -59,12 +62,12 @@ namespace Luz
 
             if (m_input->GetKey(KEYCODE_A))
             {
-                position += pTransform->GetRight() * -m_movementSpeed;
+                position += -pTransform->GetRight() * m_movementSpeed;
             }
 
             if (m_input->GetKey(KEYCODE_S))
             {
-                position += pTransform->GetForward() * -m_movementSpeed;
+                position += -pTransform->GetForward() * m_movementSpeed;
             }
 
             if (m_input->GetKey(KEYCODE_D))
@@ -79,7 +82,7 @@ namespace Luz
 
             if (m_input->GetKey(KEYCODE_E))
             {
-                position += pTransform->GetUp() * -m_movementSpeed;
+                position += -pTransform->GetUp() * m_movementSpeed;
             }
 
             pTransform->SetPosition(position);
