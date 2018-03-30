@@ -35,6 +35,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <queue>
 #include <map>
 #include <iostream>
 #include <future>
