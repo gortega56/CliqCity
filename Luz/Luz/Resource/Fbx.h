@@ -13,7 +13,7 @@ namespace Resource
     public:
         typedef Vertex2 Vertex;
 
-        static std::shared_ptr<const Fbx> LUZ_API Load(const std::wstring& filename);
+        static std::shared_ptr<const Fbx> LUZ_API Load(const std::string& filename);
 
         LUZ_API Fbx();
         LUZ_API ~Fbx();

@@ -36,12 +36,11 @@ namespace Resource
         return &m_materials[name];
     }
 
-    std::shared_ptr<const Mtl> Mtl::Load(const std::wstring& filename)
+    std::shared_ptr<const Mtl> Mtl::Load(const std::string& filename)
     {
         std::shared_ptr<Mtl> pResource;
 
-        std::string fn = std::string(filename.begin(), filename.end());
-        std::ifstream fileStream(fn.c_str());
+        std::ifstream fileStream(filename.c_str());
         if (fileStream.is_open())
         {
             pResource = std::make_shared<Mtl>();

@@ -45,16 +45,15 @@ namespace Internal
             COUNT
         };
 
-        Texture2D(std::wstring filename);
+        Texture2D(std::string filename);
         ~Texture2D();
 
         Texture2D(Texture2D<Impl>&& other);
         Texture2D<Impl>& operator=(Texture2D<Impl>&& other);
 
-        std::wstring Filename() const;
         const Impl* GetImpl() const;
 
-        static std::shared_ptr<const Texture2D> Load(const std::wstring& filename);
+        static std::shared_ptr<const Texture2D> Load(const std::string& filename);
 
     private:
         std::unique_ptr<Impl> m_pImpl;
@@ -64,7 +63,7 @@ namespace Internal
     };
 
     template<class Impl>
-    Texture2D<Impl>::Texture2D(std::wstring filename) : m_pImpl(std::make_unique<Impl>(filename)) 
+    Texture2D<Impl>::Texture2D(std::string filename) : m_pImpl(std::make_unique<Impl>(filename)) 
     {
     
     }
@@ -92,19 +91,13 @@ namespace Internal
     }
 
     template<class Impl>
-    std::wstring Texture2D<Impl>::Filename() const 
-    { 
-        return m_pImpl->Filename(); 
-    }
-
-    template<class Impl>
     const Impl* Texture2D<Impl>::GetImpl() const 
     { 
         return m_pImpl.get(); 
     }
 
     template<class Impl>
-    std::shared_ptr<const Texture2D<Impl>> Texture2D<Impl>::Load(const std::wstring& filename)
+    std::shared_ptr<const Texture2D<Impl>> Texture2D<Impl>::Load(const std::string& filename)
     {
         auto pTex2d = std::make_shared<Texture2D<Impl>>(filename);
         pTex2d->m_pImpl->Load();

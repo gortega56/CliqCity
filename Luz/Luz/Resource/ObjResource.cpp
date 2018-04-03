@@ -1,13 +1,12 @@
 #include "stdafx.h"
 #include "ObjResource.h"
 #include "MtlResource.h"
-#include "ResourceManager.h"
 
 namespace Resource
 {
     Obj::Obj()
     {
-        m_numMtlLoading.store(0);
+
     }
 
     Obj::~Obj()
@@ -46,12 +45,11 @@ namespace Resource
         return pMesh;
     }
 
-    std::shared_ptr<const Obj> Obj::Load(const std::wstring& filename)
+    std::shared_ptr<const Obj> Obj::Load(const std::string& filename)
     {
         std::shared_ptr<Obj> pResource;
 
-        auto fs = std::string(filename.begin(), filename.end());
-        std::ifstream fileStream(fs.c_str());
+        std::ifstream fileStream(filename.c_str());
         if (fileStream.is_open())
         {
             pResource = std::make_shared<Obj>();
@@ -131,22 +129,7 @@ namespace Resource
                     std::string mtlFilename;
                     fileStream >> mtlFilename;
 
-                    std::weak_ptr<Obj> weakObj = pResource;
-                    pResource->m_numMtlLoading.fetch_add(1);
-
-                    ResourceManager rm;
-                    rm.LoadResource<Mtl>(std::wstring(mtlFilename.begin(), mtlFilename.end()), [weakObj](std::shared_ptr<const Mtl> pMtl)
-                    {
-                        if (auto pObj = weakObj.lock())
-                        {
-                            pObj->m_numMtlLoading.fetch_sub(1);
-                            if (pMtl)
-                            {
-                                std::lock_guard<std::mutex> lock(pObj->m_mtlMutex);
-                                pObj->m_mtls.push_back(pMtl);
-                            }
-                        }
-                    });
+                    pResource->m_mtls.push_back(Resource::Async<Mtl>::Load(mtlFilename));
                 }
                 else if (statement.compare("f") == 0)
                 {
@@ -221,60 +204,8 @@ namespace Resource
 
             fileStream.close();
 
-            // wait for mtls so we can associate with meshes with mats
-            // if this == expected -> atomic = desired. return true;
-            // else expected == this. return false
-            u32 expected = pResource->m_numMtlLoading.load();
-            while (!pResource->m_numMtlLoading.compare_exchange_strong(expected, 0))
-            {
-                Sleep(0);
-            }
-
             meshes.erase(std::remove_if(meshes.begin(), meshes.end(), [pResource](const Mesh& mesh) { return !pResource->IsValid(mesh); }), meshes.end());
-            //for (auto& kvp : builders)
-            //{
-            //    Mesh::Builder* pMeshBuilder = &kvp.second;
-
-            //    pResource->m_meshes.emplace_back();
-            //    
-            //    Mesh* pMesh = &pResource->m_meshes.back();
-            //    pMesh->Name = kvp.first;
-
-            //    for (auto& face : pMeshBuilder->Faces)
-            //    {
-            //        size_t numFaceVertices = (face.IsTri) ? 3 : 6;
-
-            //        for (size_t i = 0; i < numFaceVertices; ++i)
-            //        {
-            //            VertexIndirect vi;
-            //            vi.Data[0] = face.Data[3 * (i % 3) + 0] - 1;
-            //            vi.Data[1] = face.Data[3 * (i % 3) + 1] - 1;
-            //            vi.Data[2] = face.Data[3 * (i % 3) + 2] - 1;
-
-            //            auto iter = indirects.find(vi);
-            //            if (iter == indirects.end())
-            //            {
-            //                // New vertex: Create and store for look up later
-            //                u32 index = static_cast<u32>(pMesh->Vertices.size());
-            //                pMesh->Vertices.emplace_back();
-            //                pMesh->Indices.push_back(index);
-            //                indirects.insert({ vi, index });
-
-            //                Vertex* pVertex = &pMesh->Vertices[index];
-            //                memcpy_s(pVertex->Position, sizeof(Position), positions[vi.Data[0]].Data, sizeof(Position));
-            //                if (face.HasUvs) memcpy_s(pVertex->UV, sizeof(UV), uvs[vi.Data[1]].Data, sizeof(UV));
-            //                if (face.HasNormals) memcpy_s(pVertex->Normal, sizeof(Normal), normals[vi.Data[2]].Data, sizeof(Normal));
-            //            }
-            //            else
-            //            {
-            //                // Existing vertex.. just push the index
-            //                pMesh->Indices.push_back(iter->second);
-            //            }
-            //        }
-            //    }
-            //}
         }
-
 
         return pResource;
     }

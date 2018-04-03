@@ -21,14 +21,14 @@
 #define NORM_PATH0 L".\\Assets\\BrickNorm.dds"
 #define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
 
-#define FBX_PATH0 L".\\Assets\\/*Prof_Animated*/.fbx"
-#define FBX_PATH1 L".\\Assets\\cube.FBX"
+#define FBX_PATH0 ".\\Assets\\/*Prof_Animated*/.fbx"
+#define FBX_PATH1 ".\\Assets\\cube.FBX"
 
-#define SPONZA_OBJ_PATH L".\\Assets\\sponza_obj\\sponza.obj"
-#define OBJ_PATH L".\\Assets\\cube.obj"
+#define SPONZA_OBJ_PATH ".\\Assets\\sponza_obj\\sponza.obj"
+#define OBJ_PATH ".\\Assets\\cube.obj"
 
-#define SPONZA_MTL_PATH L".\\Assets\\sponza_obj\\sponza.mtl"
-#define SPONZA_TEX_PATH L".\\Assets\\sponza_textures\\textures\\"
+#define SPONZA_MTL_PATH ".\\Assets\\sponza_obj\\sponza.mtl"
+#define SPONZA_TEX_PATH ".\\Assets\\sponza_textures\\textures\\"
 
 using namespace Luz;
 using namespace gmath;
@@ -55,6 +55,9 @@ bool MeshApplication::Initialize()
         return false;
     }
 
+    auto loadingObj = Resource::Async<Resource::Obj>::Load(SPONZA_OBJ_PATH);
+
+
     m_cameraController = CameraController(m_engine->OS()->GetInput());
 
     PerspectiveCamera* pCamera = m_cameraController.GetCamera();
@@ -67,29 +70,6 @@ bool MeshApplication::Initialize()
     m_cbvData0.model = float4x4(1.0f);
     m_cbvData0.view = pCamera->GetView().transpose();
     m_cbvData0.proj = pCamera->GetProjection().transpose();
-
-    std::weak_ptr<MeshApplication> weakApp = shared_from_this();
-    std::vector<Mesh<Vertex, u32>> meshes;
-
-    ResourceManager rm;
-    rm.LoadResource<Resource::Obj>(SPONZA_OBJ_PATH, [weakApp, &meshes](std::shared_ptr<const Resource::Obj> pObj)
-    {
-        if (auto app = weakApp.lock())
-        {
-            if (pObj)
-            {
-                pObj->Export(meshes);
-                
-                app->m_renderables.resize(meshes.size());
-                for (size_t i = 0; i < meshes.size(); ++i)
-                {
-                    app->m_renderables[i] = std::make_shared<Renderable>();
-                    app->m_renderables[i]->LoadMesh(&meshes[i]);
-                    app->m_renderables[i]->m_isRenderable.store(true);
-                }
-            }
-        }
-    });
 
     //rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
     //{
@@ -183,6 +163,17 @@ bool MeshApplication::Initialize()
     mb1.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH1);
     mb1.SetDescriptorTableEntry(1, 0, 1, NORM_PATH1);
     m_material1 = mb1.ToImmutable();
+
+    std::vector<Mesh<Vertex, u32>> meshes;
+    loadingObj.Get()->Export(meshes);
+
+    m_renderables.resize(meshes.size());
+    for (size_t i = 0; i < meshes.size(); ++i)
+    {
+        m_renderables[i] = std::make_shared<Renderable>();
+        m_renderables[i]->LoadMesh(&meshes[i]);
+        m_renderables[i]->m_isRenderable.store(true);
+    }
 
     return true;
 }

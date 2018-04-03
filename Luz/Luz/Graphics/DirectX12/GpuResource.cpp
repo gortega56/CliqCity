@@ -253,7 +253,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Texture2D> texture/*
         __debugbreak();
     }
 
-    m_resource->SetName(texture->Filename().c_str());
+    m_resource->SetName(pTexImpl->Filename().c_str());
 
     std::vector<D3D12_SUBRESOURCE_DATA> subresources;
     hr = PrepareUpload(pDevice, image.GetImages(), image.GetImageCount(), imageMetadata, subresources);

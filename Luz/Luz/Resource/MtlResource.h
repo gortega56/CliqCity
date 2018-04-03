@@ -29,7 +29,7 @@ namespace Resource
         };
 
     public:
-        static std::shared_ptr<const Mtl> LUZ_API Load(const std::wstring& filename);
+        static std::shared_ptr<const Mtl> LUZ_API Load(const std::string& filename);
 
         Mtl();
         ~Mtl();

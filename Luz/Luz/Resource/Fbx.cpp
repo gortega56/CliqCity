@@ -475,7 +475,7 @@ namespace Resource
         m_indices.push_back(i);
     }
 
-    std::shared_ptr<const Fbx> Fbx::Load(const std::wstring& filename)
+    std::shared_ptr<const Fbx> Fbx::Load(const std::string& filename)
     {
         auto fbx = std::make_shared<Fbx>();
 
@@ -485,7 +485,7 @@ namespace Resource
         fbxManager->SetIOSettings(ios);
 
         FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
-        if (!fbxImporter->Initialize(std::string(filename.begin(), filename.end()).c_str(), -1, fbxManager->GetIOSettings()))
+        if (!fbxImporter->Initialize(filename.c_str(), -1, fbxManager->GetIOSettings()))
         {
             return nullptr;
         }

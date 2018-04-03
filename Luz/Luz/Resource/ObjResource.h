@@ -14,6 +14,10 @@
 #include "VertexTraits.h"
 #endif
 
+#ifndef RESOURCEMANAGER_H
+#include "ResourceManager.h"
+#endif
+
 namespace Resource
 {
     class Mtl;
@@ -42,7 +46,7 @@ namespace Resource
         };
 
     public:
-        static std::shared_ptr<const Obj> LUZ_API Load(const std::wstring& filename);
+        static std::shared_ptr<const Obj> LUZ_API Load(const std::string& filename);
  
         LUZ_API Obj();
         LUZ_API ~Obj();
@@ -64,10 +68,7 @@ namespace Resource
         std::vector<Normal> m_normals;
         std::vector<UV> m_uvs;
         std::vector<Mesh> m_meshes;
-
-        std::atomic<u32> m_numMtlLoading;
-        std::mutex m_mtlMutex;
-        std::vector<std::shared_ptr<const Mtl>> m_mtls;
+        std::vector<Async<Mtl>> m_mtls;
     
         Mesh* FindOrCreateMesh(const std::string name);
 

@@ -63,7 +63,7 @@ static HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImag
     return DirectX::GenerateMipMaps(inImage.GetImages(), inImage.GetImageCount(), inImage.GetMetadata(), (DWORD)DirectX::TEX_FILTER_FLAGS::TEX_FILTER_DEFAULT, 0, outImage);
 }
 
-TextureImpl::TextureImpl(std::wstring filename) : m_filename(filename), m_image(std::make_unique<DirectX::ScratchImage>())
+TextureImpl::TextureImpl(std::string filename) : m_filename(std::wstring(filename.begin(), filename.end())), m_image(std::make_unique<DirectX::ScratchImage>())
 {
 
 }
@@ -122,7 +122,7 @@ const u8* TextureImpl::GetImagePixels(size_t mip, size_t item, size_t slice) con
 
 bool TextureImpl::Load() const
 {
-    static bool coIntialized = false;
+    static std::atomic_bool coIntialized = false;
     if (!coIntialized)
     {
         CoInitialize(NULL);

@@ -12,7 +12,7 @@ namespace Dx12
     class LUZ_API TextureImpl
     {
     public:
-        TextureImpl(std::wstring filename);
+        TextureImpl(std::string filename);
         ~TextureImpl();
     
         TextureImpl(TextureImpl&& other);

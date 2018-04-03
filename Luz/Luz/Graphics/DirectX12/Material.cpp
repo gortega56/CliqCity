@@ -82,10 +82,8 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
 
 void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out)
 {
+    std::vector<Resource::Async<Texture2D>> loadingTextures;
     std::vector<u32> srvIndices;
-    volatile u32 numSrvLoading = 0;
-
-    ResourceManager resMgr;
 
     for (int i = 0, count = (int)buildParams.size(); i < count; ++i)
     {
@@ -94,20 +92,8 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
 
         auto param = std::static_pointer_cast<SrvBuildParam>(buildParams[i]);
 
-        srvIndices.push_back(i);
-        InterlockedIncrement(&numSrvLoading);
-        
-        resMgr.LoadResource<Texture2D>(param->m_filename, [&param, &numSrvLoading](std::shared_ptr<const Texture2D> pTexture)
-        {
-            auto pPixelBuffer = std::static_pointer_cast<PixelBuffer>(param->m_gpuResource);
-            pPixelBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            if (!pPixelBuffer->InitializeTexture2D(pTexture))
-            {
-                __debugbreak();
-            }
-
-            InterlockedDecrement(&numSrvLoading);
-        });
+        loadingTextures.push_back(Resource::Async<Texture2D>::Load(std::string(param->m_filename.begin(), param->m_filename.end())));
+        srvIndices.push_back(i);        
     }
 
     if (srvIndices.empty())
@@ -115,22 +101,25 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
         return;
     }
 
-    int loops = 0;
-    while (numSrvLoading != 0) { loops++; }
-
     DescriptorHandle srvHandleStart = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, (u32)srvIndices.size());
 
     for (int i = 0, count = (int)srvIndices.size(); i < count; ++i)
     {
+        auto pTexture = loadingTextures[i].Get();
         auto param = std::static_pointer_cast<SrvBuildParam>(buildParams[srvIndices[i]]);
-        auto pixelBuffer = std::static_pointer_cast<PixelBuffer>(param->m_gpuResource);
-        pixelBuffer->CreateShaderResourceView();
+        auto pPixelBuffer = std::static_pointer_cast<PixelBuffer>(param->m_gpuResource);
+        pPixelBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        if (!pPixelBuffer->InitializeTexture2D(pTexture))
+        {
+            __debugbreak();
+        }
 
-        out->SetShaderResourceViewTableEntry(pixelBuffer, param->m_paramIndex, param->m_rangeIndex, param->m_resourceOffset);
+        pPixelBuffer->CreateShaderResourceView();
+
+        out->SetShaderResourceViewTableEntry(pPixelBuffer, param->m_paramIndex, param->m_rangeIndex, param->m_resourceOffset);
     }
 
     std::cout << "Finish Load Mat0" << std::endl;
-
 }
 
 std::shared_ptr<Immutable> Builder::ToImmutable()
