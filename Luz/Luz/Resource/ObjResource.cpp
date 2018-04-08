@@ -24,6 +24,16 @@ namespace Resource
         return static_cast<i32>(m_meshes.size());
     }
 
+    i32 Obj::GetNumMaterials() const
+    {
+        return static_cast<i32>(m_materialNames.size());
+    }
+
+    std::string Obj::GetMaterialName(const i32 i) const
+    {
+        return m_materialNames[i];
+    }
+
     Obj::Mesh* Obj::FindOrCreateMesh(const std::string name)
     {
         Mesh* pMesh = nullptr;
@@ -55,7 +65,6 @@ namespace Resource
             pResource = std::make_shared<Obj>();
             
             std::vector<Mesh>& meshes = pResource->m_meshes;
-            std::vector<std::string> materialNames;
             i32 materialIndex = -1;
             
             Mesh* pMesh = nullptr;
@@ -75,6 +84,11 @@ namespace Resource
                     fileStream >> name;
 
                     pMesh = pResource->FindOrCreateMesh(name);
+                    pMesh->MaterialIndex = materialIndex;
+                    if (materialIndex != -1)
+                    {
+                        pMesh->MaterialName = pResource->m_materialNames[materialIndex];
+                    }
                 }
                 else if (statement.compare("v") == 0)
                 {
@@ -106,9 +120,9 @@ namespace Resource
                     fileStream >> materialName;
 
                     i32 mi = -1;
-                    for (i32 i = 0; i < (i32)materialNames.size(); ++i)
+                    for (i32 i = 0, count = (i32)pResource->m_materialNames.size(); i < count; ++i)
                     {
-                        if (materialName == materialNames[i])
+                        if (materialName == pResource->m_materialNames[i])
                         {
                             mi = i;
                             break;
@@ -118,8 +132,8 @@ namespace Resource
                     // Did we find the material name?
                     if (mi == -1)
                     {
-                        materialNames.push_back(materialName);
-                        mi = (i32)materialNames.size() - 1;
+                        pResource->m_materialNames.push_back(materialName);
+                        mi = (i32)pResource->m_materialNames.size() - 1;
                     }
 
                     materialIndex = mi;

@@ -235,6 +235,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="Resource\MtlResource.cpp" />
     <ClCompile Include="Resource\ObjResource.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
+    <ClCompile Include="Resource\Texture.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Platform\Window.cpp" />
     <ClCompile Include="Platform\WindowsMessageCenter.cpp" />

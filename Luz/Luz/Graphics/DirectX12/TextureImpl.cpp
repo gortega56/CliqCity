@@ -9,36 +9,37 @@ using namespace Dx12;
 
 static bool LoadWICImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary = false);
 static bool LoadDDSImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary = false);
+static bool LoadTgaImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary = false);
 static HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImage& outImage);
 
 
-static bool LoadWICImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary /*= false*/)
+bool LoadWICImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary /*= false*/)
 {
     DirectX::TexMetadata texMetaData;
     DirectX::ScratchImage scratchImage;
     HRESULT hr = DirectX::LoadFromWICFile(filename.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &texMetaData, scratchImage);
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     hr = DirectX::GenerateMipMaps(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), (DWORD)DirectX::TEX_FILTER_FLAGS::TEX_FILTER_DEFAULT, 0, outImage);
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     return true;
 }
 
-static bool LoadDDSImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary /*= false*/)
+bool LoadDDSImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary /*= false*/)
 {
     DirectX::TexMetadata texMetaData;
     DirectX::ScratchImage scratchImage;
     HRESULT hr = DirectX::LoadFromDDSFile(filename.c_str(), DirectX::DDS_FLAGS_NONE, &texMetaData, scratchImage);
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     size_t mipLevels = texMetaData.mipLevels;
@@ -47,7 +48,7 @@ static bool LoadDDSImage(std::wstring filename, DirectX::ScratchImage& outImage,
         hr = GenerateMips(scratchImage, outImage);
         if (FAILED(hr))
         {
-            __debugbreak();
+            return false;
         }
     }
     else
@@ -58,7 +59,35 @@ static bool LoadDDSImage(std::wstring filename, DirectX::ScratchImage& outImage,
     return true;
 }
 
-static HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImage& outImage)
+static bool LoadTgaImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary /*= false*/)
+{
+    DirectX::TexMetadata texMetaData;
+    DirectX::ScratchImage scratchImage;
+    HRESULT hr = DirectX::LoadFromTGAFile(filename.c_str(), &texMetaData, scratchImage);
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    size_t mipLevels = texMetaData.mipLevels;
+    if (mipLevels == 1 && genMipsIfNecessary)
+    {
+        hr = GenerateMips(scratchImage, outImage);
+        if (FAILED(hr))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        outImage = std::move(scratchImage);
+    }
+
+    return true;
+}
+
+
+HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImage& outImage)
 {
     return DirectX::GenerateMipMaps(inImage.GetImages(), inImage.GetImageCount(), inImage.GetMetadata(), (DWORD)DirectX::TEX_FILTER_FLAGS::TEX_FILTER_DEFAULT, 0, outImage);
 }
@@ -134,6 +163,10 @@ bool TextureImpl::Load() const
     {
         return LoadDDSImage(m_filename, *m_image, true);
     }
+    else if (_wcsicmp(L".tga", extension) == 0)
+    {
+        return LoadTgaImage(m_filename, *m_image, true);
+    }
     else
     {
         return LoadWICImage(m_filename, *m_image, true);
@@ -144,13 +177,13 @@ bool TextureImpl::Load() const
     HRESULT hr = DirectX::LoadFromWICFile(m_filename.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &texMetaData, scratchImage);
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     hr = DirectX::GenerateMipMaps(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), (DWORD)DirectX::TEX_FILTER_FLAGS::TEX_FILTER_DEFAULT, 0, *m_image);
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     return true;

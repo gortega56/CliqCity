@@ -42,7 +42,9 @@ namespace Resource
             };
 
             std::string Name;
+            std::string MaterialName;
             std::vector<Face> Faces;
+            i32 MaterialIndex;
         };
 
     public:
@@ -51,17 +53,18 @@ namespace Resource
         LUZ_API Obj();
         LUZ_API ~Obj();
 
-        i32 GetNumMeshes() const;
+        i32 LUZ_API GetNumMeshes() const;
+
+        i32 LUZ_API GetNumMaterials() const;
+        std::string LUZ_API GetMaterialName(const i32 i) const;
 
         bool IsValid(const Mesh& mesh) const;
 
         template<typename VertexType, typename IndexType>
-        void Export(std::vector<::Mesh<VertexType, IndexType>>& meshes) const;
+        void Export(std::vector<::Mesh<VertexType, IndexType>>& meshes, std::vector<std::string>& materials, std::vector<i32>& materialIndices) const;
 
         template<typename VertexType, typename IndexType>
         void ExportMeshAtIndex(const i32 index, std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects, ::Mesh<VertexType, IndexType>& mesh) const;
-
-        
 
     private:
         std::vector<Position> m_positions;
@@ -69,6 +72,7 @@ namespace Resource
         std::vector<UV> m_uvs;
         std::vector<Mesh> m_meshes;
         std::vector<Async<Mtl>> m_mtls;
+        std::vector<std::string> m_materialNames;
     
         Mesh* FindOrCreateMesh(const std::string name);
 
@@ -82,15 +86,18 @@ namespace Resource
     };
         
     template<typename VertexType, typename IndexType>
-    void Obj::Export(std::vector<::Mesh<VertexType, IndexType>>& meshes) const
+    void Obj::Export(std::vector<::Mesh<VertexType, IndexType>>& meshes, std::vector<std::string>& materials, std::vector<i32>& materialIndices) const
     {
         std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual> indirects;
         
         meshes.resize(m_meshes.size());
+        materialIndices.resize(m_meshes.size());
+        materials = m_materialNames;
 
         for (i32 i = 0, count = (i32)m_meshes.size(); i < count; ++i)
         {
             ExportMeshAtIndex(i, indirects, meshes[i]);
+            materialIndices[i] = m_meshes[i].MaterialIndex;
         }
     }
 

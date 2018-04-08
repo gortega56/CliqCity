@@ -4,9 +4,10 @@
 
 namespace Resource
 {
-    class Mtl
+    class LUZ_API Mtl
     {
-        struct Material
+    public:
+        struct LUZ_API Material
         {
             float SpecularExponent;       // Ns
             float OpticalDensity;         // Ni
@@ -28,18 +29,16 @@ namespace Resource
             std::string NormalTextureName;
         };
 
-    public:
-        static std::shared_ptr<const Mtl> LUZ_API Load(const std::string& filename);
+        static std::shared_ptr<const Mtl>  Load(const std::string& filename);
 
         Mtl();
         ~Mtl();
 
-        const Material* GetMaterial(const std::string name) const;
-        size_t NumMaterials() const;
+        const Material*  GetMaterial(const std::string name) const;
+        size_t  NumMaterials() const;
 
     private:
         std::unordered_map<std::string, Material> m_materials;
-
         Material* FindOrCreateMaterial(const std::string& name);
     };
 }

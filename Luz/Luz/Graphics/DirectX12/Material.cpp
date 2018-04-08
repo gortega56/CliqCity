@@ -73,7 +73,7 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
         bool success = uploadBuffer->Initialize(param->m_data);
         if (!success)
         {
-            __debugbreak();
+            continue;
         }
 
         out->SetRootConstantBufferView(uploadBuffer, param->m_paramIndex, param->m_resourceOffset);
@@ -82,7 +82,7 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
 
 void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out)
 {
-    std::vector<Resource::Async<Texture2D>> loadingTextures;
+    std::vector<Resource::Async<Resource::Texture>> loadingTextures;
     std::vector<u32> srvIndices;
 
     for (int i = 0, count = (int)buildParams.size(); i < count; ++i)
@@ -92,7 +92,7 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
 
         auto param = std::static_pointer_cast<SrvBuildParam>(buildParams[i]);
 
-        loadingTextures.push_back(Resource::Async<Texture2D>::Load(std::string(param->m_filename.begin(), param->m_filename.end())));
+        loadingTextures.push_back(Resource::Async<Resource::Texture>::Load(std::string(param->m_filename.begin(), param->m_filename.end())));
         srvIndices.push_back(i);        
     }
 
@@ -111,15 +111,13 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
         pPixelBuffer->SetResourceState(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         if (!pPixelBuffer->InitializeTexture2D(pTexture))
         {
-            __debugbreak();
+            continue;
         }
 
         pPixelBuffer->CreateShaderResourceView();
 
         out->SetShaderResourceViewTableEntry(pPixelBuffer, param->m_paramIndex, param->m_rangeIndex, param->m_resourceOffset);
     }
-
-    std::cout << "Finish Load Mat0" << std::endl;
 }
 
 std::shared_ptr<Immutable> Builder::ToImmutable()

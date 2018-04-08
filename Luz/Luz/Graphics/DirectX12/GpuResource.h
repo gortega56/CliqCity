@@ -10,13 +10,10 @@
 #include "DescriptorHeap.h"
 #endif
 
-namespace Internal
+namespace Resource
 {
-    template<class Impl> class Texture2D;
+    class Texture;
 }
-
-namespace Dx12 { class TextureImpl; }
-typedef Internal::Texture2D<Dx12::TextureImpl> Texture2D;
 
 namespace Dx12
 {
@@ -120,7 +117,7 @@ namespace Dx12
             u32 height = 0);
         ~PixelBuffer();
 
-        bool InitializeTexture2D(std::shared_ptr<const Texture2D> texture = nullptr);
+        bool InitializeTexture2D(std::shared_ptr<const Resource::Texture> texture = nullptr);
         bool InitializeTexture2D(void* data = nullptr);
         bool InitializeTexture2D(
             const u64 width, 

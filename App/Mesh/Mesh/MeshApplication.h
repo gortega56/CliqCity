@@ -66,9 +66,21 @@ struct Vertex
 
 struct ConstantBufferData
 {
-    gmath::float4x4 model;
     gmath::float4x4 view;
     gmath::float4x4 proj;
+};
+
+struct PhongMaterial
+{
+    float SpecularExponent;       
+    float Transparency;           
+    float OpticalDensity;         
+    float Dissolve;               
+    gmath::float3 Specular;            
+    gmath::float3 TransmissionFilter;  
+    gmath::float3 Ambient;           
+    gmath::float3 Diffuse;             
+    gmath::float3 Emissive;            
 };
 
 class MeshApplication :
@@ -86,14 +98,17 @@ public:
     std::shared_ptr<Dx12::RootSignature> m_rs;
 
     std::vector<std::shared_ptr<Renderable>> m_renderables;
+    std::vector<std::shared_ptr<MaterialState>> m_materials;
 
     std::shared_ptr<MaterialState> m_material0;
     std::shared_ptr<MaterialState> m_material1;
 
-    ConstantBufferData m_cbvData0;
-    ConstantBufferData m_cbvData1;
+    ConstantBufferData m_cbvData;
+    std::vector<PhongMaterial> m_materialConstants;
 
     Luz::CameraController m_cameraController;
+
+    std::vector<i32> m_materialIndices;
 
     MeshApplication();
     ~MeshApplication();

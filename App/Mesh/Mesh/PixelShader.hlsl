@@ -1,3 +1,16 @@
+cbuffer MaterialConstants : register(b1)
+{
+    float specularExponent;
+    float transparency;
+    float opticalDensity;
+    float dissolve;
+    float3 specular;
+    float3 transmissionFilter;
+    float3 ambient;
+    float3 diffuse;
+    float3 emissive;
+}
+
 Texture2D diffuseTexture : register(t0);
 Texture2D normalTexture : register(t1);
 SamplerState samp : register(s0);
@@ -31,9 +44,6 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float3 l = float3(0.0f, -0.5f, 0.5f);
 
     float4 color = float4(0.8, 0.8f, 0.8f, 1.0f);
-    //float4 color = float4(1.0f, 0.0f, 0.0f, 1.0f);/*
-    //float4 color = float4(0.0f, 1.0f, 0.0f, 1.0f);
-    //float4 color = float4(0.0f, 0.0f, 1.0f, 1.0f);*/
     
     float4 diff = diffuseTexture.Sample(samp, input.uv);
 

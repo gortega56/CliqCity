@@ -59,6 +59,7 @@ namespace Resource
                     std::string name;
                     fileStream >> name;
                     pMaterial = pResource->FindOrCreateMaterial(name);
+                    pMaterial->Name = name;
                 }
                 else if (statement.compare("Ns") == 0)
                 {
@@ -107,22 +108,18 @@ namespace Resource
                 else if (statement.compare("map_Kd") == 0)
                 {
                     fileStream >> pMaterial->DiffuseTextureName;
-
                 }
                 else if (statement.compare("map_Ks") == 0)
                 {
                     fileStream >> pMaterial->SpecularTextureName;
-
                 }
                 else if (statement.compare("map_Ke") == 0)
                 {
                     fileStream >> pMaterial->EmissiveTextureName;
-
                 }
                 else if (statement.compare("map_bump") == 0 || statement.compare("bump") == 0)
                 {
                     fileStream >> pMaterial->NormalTextureName;
-
                 }
                 else if (statement.compare("map_d") == 0)
                 {

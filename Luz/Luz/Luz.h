@@ -22,10 +22,6 @@
 #include "Resource\ResourceManager.h"
 #endif
 
-#ifndef TEXTURE_H
-#include "Resource\Texture.h"
-#endif
-
 #ifndef MESH_H
 #include "Mesh.h"
 #endif

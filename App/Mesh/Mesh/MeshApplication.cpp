@@ -14,6 +14,7 @@
 #include "Graphics.h"
 #include "Console.h"
 #include "Platform\Input.h"
+#include <codecvt>
 
 #define DIFF_PATH0 L".\\Assets\\BrickDiff.dds"
 #define DIFF_PATH1 L".\\Assets\\RockPileDiff.dds"
@@ -28,7 +29,7 @@
 #define OBJ_PATH ".\\Assets\\cube.obj"
 
 #define SPONZA_MTL_PATH ".\\Assets\\sponza_obj\\sponza.mtl"
-#define SPONZA_TEX_PATH ".\\Assets\\sponza_textures\\textures\\"
+#define SPONZA_TEX_PATH ".\\Assets\\sponza_textures\\"
 
 using namespace Luz;
 using namespace gmath;
@@ -56,7 +57,7 @@ bool MeshApplication::Initialize()
     }
 
     auto loadingObj = Resource::Async<Resource::Obj>::Load(SPONZA_OBJ_PATH);
-
+    auto loadingMtl = Resource::Async<Resource::Mtl>::Load(SPONZA_MTL_PATH);
 
     m_cameraController = CameraController(m_engine->OS()->GetInput());
 
@@ -67,9 +68,8 @@ bool MeshApplication::Initialize()
     pCamera->SetNear(0.1f);
     pCamera->SetFar(3000.0f);
 
-    m_cbvData0.model = float4x4(1.0f);
-    m_cbvData0.view = pCamera->GetView().transpose();
-    m_cbvData0.proj = pCamera->GetProjection().transpose();
+    m_cbvData.view = pCamera->GetView().transpose();
+    m_cbvData.proj = pCamera->GetProjection().transpose();
 
     //rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
     //{
@@ -93,12 +93,6 @@ bool MeshApplication::Initialize()
     //    }
     //});
 
-
-/*
-    m_cbvData1.model = float4x4(1.0f).transpose();
-    m_cbvData1.view = float4x4::look_at_lh(float3(0.0f), float3(0.0f, 0.0f, -15.0f), float3(0.0f, 1.0f, 0.0f)).transpose();
-    m_cbvData1.proj = float4x4::perspective_lh(3.14f * 0.5f, aspectRatio, 0.1f, 100.0f).transpose();
-*/
     if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
     {
         return false;
@@ -125,6 +119,7 @@ bool MeshApplication::Initialize()
         .DenyDS()
         .DenyGS()
         .AppendRootCBV(0)
+        .AppendRootCBV(1)
         .AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL)
         .AppendAnisotropicWrapSampler(0);
 
@@ -151,29 +146,80 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    MaterialBuilder matBuilder0(m_rs);
-    matBuilder0.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData0);
-    matBuilder0.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH0);
-    matBuilder0.SetDescriptorTableEntry(1, 0, 1, NORM_PATH0);
-    m_material0 = matBuilder0.ToImmutable();
+    //MaterialBuilder matBuilder0(m_rs);
+    //matBuilder0.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData0);
+    //matBuilder0.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH0);
+    //matBuilder0.SetDescriptorTableEntry(1, 0, 1, NORM_PATH0);
+    //m_material0 = matBuilder0.ToImmutable();
+    //
+
+    //MaterialBuilder mb1(m_rs);
+    //mb1.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData1);
+    //mb1.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH1);
+    //mb1.SetDescriptorTableEntry(1, 0, 1, NORM_PATH1);
+    //m_material1 = mb1.ToImmutable();
+
     
 
-    MaterialBuilder mb1(m_rs);
-    mb1.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData1);
-    mb1.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH1);
-    mb1.SetDescriptorTableEntry(1, 0, 1, NORM_PATH1);
-    m_material1 = mb1.ToImmutable();
-
     std::vector<Mesh<Vertex, u32>> meshes;
-    loadingObj.Get()->Export(meshes);
-
-    m_renderables.resize(meshes.size());
-    for (size_t i = 0; i < meshes.size(); ++i)
+    std::vector<std::string> materials;
+    if (auto pObj = loadingObj.Get())
     {
-        m_renderables[i] = std::make_shared<Renderable>();
-        m_renderables[i]->LoadMesh(&meshes[i]);
-        m_renderables[i]->m_isRenderable.store(true);
+        pObj->Export(meshes, materials, m_materialIndices);
+    
+        m_renderables.resize(meshes.size());
+        for (size_t i = 0; i < meshes.size(); ++i)
+        {
+            m_renderables[i] = std::make_shared<Renderable>();
+            m_renderables[i]->LoadMesh(&meshes[i]);
+            m_renderables[i]->m_isRenderable.store(true);
+        }
     }
+
+    auto pMtl = loadingMtl.Get();
+    if (pMtl)
+    {
+        std::string texturePath = SPONZA_TEX_PATH;
+        typedef std::codecvt_utf8<wchar_t> convert_type;
+        std::wstring_convert<convert_type, wchar_t> converter;
+
+        std::vector<MaterialBuilder> builders;
+        for (auto& name : materials)
+        {
+            if (auto pMat = pMtl->GetMaterial(name))
+            {
+                m_materialConstants.emplace_back();
+
+                auto& mc = m_materialConstants.back();
+                mc.SpecularExponent = pMat->SpecularExponent;
+                mc.Transparency = pMat->Transparency;
+                mc.OpticalDensity = pMat->OpticalDensity;
+                mc.Dissolve = pMat->Dissolve;
+                mc.Specular = float3(pMat->Specular);
+                mc.TransmissionFilter = float3(pMat->TransmissionFilter);
+                mc.Ambient = float3(pMat->Ambient);
+                mc.Diffuse = float3(pMat->Diffuse);
+                mc.Emissive = float3(pMat->Emissive);
+
+                std::string diffuseTexture = texturePath + pMat->DiffuseTextureName;
+                std::string normalTexture = texturePath + pMat->NormalTextureName;
+
+                builders.emplace_back(m_rs);
+                
+                auto& builder = builders.back();
+                builder.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData);
+                builder.SetRootConstantBufferView(1, 0, sizeof(PhongMaterial), sizeof(PhongMaterial), 1, &mc);
+                builder.SetDescriptorTableEntry(2, 0, 0, converter.from_bytes(diffuseTexture));
+                builder.SetDescriptorTableEntry(2, 0, 1, converter.from_bytes(normalTexture));
+            }
+        }
+
+        for (auto& builder : builders)
+        {
+            m_materials.push_back(builder.ToImmutable());
+        }
+    }
+    
 
     return true;
 }
@@ -198,16 +244,18 @@ void MeshApplication::Update(double dt)
 
     pCtx->SetRootSignature(m_rs.get());
 
-    m_material0->UpdateConstantBufferView(0, &m_cbvData0);
-    m_material0->Prepare(pCtx.get());
-
-    for (auto pRenderable : m_renderables)
+    for (int i = 0, count = (int)m_renderables.size(); i < count; ++i)
     {
-        if (bool isReadyForRender = pRenderable->m_isRenderable.load())
+        i32 mi = m_materialIndices[i];
+        if (mi != -1)
         {
-            pRenderable->Prepare(pCtx.get());
-            pRenderable->DrawIndexedInstanced(pCtx.get());
+            m_materials[mi]->UpdateConstantBufferView(0, &m_cbvData);
+            m_materials[mi]->UpdateConstantBufferView(1, &m_materialConstants[mi]);
+            m_materials[mi]->Prepare(pCtx.get());
         }
+        
+        m_renderables[i]->Prepare(pCtx.get());
+        m_renderables[i]->DrawIndexedInstanced(pCtx.get());
     }
     
     pCtx->Present();
@@ -217,6 +265,5 @@ void MeshApplication::Update(double dt)
 void MeshApplication::FixedUpdate(double dt)
 {
     m_cameraController.Update(dt);
-
-    m_cbvData0.view = m_cameraController.GetCamera()->GetView().transpose();
+    m_cbvData.view = m_cameraController.GetCamera()->GetView().transpose();
 }

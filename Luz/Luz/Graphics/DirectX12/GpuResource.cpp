@@ -6,6 +6,7 @@
 #include "CommandQueue.h"
 #include "Dx12Graphics.h"
 #include "Resource\Texture.h"
+#include "TextureImpl.h"
 
 using namespace Dx12;
 
@@ -229,9 +230,9 @@ PixelBuffer::~PixelBuffer()
 
 }
 
-bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Texture2D> texture/* = nullptr*/)
+bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Resource::Texture> texture/* = nullptr*/)
 {
-    auto pTexImpl = texture->GetImpl();
+    auto pTexImpl = texture->GetImpl<Dx12::TextureImpl>();
     if (!pTexImpl)
     {
         return false;
@@ -250,7 +251,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Texture2D> texture/*
     hr = CreateTexture(pDevice, imageMetadata, m_resource.ReleaseAndGetAddressOf());
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     m_resource->SetName(pTexImpl->Filename().c_str());
@@ -259,7 +260,7 @@ bool PixelBuffer::InitializeTexture2D(std::shared_ptr<const Texture2D> texture/*
     hr = PrepareUpload(pDevice, image.GetImages(), image.GetImageCount(), imageMetadata, subresources);
     if (FAILED(hr))
     {
-        __debugbreak();
+        return false;
     }
 
     const u32 numSubresources = static_cast<u32>(subresources.size());
