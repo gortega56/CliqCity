@@ -109,6 +109,25 @@ namespace Dx12
         std::vector<DescriptorHeap> m_descriptorHeaps;
     };
 
+    class DescriptorHandleCollection
+    {
+    public:
+        DescriptorHandleCollection();
+        ~DescriptorHandleCollection() = default;
+
+        bool TrySet(const DescriptorHandle& handle, u16* pIndex);
+        const DescriptorHandle Get(i32 i) const;
+        void Remove(i32 i);
+
+    private:
+        static const u32 sm_stateBits = 8;
+        static const u32 sm_maxHandles = 1024;
+        static const u32 sm_maxHandleStates = sm_maxHandles / sm_stateBits;
+
+        DescriptorHandle m_handles[sm_maxHandles];
+        u8 m_handleStates[sm_maxHandleStates];
+    };
+
     DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count = 1);
     const DescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 index);
     void GetDescriptorHeaps(std::vector<DescriptorHandle>& handles, std::vector<ID3D12DescriptorHeap*>& out);

@@ -562,10 +562,10 @@ namespace gmath
             T c14 = -((((rhs[5] * rhs[10]) - (rhs[6] * rhs[ 9])) * rhs[12]) + (((rhs[6] * rhs[8]) - (rhs[4] * rhs[10])) * rhs[13]) + (((rhs[4] * rhs[ 9]) - (rhs[5] * rhs[8])) * rhs[14]));
 
             T det = (rhs[0] * c11) + (rhs[1] * c12) + (rhs[2] * c13) + (rhs[3] * c14);
-            if (abs(det) < tolerance)
+            /*if (abs(det) < tolerance)
             {
                 return false;
-            }
+            }*/
 
             T c21 = -((((rhs[2] * rhs[11]) - (rhs[3] * rhs[10])) * rhs[13]) + (((rhs[3] * rhs[9]) - (rhs[1] * rhs[11])) * rhs[14]) + (((rhs[1] * rhs[10]) - (rhs[2] * rhs[9])) * rhs[15]));
             T c22 = +((((rhs[2] * rhs[11]) - (rhs[3] * rhs[10])) * rhs[12]) + (((rhs[3] * rhs[8]) - (rhs[0] * rhs[11])) * rhs[14]) + (((rhs[0] * rhs[10]) - (rhs[2] * rhs[8])) * rhs[15]));

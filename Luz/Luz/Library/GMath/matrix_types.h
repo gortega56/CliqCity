@@ -799,7 +799,7 @@ namespace gmath
             2.0f / (right - left), 0.0f, 0.0f, 0.0f,
             0.0f, 2.0f / (top - bottom), 0.0f, 0.0f,
             0.0f, 0.0f, 1.0f / (zFar - zNear), 0.0f,
-            -(right + left) / (right - left), -(top + bottom) / (top - bottom), -zNear / (zNear - zFar), 1.0f
+            0.0f, 0.0f, zNear / (zNear - zFar), 1.0f
         };
     }
 

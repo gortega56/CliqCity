@@ -100,6 +100,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\GMath\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -124,6 +125,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
       <PrecompiledHeader>Create</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\GMath\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -150,6 +152,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
       <PrecompiledHeader>Create</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\GMath\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -178,6 +181,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
       <PrecompiledHeader>Create</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Library\FBX\FBX SDK\2017.1\include\;$(ProjectDir)Platform\;$(ProjectDir)Graphics\;$(ProjectDir)Library\DirectXTK12\Inc\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\GMath\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -248,6 +252,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GeneralMacros.h" />
     <ClInclude Include="Graphics\Graphics.h" />
+    <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="LuzExport.h" />
     <ClInclude Include="LzAssert.h" />
     <ClInclude Include="Console.h" />
@@ -270,7 +275,6 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Graphics\DirectX12\SwapChain.h" />
     <ClInclude Include="Graphics\DirectX12\TextureImpl.h" />
     <ClInclude Include="Graphics\DirectX12\Viewport.h" />
-    <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Graphics\Renderable.h" />
