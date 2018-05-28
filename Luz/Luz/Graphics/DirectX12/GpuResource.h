@@ -68,6 +68,11 @@ namespace Dx12
 
         inline D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() const { return m_resource->GetGPUVirtualAddress(); }
 
+        void CreateConstantBufferView(const DescriptorHandle& descriptorHandle, u32 offset = 0);
+        void CreateConstantBufferView();
+
+        DescriptorHandle ConstantBufferViewHandle() const { return m_cbvHandle; }
+
         GpuBuffer(GpuBuffer&& other);
         GpuBuffer& operator=(GpuBuffer&& other);
 
@@ -75,6 +80,8 @@ namespace Dx12
         u64 m_bufferSize;
         u32 m_elementSize;
         u32 m_numElements;
+
+        DescriptorHandle m_cbvHandle;
 
         NO_COPY(GpuBuffer)
     };

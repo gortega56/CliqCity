@@ -154,7 +154,7 @@ bool TextureImpl::Load() const
     static std::atomic_bool coIntialized = false;
     if (!coIntialized)
     {
-        CoInitialize(NULL);
+        CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
         coIntialized = true;
     }
 

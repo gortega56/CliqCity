@@ -13,107 +13,203 @@
 #include <vector>
 #include <map>
 
-__interface LUZ_API IMesh
+namespace Graphics
 {
-public:
-    virtual void* VertexData() const = 0;
-    virtual void* IndexData() const = 0;
+    __interface LUZ_API IMesh
+    {
+    public:
+        virtual void* Vertices() const = 0;
+        virtual void* Indices() const = 0;
 
-    virtual size_t VertexStride() const = 0;
-    virtual size_t IndexStride() const = 0;
+        virtual u32 VertexStride() const = 0;
+        virtual u32 IndexStride() const = 0;
 
-    virtual u32 NumVertices() const = 0;
-    virtual u32 NumIndices() const = 0;
+        virtual u32 NumVertices() const = 0;
+        virtual u32 NumIndices() const = 0;
 
-    virtual size_t VertexDataSize() const = 0;
-    virtual size_t IndexDataSize() const = 0;
-};
+        virtual u32 NumVertexBytes() const = 0;
+        virtual u32 NumIndexBytes() const = 0;
+    };
 
+    template<class VertexType, class IndexType>
+    class Mesh : public IMesh
+    {
+    public:
+        Mesh(const VertexType* vertices, const u32 numVertices, const IndexType* indices, const u32 numIndices);
+        Mesh();
+        ~Mesh();
 
+        Mesh(const Mesh<VertexType, IndexType>& o);
+        Mesh(Mesh<VertexType, IndexType>&& o);
 
-template<class Vertex, class Index>
-class Mesh : public IMesh
-{
-    typedef gmath::float4 float4;
-    typedef gmath::float3 float3;
-public:
-    Mesh()
+        Mesh& operator=(const Mesh<VertexType, IndexType>& o);
+        Mesh& operator=(Mesh<VertexType, IndexType>&& o);
+
+        void SetVertices(const VertexType* pVertices, const u32 numVertices);
+        void SetIndices(const IndexType* pIndices, const u32 numIndices);
+
+        void* Vertices() const override;
+        void* Indices() const override;
+
+        u32 VertexStride() const override;
+        u32 IndexStride() const override;
+
+        u32 NumVertices() const override;
+        u32 NumIndices() const override;
+
+        u32 NumVertexBytes() const override;
+        u32 NumIndexBytes() const override;
+
+        static void CreateTangents(VertexType* pVertices, const u32 numVertices, IndexType* pIndices, const u32 numIndices);
+
+    private:
+        std::vector<VertexType> m_vertices;
+        std::vector<IndexType> m_indices;
+    };
+
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>::Mesh(const VertexType* pVertices, const u32 numVertices, const IndexType* pIndices, const u32 numIndices)
+        : m_vertices(pVertices, pVertices + numVertices)
+        , m_indices(pIndices, pIndices + numIndices)
     {
 
     }
 
-    ~Mesh()
+
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>::Mesh() : Mesh(nullptr, 0, nullptr, 0)
+    {
+
+    }
+
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>::~Mesh()
     {
         m_vertices.clear();
         m_indices.clear();
     }
 
-    Mesh(const std::vector<Vertex>& vertices, const std::vector<Index>& indices) : m_vertices(vertices), m_indices(indices)
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>::Mesh(const Mesh<VertexType, IndexType>& o)
+        : m_vertices(o.m_vertices)
+        , m_indices(o.m_indices)
     {
 
     }
 
-    Mesh(const Mesh<Vertex, Index>& other) : Mesh(other.m_vertices, other.m_indices)
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>::Mesh(Mesh<VertexType, IndexType>&& o)
+        : m_vertices(std::move(o.m_vertices))
+        , m_indices(std::move(o.m_indices))
     {
 
     }
 
-    Mesh(Mesh<Vertex, Index>&& other) : m_vertices(std::move(other.m_vertices), std::move(other.m_indices))
-    {
-
-    }
-
-    Mesh& operator=(const Mesh<Vertex, Index>& other)
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>& Mesh<VertexType, IndexType>::operator=(const Mesh<VertexType, IndexType>& o)
     {
         m_vertices = other.m_vertices;
         m_indices = other.m_indices;
         return *this;
     }
 
-    Mesh& operator=(Mesh<Vertex, Index>&& other)
+    template<class VertexType, class IndexType>
+    Mesh<VertexType, IndexType>& Mesh<VertexType, IndexType>::operator=(Mesh<VertexType, IndexType>&& o)
     {
         m_vertices = std::move(other.m_vertices);
         m_indices = std::move(other.m_indices);
         return *this;
     }
 
-    inline void* VertexData() const override { return (void*)m_vertices.data(); }
-    inline void* IndexData() const override { return (void*)m_indices.data(); }
+    template<class VertexType, class IndexType>
+    inline void* Mesh<VertexType, IndexType>::Vertices() const 
+    { 
+        return (void*)m_vertices.data(); 
+    }
 
-    inline size_t VertexStride() const override { return sizeof(Vertex); }
-    inline size_t IndexStride() const override { return sizeof(Index); }
+    template<class VertexType, class IndexType>
+    inline void* Mesh<VertexType, IndexType>::Indices() const
+    { 
+        return (void*)m_indices.data(); 
+    }
 
-    inline u32 NumVertices() const override { return (u32)m_vertices.size(); }
-    inline u32 NumIndices() const override { return (u32)m_indices.size(); }
+    template<class VertexType, class IndexType>
+    inline u32 Mesh<VertexType, IndexType>::VertexStride() const
+    { 
+        return sizeof(VertexType);
+    }
 
-    inline size_t VertexDataSize() const override { return sizeof(Vertex) * m_vertices.size(); }
-    inline size_t IndexDataSize() const override { return sizeof(Index) * m_indices.size(); }
+    template<class VertexType, class IndexType>
+    inline u32 Mesh<VertexType, IndexType>::IndexStride() const
+    { 
+        return sizeof(IndexType); 
+    }
 
-    inline std::vector<Vertex>& Vertices() { return m_vertices; }
-    inline std::vector<Index>& Indices() { return m_indices; }
+    template<class VertexType, class IndexType>
+    inline u32 Mesh<VertexType, IndexType>::NumVertices() const
+    { 
+        return static_cast<u32>(m_vertices.size()); 
+    }
 
-    inline void SetVertices(const std::vector<Vertex>& vertices) { m_vertices = vertices; }
-    inline void SetIndices(const std::vector<Index>& indices) { m_indices = indices; }
+    template<class VertexType, class IndexType>
+    inline u32 Mesh<VertexType, IndexType>::NumIndices() const
+    { 
+        return static_cast<u32>(m_indices.size());
+    }
 
-    inline void SetVertices(std::vector<Vertex>&& vertices) { m_vertices = std::move(vertices); }
-    inline void SetIndices(std::vector<Index>&& indices) { m_indices = std::move(indices); }
+    template<class VertexType, class IndexType>
+    inline u32 Mesh<VertexType, IndexType>::NumVertexBytes() const
+    { 
+        return static_cast<u32>(sizeof(VertexType) * m_vertices.size());
+    }
 
-    void GenerateTangents()
+    template<class VertexType, class IndexType>
+    inline u32 Mesh<VertexType, IndexType>::NumIndexBytes() const
+    { 
+        return static_cast<u32>(sizeof(IndexType) * m_indices.size());
+    }
+
+    template<class VertexType, class IndexType>
+    inline void Mesh<VertexType, IndexType>::SetVertices(const VertexType* pVertices, const u32 numVertices)
+    { 
+        m_vertices.clear();
+        m_vertices.resize(static_cast<size_t>(numVertices));
+        memcpy_s(m_vertices.data(), sizeof(VertexType) * m_vertices.size(), pVertices, sizeof(VertexType) * numVertices);
+    }
+
+    template<class VertexType, class IndexType>
+    inline void Mesh<VertexType, IndexType>::SetIndices(const IndexType* pIndices, const u32 numIndices)
     {
-        std::vector<float3> tangents(m_vertices.size());
-        std::vector<float3> bitangents(m_vertices.size());
+        m_indices.clear();
+        m_indices.resize(static_cast<size_t>(numIndices));
+        memcpy_s(m_indices.data(), sizeof(IndexType) * m_indices.size(), pIndices, sizeof(IndexType) * numIndices);
+    }
+
+    template<class VertexType, class IndexType>
+    void Mesh<VertexType, IndexType>::CreateTangents(VertexType* pVertices, const u32 numVertices, IndexType* pIndices, const u32 numIndices)
+    {
+        //static_assert(Geometry::VertexTraits<VertexType>::Tangent);
+        //static_assert(Geometry::VertexTraits<VertexType>::Position);
+        //static_assert(Geometry::VertexTraits<VertexType>::Normal);
+        //static_assert(Geometry::VertexTraits<VertexType>::UV);
+
+        typedef gmath::float4 float4;
+        typedef gmath::float3 float3;
+
+        std::vector<float3> tangents(static_cast<size_t>(numVertices));
+        std::vector<float3> bitangents(static_cast<size_t>(numVertices));
         memset(tangents.data(), 0, sizeof(float3) * tangents.size());
         memset(bitangents.data(), 0, sizeof(float3) * bitangents.size());
 
-        for (int i = 3, numIndices = (int)m_indices.size(); i <= numIndices; i += 3)
+        for (u32 i = 3; i <= numIndices; i += 3)
         {
-            Index i0 = m_indices[i - 3];
-            Index i1 = m_indices[i - 2];
-            Index i2 = m_indices[i - 1];
+            IndexType i0 = pIndices[i - 3];
+            IndexType i1 = pIndices[i - 2];
+            IndexType i2 = pIndices[i - 1];
 
-            Vertex& v0 = m_vertices[i0];
-            Vertex& v1 = m_vertices[i1];
-            Vertex& v2 = m_vertices[i2];
+            VertexType& v0 = pVertices[i0];
+            VertexType& v1 = pVertices[i1];
+            VertexType& v2 = pVertices[i2];
 
             float x1 = v1.Position.x - v0.Position.x;
             float x2 = v2.Position.x - v0.Position.x;
@@ -141,10 +237,10 @@ public:
             bitangents[i2] += bitangent;
         }
 
-        for (int i = 0, numIndices = (int)m_indices.size(); i < numIndices; i++)
+        for (u32 i = 0; i < numIndices; i++)
         {
-            Index index = m_indices[i];
-            Vertex& vertex = m_vertices[index];
+            IndexType index = pIndices[i];
+            VertexType& vertex = pVertices[index];
             float3& tangent = tangents[index];
             float3& bitangent = bitangents[index];
             float3& normal = vertex.Normal;
@@ -153,10 +249,8 @@ public:
             vertex.Tangent.w = (gmath::dot(gmath::cross(normal, tangent), bitangent) > 0.0f) ? 1.0f : -1.0f;
         }
     }
+}
 
-private:
-    std::vector<Vertex> m_vertices;
-    std::vector<Index> m_indices;
-};
+
 
 #endif

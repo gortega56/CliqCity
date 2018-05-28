@@ -6,7 +6,10 @@
 #include "GpuResource.h"
 #endif
 
-__interface IMesh;
+namespace Graphics
+{
+    __interface IMesh;
+}
 
 namespace Dx12
 {
@@ -23,8 +26,8 @@ namespace Dx12
         u32 NumVertices() const { return m_vertexBuffer.NumElements(); }
         u32 NumIndices() const { return m_indexBuffer.NumElements(); }
 
-        bool LoadMesh(std::shared_ptr<const IMesh> pMesh);
-        bool LoadMesh(IMesh const* pMesh);
+        bool LoadMesh(std::shared_ptr<const Graphics::IMesh> pMesh);
+        bool LoadMesh(Graphics::IMesh const* pMesh);
 
         void Prepare(GraphicsCommandContext* pCtx);
         void DrawIndexedInstanced(GraphicsCommandContext* pCtx, u32 instanceCount = 1, u32 startIndex = 0, i32 baseVertex = 0, u32 startInstance = 0);

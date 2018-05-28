@@ -6,10 +6,6 @@
 #include "MeshResourceUtility.h"
 #endif
 
-#ifndef MESH_H
-#include "Mesh.h"
-#endif
-
 #ifndef VERTEXTRAITS_H
 #include "VertexTraits.h"
 #endif
@@ -32,41 +28,46 @@ namespace Resource
         using VertexIndirectHash = TArrayHash<u32, 3>;
         using VertexIndirectEqual = TArrayEqual<u32, 3>;
 
+    public:
+        struct LUZ_API Face : public TArray<i32, 12>
+        {
+            bool HasNormals = false;
+            bool HasUvs = false;
+            bool IsTri = false;
+        };
+
+        struct LUZ_API MeshDesc
+        {
+            const char* Name;
+            const char* MaterialName;
+            const Face* FacesPtr;
+            u32 NumFaces;
+            u32 MaterialIndex;
+        };
+
+        static std::shared_ptr<const Obj> LUZ_API Load(const std::string& filename);
+ 
+        LUZ_API Obj();
+        LUZ_API ~Obj();
+
+        const MeshDesc LUZ_API GetMeshDesc(const u32 i) const;
+
+        u32 LUZ_API GetNumMeshes() const;
+        u32 LUZ_API GetNumMaterials() const;
+
+        std::string LUZ_API GetMaterialName(const u32 i) const;
+        template<typename VertexType, typename IndexType>
+        void CreateVertices(std::function<void(const u32, const VertexType*, const u32, const IndexType*, const u32)> onComplete) const;
+
+    private:
         struct Mesh
         {
-            struct Face : public TArray<i32, 12>
-            {
-                bool HasNormals = false;
-                bool HasUvs = false;
-                bool IsTri = false;
-            };
-
             std::string Name;
             std::string MaterialName;
             std::vector<Face> Faces;
             i32 MaterialIndex;
         };
 
-    public:
-        static std::shared_ptr<const Obj> LUZ_API Load(const std::string& filename);
- 
-        LUZ_API Obj();
-        LUZ_API ~Obj();
-
-        i32 LUZ_API GetNumMeshes() const;
-
-        i32 LUZ_API GetNumMaterials() const;
-        std::string LUZ_API GetMaterialName(const i32 i) const;
-
-        bool IsValid(const Mesh& mesh) const;
-
-        template<typename VertexType, typename IndexType>
-        void Export(std::vector<::Mesh<VertexType, IndexType>>& meshes, std::vector<std::string>& materials, std::vector<i32>& materialIndices) const;
-
-        template<typename VertexType, typename IndexType>
-        void ExportMeshAtIndex(const i32 index, std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects, ::Mesh<VertexType, IndexType>& mesh) const;
-
-    private:
         std::vector<Position> m_positions;
         std::vector<Normal> m_normals;
         std::vector<UV> m_uvs;
@@ -76,9 +77,11 @@ namespace Resource
     
         Mesh* FindOrCreateMesh(const std::string name);
 
+        bool IsValid(const Mesh& mesh) const;
+
         template<typename VertexType, typename IndexType>
         void AddFaceVertex(
-            const Mesh::Face& face, 
+            const Face& face,
             const VertexIndirect& vi, 
             std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects,
             std::vector<VertexType>& vertices,
@@ -86,71 +89,70 @@ namespace Resource
     };
         
     template<typename VertexType, typename IndexType>
-    void Obj::Export(std::vector<::Mesh<VertexType, IndexType>>& meshes, std::vector<std::string>& materials, std::vector<i32>& materialIndices) const
+    void Obj::CreateVertices(std::function<void(const u32, const VertexType*, const u32, const IndexType*, const u32)> onComplete) const
     {
         std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual> indirects;
         
+        std::vector<Resource::Mesh<VertexType, IndexType>> meshes;
         meshes.resize(m_meshes.size());
-        materialIndices.resize(m_meshes.size());
-        materials = m_materialNames;
 
-        for (i32 i = 0, count = (i32)m_meshes.size(); i < count; ++i)
+        for (u32 i = 0, count = (u32)m_meshes.size(); i < count; ++i)
         {
-            ExportMeshAtIndex(i, indirects, meshes[i]);
-            materialIndices[i] = m_meshes[i].MaterialIndex;
-        }
-    }
+            const Mesh& objMesh = m_meshes[i];
 
-    template<typename VertexType, typename IndexType>
-    void Obj::ExportMeshAtIndex(const i32 index, std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects, ::Mesh<VertexType, IndexType>& mesh) const
-    {
-        const Mesh& exportMesh = m_meshes[index];
+            std::vector<VertexType>& vertices = meshes[i].Vertices;
+            std::vector<IndexType>& indices = meshes[i].Indices;
 
-        std::vector<VertexType> vertices;
-        std::vector<IndexType> indices;
+            vertices.reserve(objMesh.Faces.size() * 3);
+            indices.reserve(objMesh.Faces.size() * 3);
 
-        vertices.reserve(exportMesh.Faces.size() * 3);
-        indices.reserve(exportMesh.Faces.size() * 3);
-
-        for (auto& face : exportMesh.Faces)
-        {
-            // Always add the first 3 vertices
-            for (size_t i = 0; i < 3; ++i)
+            for (auto& face : objMesh.Faces)
             {
-                VertexIndirect vi;
-                vi.Data[0] = face.Data[3 * i + 0] - 1;
-                vi.Data[1] = face.Data[3 * i + 1] - 1;
-                vi.Data[2] = face.Data[3 * i + 2] - 1;
-
-                AddFaceVertex(face, vi, indirects, vertices, indices);
-            }
-
-            // Add the other half of the quad
-            if (!face.IsTri)
-            {
-                for (size_t i = 2; i < 5; ++i)
+                // Always add the first 3 vertices
+                for (size_t i = 0; i < 3; ++i)
                 {
                     VertexIndirect vi;
-                    vi.Data[0] = face.Data[3 * (i % 4) + 0] - 1;
-                    vi.Data[1] = face.Data[3 * (i % 4) + 1] - 1;
-                    vi.Data[2] = face.Data[3 * (i % 4) + 2] - 1;
+                    vi.Data[0] = face.Data[3 * i + 0] - 1;
+                    vi.Data[1] = face.Data[3 * i + 1] - 1;
+                    vi.Data[2] = face.Data[3 * i + 2] - 1;
 
                     AddFaceVertex(face, vi, indirects, vertices, indices);
                 }
+
+                // Add the other half of the quad
+                if (!face.IsTri)
+                {
+                    for (size_t i = 2; i < 5; ++i)
+                    {
+                        VertexIndirect vi;
+                        vi.Data[0] = face.Data[3 * (i % 4) + 0] - 1;
+                        vi.Data[1] = face.Data[3 * (i % 4) + 1] - 1;
+                        vi.Data[2] = face.Data[3 * (i % 4) + 2] - 1;
+
+                        AddFaceVertex(face, vi, indirects, vertices, indices);
+                    }
+                }
+            }
+
+            if (Geometry::VertexTraits<VertexType>::Tangent && Geometry::VertexTraits<VertexType>::UV)
+            {
+                Graphics::Mesh<VertexType, IndexType>::CreateTangents(vertices.data(), static_cast<u32>(vertices.size()), indices.data(), static_cast<u32>(indices.size()));
             }
         }
 
-        mesh.SetVertices(vertices);
-        mesh.SetIndices(indices);
-
-        if (Geometry::VertexTraits<VertexType>::Tangent && Geometry::VertexTraits<VertexType>::UV)
+        for (u32 i = 0, count = (u32)meshes.size(); i < count; ++i)
         {
-            mesh.GenerateTangents();
+            auto& mesh = meshes[i];
+            VertexType* pVertices = mesh.Vertices.data();
+            IndexType* pIndices = mesh.Indices.data();
+            u32 numVertices = static_cast<u32>(mesh.Vertices.size());
+            u32 numIndices = static_cast<u32>(mesh.Indices.size());
+            onComplete(i, pVertices, numVertices, pIndices, numIndices);
         }
     }
 
     template<typename VertexType, typename IndexType>
-    void Obj::AddFaceVertex(const Obj::Mesh::Face& face,
+    void Obj::AddFaceVertex(const Obj::Face& face,
         const VertexIndirect& vi,
         std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual>& indirects,
         std::vector<VertexType>& vertices,

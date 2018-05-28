@@ -74,12 +74,15 @@ namespace Dx12
             std::shared_ptr<Immutable> LUZ_API ToImmutable();
 
             void LUZ_API SetRootConstantBufferView(u32 paramIndex, u32 resourceOffset, u32 bufferSize, u32 elementSize, u32 numElements, void* data);
+
+            void LUZ_API SetDescriptorTableEntry(u32 paramIndex, u32 rangeIndex, u32 resourceOffset, u32 bufferSize, u32 elementSize, u32 numElements, void* data);
             void LUZ_API SetDescriptorTableEntry(u32 paramIndex, u32 rangeIndex, u32 resourceOffset, std::wstring filename);
         private:
             std::vector<std::shared_ptr<BuildParam>> m_buildParams;
             std::shared_ptr<const RootSignature> m_rootSignature;
 
             static void BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out);
+            static void BuildConstantBufferViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out);
             static void BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out);
         };
 
@@ -111,6 +114,8 @@ namespace Dx12
             void LUZ_API SetRootConstantBufferView(std::shared_ptr<const UploadBuffer> uploadBuffer, u32 paramIndex, u32 resourceOffset = 0);
 
             void LUZ_API SetRootDescriptorTable(const DescriptorHandle& handle, u32 paramIndex);
+
+            void LUZ_API SetConstantBufferViewTableEntry(std::shared_ptr<const UploadBuffer> pUploadBuffer, u32 paramIndex, u32 rangeIndex = 0, u32 resourceOffset = 0);
             void LUZ_API SetShaderResourceViewTableEntry(std::shared_ptr<const PixelBuffer> pPixelBuffer, u32 paramIndex, u32 rangeIndex = 0, u32 resourceOffset = 0);
 
             void LUZ_API UpdateConstantBufferView(u32 paramIndex, void* data);

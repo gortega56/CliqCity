@@ -72,15 +72,24 @@ struct ConstantBufferData
 
 struct PhongMaterial
 {
+    gmath::float3 Specular;   
     float SpecularExponent;       
-    float Transparency;           
-    float OpticalDensity;         
-    float Dissolve;               
-    gmath::float3 Specular;            
     gmath::float3 TransmissionFilter;  
+    float Transparency;           
     gmath::float3 Ambient;           
+    float OpticalDensity;         
     gmath::float3 Diffuse;             
-    gmath::float3 Emissive;            
+    float Dissolve;               
+    gmath::float3 Emissive;
+    float _padding0;
+    int TextureIndices[3] = { -1, -1, -1 };
+    float _padding1;
+    gmath::float4 _padding2[10];    
+};
+
+struct Surface
+{
+
 };
 
 class MeshApplication :
@@ -103,12 +112,16 @@ public:
     std::shared_ptr<MaterialState> m_material0;
     std::shared_ptr<MaterialState> m_material1;
 
+    std::shared_ptr<MaterialState> m_material;
+
     ConstantBufferData m_cbvData;
     std::vector<PhongMaterial> m_materialConstants;
 
     Luz::CameraController m_cameraController;
 
     std::vector<i32> m_materialIndices;
+
+    i32 m_renderableIndex = -1;
 
     MeshApplication();
     ~MeshApplication();

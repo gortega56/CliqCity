@@ -101,9 +101,9 @@ namespace Resource
     struct Triangle
     {
         Vertex Vertices[3];
-        Triangle() 
+        Triangle()
         {
-        
+
         }
 
         Triangle(const Vertex& v0, const Vertex& v1, const Vertex& v2)
@@ -120,6 +120,14 @@ namespace Resource
         float Weight;
 
         JointBlend();
+    };
+
+    template<typename VertexType, typename IndexType>
+    struct Mesh
+    {
+        std::string Name;
+        std::vector<VertexType> Vertices;
+        std::vector<IndexType> Indices;
     };
 };
 

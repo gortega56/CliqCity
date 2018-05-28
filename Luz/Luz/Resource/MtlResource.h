@@ -29,12 +29,12 @@ namespace Resource
             std::string NormalTextureName;
         };
 
-        static std::shared_ptr<const Mtl>  Load(const std::string& filename);
+        static std::shared_ptr<const Mtl> Load(const std::string& filename);
 
         Mtl();
         ~Mtl();
 
-        const Material*  GetMaterial(const std::string name) const;
+        const Material* GetMaterial(const std::string name) const;
         size_t  NumMaterials() const;
 
     private:

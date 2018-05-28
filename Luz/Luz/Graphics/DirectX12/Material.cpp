@@ -53,6 +53,19 @@ void Builder::SetRootConstantBufferView(u32 paramIndex, u32 resourceOffset, u32 
 
 */
 
+void Builder::SetDescriptorTableEntry(u32 paramIndex, u32 rangeIndex, u32 resourceOffset, u32 bufferSize, u32 elementSize, u32 numElements, void* data)
+{
+    LUZASSERT(m_rootSignature->m_rootParameters[paramIndex].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE);
+    LUZASSERT(m_rootSignature->m_rootParameters[paramIndex].DescriptorTable.pDescriptorRanges[rangeIndex].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV);
+
+    auto pResource = std::make_shared<UploadBuffer>();
+    pResource->SetBufferSize(bufferSize);
+    pResource->SetElementSize(elementSize);
+    pResource->SetNumElements(numElements);
+
+    m_buildParams.push_back(std::make_shared<CbvBuildParam>(paramIndex, rangeIndex, resourceOffset, pResource, data));
+}
+
 void Builder::SetDescriptorTableEntry(u32 paramIndex, u32 rangeIndex, u32 resourceOffset, std::wstring filename)
 {
     LUZASSERT(m_rootSignature->m_rootParameters[paramIndex].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE);
@@ -80,6 +93,28 @@ void Builder::BuildRootConstantBufferViews(std::shared_ptr<const RootSignature> 
     }
 }
 
+void Builder::BuildConstantBufferViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out)
+{
+    for (int i = 0, count = (int)buildParams.size(); i < count; ++i)
+    {
+        if (pRootSignature->m_rootParameters[buildParams[i]->m_paramIndex].ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE) continue;
+        if (pRootSignature->m_rootParameters[buildParams[i]->m_paramIndex].DescriptorTable.pDescriptorRanges[buildParams[i]->m_rangeIndex].RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_CBV) continue;
+
+        auto param = std::static_pointer_cast<CbvBuildParam>(buildParams[i]);
+        auto uploadBuffer = std::static_pointer_cast<UploadBuffer>(param->m_gpuResource);
+        bool success = uploadBuffer->Initialize(param->m_data);
+        uploadBuffer->SetResourceState(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+        if (!success)
+        {
+            continue;
+        }
+
+        uploadBuffer->CreateConstantBufferView();
+
+        out->SetConstantBufferViewTableEntry(uploadBuffer, param->m_paramIndex, param->m_rangeIndex, param->m_resourceOffset);
+    }
+}
+
 void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootSignature> pRootSignature, std::vector<std::shared_ptr<BuildParam>> buildParams, std::shared_ptr<Immutable> out)
 {
     std::vector<Resource::Async<Resource::Texture>> loadingTextures;
@@ -100,8 +135,6 @@ void Builder::BuildShaderResourceViewDescriptorTable(std::shared_ptr<const RootS
     {
         return;
     }
-
-    DescriptorHandle srvHandleStart = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, (u32)srvIndices.size());
 
     for (int i = 0, count = (int)srvIndices.size(); i < count; ++i)
     {
@@ -131,6 +164,7 @@ std::shared_ptr<Immutable> Builder::ToImmutable()
 
     auto pMaterial = std::make_shared<Immutable>(m_rootSignature);
     BuildRootConstantBufferViews(m_rootSignature, m_buildParams, pMaterial);
+    BuildConstantBufferViewDescriptorTable(m_rootSignature, m_buildParams, pMaterial);
     BuildShaderResourceViewDescriptorTable(m_rootSignature, m_buildParams, pMaterial);
 
     return pMaterial;
@@ -165,6 +199,28 @@ void Immutable::SetRootDescriptorTable(const DescriptorHandle& descriptorHandle,
     u32 handleIndex = (u32)m_descriptorHandles.size() - 1;
 
     m_resourceParams.emplace_back(paramIndex, handleIndex, descriptorHandle.Offset());
+}
+
+void LUZ_API Immutable::SetConstantBufferViewTableEntry(std::shared_ptr<const UploadBuffer> pUploadBuffer, u32 paramIndex, u32 rangeIndex /*= 0*/, u32 resourceOffset /*= 0*/)
+{
+    LUZASSERT(m_rootSignature->m_rootParameters[paramIndex].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE);
+    LUZASSERT(m_rootSignature->m_rootParameters[paramIndex].DescriptorTable.pDescriptorRanges[rangeIndex].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV);
+    LUZASSERT(std::find_if(m_gpuResources.begin(), m_gpuResources.end(), [pUploadBuffer](const std::shared_ptr<const GpuResource>& pResource) { return pResource == pUploadBuffer; }) == m_gpuResources.end());
+
+    auto cbvHandle = pUploadBuffer->ConstantBufferViewHandle();
+    auto cbvHandleIter = std::find_if(m_descriptorHandles.begin(), m_descriptorHandles.end(), [&cbvHandle](const DescriptorHandle& handle) { return cbvHandle.Type() == handle.Type() && cbvHandle.Index() == handle.Index(); });
+    if (cbvHandleIter == m_descriptorHandles.end())
+    {
+        SetRootDescriptorTable(cbvHandle, paramIndex);
+    }
+
+    auto paramIter = std::find_if(m_resourceParams.begin(), m_resourceParams.end(), [paramIndex](const ResourceParam& resourceParam) { return resourceParam.ParamIndex == paramIndex; });
+    LUZASSERT(paramIter != m_resourceParams.end());
+
+    m_gpuResources.push_back(pUploadBuffer);
+    u32 resourceIndex = (u32)m_gpuResources.size() - 1;
+
+    paramIter->RangeParams.emplace_back(rangeIndex, resourceIndex, resourceOffset);
 }
 
 void Immutable::SetShaderResourceViewTableEntry(std::shared_ptr<const PixelBuffer> pPixelBuffer, u32 paramIndex, u32 rangeIndex /*= 0*/, u32 resourceOffset /*= 0*/)
@@ -222,7 +278,7 @@ void Immutable::Prepare(GraphicsCommandContext* pGraphicsContext)
         {
             pGraphicsContext->SetGraphicsRootConstantBufferView(std::static_pointer_cast<const UploadBuffer>(m_gpuResources[resParam.ResourceIndex]).get(), resParam.ParamIndex);
         }
-        else if (rootParam.ParameterType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+        else if (rootParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
         {
             pGraphicsContext->SetGraphicsRootDescriptorTable(m_descriptorHandles[resParam.ResourceIndex], resParam.ParamIndex);
         }

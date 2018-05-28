@@ -76,6 +76,7 @@ bool SwapChain::Present()
     HRESULT hr = m_swapChain3->Present(0, 0);
     if (FAILED(hr))
     {
+        hr = Device::SharedInstance()->DX()->GetDeviceRemovedReason();
         return false;
     }
 

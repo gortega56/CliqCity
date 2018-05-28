@@ -17,11 +17,11 @@ namespace Dx12
         Shader();
         ~Shader();
 
-        bool InitializeVS(std::wstring filename) { return Compile(filename, "main", "vs_5_0"); }
-        bool InitializeHS(std::wstring filename) { return Compile(filename, "main", "hs_5_0"); }
-        bool InitializeDS(std::wstring filename) { return Compile(filename, "main", "ds_5_0"); }
-        bool InitializeGS(std::wstring filename) { return Compile(filename, "main", "gs_5_0"); }
-        bool InitializePS(std::wstring filename) { return Compile(filename, "main", "ps_5_0"); }
+        bool InitializeVS(std::wstring filename) { return Compile(filename, "main", "vs_5_1"); }
+        bool InitializeHS(std::wstring filename) { return Compile(filename, "main", "hs_5_1"); }
+        bool InitializeDS(std::wstring filename) { return Compile(filename, "main", "ds_5_1"); }
+        bool InitializeGS(std::wstring filename) { return Compile(filename, "main", "gs_5_1"); }
+        bool InitializePS(std::wstring filename) { return Compile(filename, "main", "ps_5_1"); }
 
         D3D12_SHADER_BYTECODE& ByteCode() { return m_byteCode; }
 

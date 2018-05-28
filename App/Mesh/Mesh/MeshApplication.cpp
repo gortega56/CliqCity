@@ -15,6 +15,8 @@
 #include "Console.h"
 #include "Platform\Input.h"
 #include <codecvt>
+#include <iostream>
+#include <sstream>
 
 #define DIFF_PATH0 L".\\Assets\\BrickDiff.dds"
 #define DIFF_PATH1 L".\\Assets\\RockPileDiff.dds"
@@ -36,8 +38,23 @@ using namespace gmath;
 static float g_scale = 5.0f;
 Console g_console;
 
+static int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName);
+
+int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName)
+{
+    auto iter = std::find(textureNames.begin(), textureNames.end(), textureName);
+    if (iter == textureNames.end())
+    {
+        textureNames.push_back(textureName);
+        return (int)textureNames.size() - 1;
+    }
+
+    return (int)(iter - textureNames.begin());
+}
+
 MeshApplication::MeshApplication()
 {
+    m_renderableIndex = -1;
 }
 
 
@@ -111,7 +128,7 @@ bool MeshApplication::Initialize()
         .AppendUV3()
         .Finalize();
 
-    auto range = Dx12::DescriptorTable(1).AppendRangeSRV(2, 0);
+    auto range = Dx12::DescriptorTable(2).AppendRangeCBV(26, 1).AppendRangeSRV(36, 0);
 
     m_rs = std::make_shared<Dx12::RootSignature>(2);
     m_rs->AllowInputLayout()
@@ -119,7 +136,6 @@ bool MeshApplication::Initialize()
         .DenyDS()
         .DenyGS()
         .AppendRootCBV(0)
-        .AppendRootCBV(1)
         .AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL)
         .AppendAnisotropicWrapSampler(0);
 
@@ -159,31 +175,44 @@ bool MeshApplication::Initialize()
     //mb1.SetDescriptorTableEntry(1, 0, 1, NORM_PATH1);
     //m_material1 = mb1.ToImmutable();
 
-    
-
-    std::vector<Mesh<Vertex, u32>> meshes;
+    std::vector<Graphics::Mesh<Vertex, u32>> meshes;
     std::vector<std::string> materials;
-    if (auto pObj = loadingObj.Get())
+
+    std::shared_ptr<const Resource::Obj> pObj = loadingObj.Get();
+    std::shared_ptr<const Resource::Mtl> pMtl = loadingMtl.Get();
+
+    if (pObj)
     {
-        pObj->Export(meshes, materials, m_materialIndices);
-    
+        for (u32 i = 0, numMaterials = pObj->GetNumMaterials(); i < numMaterials; ++i)
+        {
+            materials.push_back(pObj->GetMaterialName(i));
+        }
+
+        meshes.resize(static_cast<size_t>(pObj->GetNumMeshes()));
+        pObj->CreateVertices<Vertex, u32>([&meshes](const u32 index, const Vertex* pVertices, u32 numVertices, const u32* pIndices, const u32 numIndices)
+        {
+            meshes[index].SetVertices(pVertices, numVertices);
+            meshes[index].SetIndices(pIndices, numIndices);
+        });
+
         m_renderables.resize(meshes.size());
         for (size_t i = 0; i < meshes.size(); ++i)
         {
+            m_materialIndices.push_back(pObj->GetMeshDesc(i).MaterialIndex);
             m_renderables[i] = std::make_shared<Renderable>();
             m_renderables[i]->LoadMesh(&meshes[i]);
             m_renderables[i]->m_isRenderable.store(true);
         }
     }
 
-    auto pMtl = loadingMtl.Get();
+    std::vector<std::string> textureNames;
+    std::string texturePath = SPONZA_TEX_PATH;
+
     if (pMtl)
     {
-        std::string texturePath = SPONZA_TEX_PATH;
-        typedef std::codecvt_utf8<wchar_t> convert_type;
-        std::wstring_convert<convert_type, wchar_t> converter;
+        MaterialBuilder builder(m_rs);
+        builder.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData);
 
-        std::vector<MaterialBuilder> builders;
         for (auto& name : materials)
         {
             if (auto pMat = pMtl->GetMaterial(name))
@@ -200,27 +229,65 @@ bool MeshApplication::Initialize()
                 mc.Ambient = float3(pMat->Ambient);
                 mc.Diffuse = float3(pMat->Diffuse);
                 mc.Emissive = float3(pMat->Emissive);
-
-                std::string diffuseTexture = texturePath + pMat->DiffuseTextureName;
-                std::string normalTexture = texturePath + pMat->NormalTextureName;
-
-                builders.emplace_back(m_rs);
                 
-                auto& builder = builders.back();
-                builder.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData);
-                builder.SetRootConstantBufferView(1, 0, sizeof(PhongMaterial), sizeof(PhongMaterial), 1, &mc);
-                builder.SetDescriptorTableEntry(2, 0, 0, converter.from_bytes(diffuseTexture));
-                builder.SetDescriptorTableEntry(2, 0, 1, converter.from_bytes(normalTexture));
+                if (pMat->DiffuseTextureName.size() != 0)
+                {
+                    mc.TextureIndices[0] = FindOrPushBackTextureName(textureNames, texturePath + pMat->DiffuseTextureName);
+                }
+
+                if (pMat->NormalTextureName.size() != 0)
+                {
+                    mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, texturePath + pMat->NormalTextureName);
+                }
+
+                if (pMat->DissolveTextureName.size() != 0)
+                {
+                    mc.TextureIndices[2]= FindOrPushBackTextureName(textureNames, texturePath + pMat->DissolveTextureName);
+                }
             }
         }
 
-        for (auto& builder : builders)
+        for (int i = 0; i < (int)m_materialConstants.size(); ++i)
         {
-            m_materials.push_back(builder.ToImmutable());
+            builder.SetDescriptorTableEntry(1, 0, i, (u32)sizeof(PhongMaterial), (u32)sizeof(PhongMaterial), 1, &m_materialConstants[i]);
         }
-    }
-    
 
+        typedef std::codecvt_utf8<wchar_t> convert_type;
+        std::wstring_convert<convert_type, wchar_t> converter;
+
+        for (int i = 0; i < (int)textureNames.size(); ++i)
+        {
+            builder.SetDescriptorTableEntry(1, 1, i, converter.from_bytes(textureNames[i]));
+        }
+
+        m_material = builder.ToImmutable();
+    }
+
+    std::stringstream ss;
+
+    for (u32 i = 0, count = pObj->GetNumMeshes(); i < count; ++i)
+    {
+        auto md = pObj->GetMeshDesc(i);
+        
+        
+        ss << md.Name << std::endl;
+        ss << md.MaterialName << std::endl;
+        auto pMat = pMtl->GetMaterial(md.MaterialName);
+        if (pMat)
+        {
+            ss << "Diffuse: " << pMat->DiffuseTextureName << std::endl;
+            ss << "Normal: " << pMat->NormalTextureName << std::endl;
+            ss << "Dissolve" << pMat->DissolveTextureName << std::endl;
+        }
+        else
+        {
+            ss << "No material" << std::endl;
+        }
+
+        ss << std::endl;
+    }
+
+    std::cout << ss.str();
     return true;
 }
 
@@ -243,27 +310,49 @@ void MeshApplication::Update(double dt)
     pCtx->SetViewport();
 
     pCtx->SetRootSignature(m_rs.get());
+    m_material->UpdateConstantBufferView(0, &m_cbvData);
+    m_material->Prepare(pCtx.get());
 
-    for (int i = 0, count = (int)m_renderables.size(); i < count; ++i)
+    if (m_renderableIndex != -1)
     {
-        i32 mi = m_materialIndices[i];
-        if (mi != -1)
-        {
-            m_materials[mi]->UpdateConstantBufferView(0, &m_cbvData);
-            m_materials[mi]->UpdateConstantBufferView(1, &m_materialConstants[mi]);
-            m_materials[mi]->Prepare(pCtx.get());
-        }
-        
-        m_renderables[i]->Prepare(pCtx.get());
-        m_renderables[i]->DrawIndexedInstanced(pCtx.get());
+        m_renderables[m_renderableIndex]->Prepare(pCtx.get());
+        m_renderables[m_renderableIndex]->DrawIndexedInstanced(pCtx.get());
     }
+    else
+    {
+        for (int i = 0, count = (int)m_renderables.size(); i < count; ++i)
+        {
+            if (m_materialIndices[i] == -1) continue;
+            m_renderables[i]->Prepare(pCtx.get());
+            m_renderables[i]->DrawIndexedInstanced(pCtx.get());
+        }
+    }
+    
     
     pCtx->Present();
     frame++;
+
+    auto pInput = m_engine->OS()->GetInput();
+    if (pInput)
+    {
+        if (pInput->GetKeyUp(KEYCODE_UP))
+        {
+            m_renderableIndex += 1;
+            if (m_renderableIndex >= (i32)m_renderables.size())
+            {
+                m_renderableIndex = -1;
+            }
+
+            std::cout << "RenderableIndex: " << m_renderableIndex << std::endl;
+        }
+    }
 }
 
 void MeshApplication::FixedUpdate(double dt)
 {
     m_cameraController.Update(dt);
     m_cbvData.view = m_cameraController.GetCamera()->GetView().transpose();
+
+    
+
 }

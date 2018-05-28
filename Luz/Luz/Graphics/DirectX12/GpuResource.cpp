@@ -139,6 +139,22 @@ GpuBuffer& GpuBuffer::operator=(GpuBuffer&& other)
     return *this;
 }
 
+void GpuBuffer::CreateConstantBufferView(const DescriptorHandle& descriptorHandle, u32 offset /*= 0*/)
+{
+    m_cbvHandle = descriptorHandle;
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
+    desc.BufferLocation = m_resource->GetGPUVirtualAddress();
+    desc.SizeInBytes = m_bufferSize;// (m_bufferSize + 255) & ~255;
+
+    Device::SharedInstance()->DX()->CreateConstantBufferView(&desc, m_cbvHandle.CpuHandle());
+}
+
+void GpuBuffer::CreateConstantBufferView()
+{
+    CreateConstantBufferView(Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+}
+
 #pragma endregion
 
 #pragma region DynamicBuffer
@@ -349,7 +365,7 @@ void PixelBuffer::CreateShaderResourceView(const DescriptorHandle& descriptorHan
     desc.ViewDimension = m_viewDimension;
     desc.Texture2D.MipLevels = m_mipLevels;
 
-    Device::SharedInstance()->DX()->CreateShaderResourceView(m_resource.Get(), &desc, m_srvHandle.CpuHandle(offset));
+    Device::SharedInstance()->DX()->CreateShaderResourceView(m_resource.Get(), &desc, m_srvHandle.CpuHandle());
 }
 
 void PixelBuffer::CreateShaderResourceView()
@@ -361,7 +377,7 @@ void PixelBuffer::CreateRenderTargetView(const DescriptorHandle& descriptorHandl
 {
     m_rtvHandle = descriptorHandle;
 
-    Device::SharedInstance()->DX()->CreateRenderTargetView(m_resource.Get(), nullptr, m_rtvHandle.CpuHandle(offset));
+    Device::SharedInstance()->DX()->CreateRenderTargetView(m_resource.Get(), nullptr, m_rtvHandle.CpuHandle());
 }
 
 void PixelBuffer::CreateRenderTargetView()

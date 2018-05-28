@@ -17,7 +17,15 @@ Shader::~Shader()
 bool Shader::Compile(std::wstring filename, const char* entryPoint, const char* target)
 {
     ID3DBlob* pError;
-    HRESULT hr = D3DCompileFromFile(filename.c_str(), nullptr, nullptr, entryPoint, target, 0, 0, &m_shader, &pError);
+    UINT flags1 = 0;
+
+#if _DEBUG
+    flags1 |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+    flags1 |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+
+    HRESULT hr = D3DCompileFromFile(filename.c_str(), nullptr, nullptr, entryPoint, target, flags1, 0, &m_shader, &pError);
     if (FAILED(hr))
     {
         OutputDebugStringA((char*)pError->GetBufferPointer());

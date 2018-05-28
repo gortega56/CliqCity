@@ -52,6 +52,8 @@ void PlatformInput::OnKeyUp(Input* pInput, WPARAM wParam, LPARAM lParam)
 {
     KeyCode code = KeyCodeFromWParam(wParam);
 
+    std::cout << "Key Up: " << code << std::endl;
+
     // remove the key from pressed keys
     pInput->mKeysPressed.erase(code);
 
@@ -507,6 +509,8 @@ void Input::Update(double deltaSeconds)
 	{
 		mKeysPressed.insert(key);
 	}
+
+    if (mKeysUp.size()) std::cout << "Clear Key Up: " << std::endl;
 
 	// clear keys down and up
 	mKeysDown.clear();

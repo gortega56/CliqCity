@@ -35,11 +35,11 @@ bool Platform::Initialize()
 
 void Platform::BeginUpdate(double delta)
 {
+    m_input->Update(delta);
 }
 
 void Platform::EndUpdate(double delta)
 {
-    m_input->Update(delta);
 }
 
 void Platform::Shutdown() 

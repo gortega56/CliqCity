@@ -22,10 +22,13 @@ Fence::~Fence()
 
 bool Fence::Initialize(std::shared_ptr<const Device> pDevice)
 {
-    if (!CreateFences(pDevice->DX(), &m_fence, &m_signal, D3D12_FENCE_FLAG_NONE, 1))
+    UINT64 signal = 0;
+    if (!CreateFences(pDevice->DX(), &m_fence, &signal, D3D12_FENCE_FLAG_NONE, 1))
     {
         return false;
     }
+
+    m_signal.store(signal);
 
     m_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     if (m_event == nullptr)
@@ -40,65 +43,44 @@ bool Fence::Wait()
 {
     bool running = false;
 
-    if (m_completed < m_signal)
+    // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
+    // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
+    UINT64 gpuCompleted = m_fence->GetCompletedValue();
+    UINT64 signal = m_signal.load();
+    LUZASSERT(gpuCompleted <= signal);
+    if (gpuCompleted < signal)
     {
-        // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
-        // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-        UINT64 completedValue = m_fence->GetCompletedValue();
-        assert(completedValue <= m_signal);
-        if (completedValue < m_signal)
+        HRESULT hr = m_fence->SetEventOnCompletion(signal, m_event);
+        if (SUCCEEDED(hr))
         {
-            HRESULT hr = m_fence->SetEventOnCompletion(m_signal, m_event);
-            if (SUCCEEDED(hr))
-            {
-                // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
-                // has reached "fenceValue", we know the command queue has finished executing
-                WaitForSingleObject(m_event, INFINITE);
-                running = true;
-            }
+            // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
+            // has reached "fenceValue", we know the command queue has finished executing
+            WaitForSingleObject(m_event, INFINITE);
+            running = true;
         }
-
-        m_completed = completedValue;
     }
+
+    m_completed.store(gpuCompleted);
 
     return running;
 }
 
 bool Fence::IsIdle() const
 {
-    LUZASSERT(m_completed <= m_signal);
-
-    // If the delta between signal and completed is zero than isIdle will be equal to result
-    UINT64 result = UINT64_MAX;
-    UINT64 isIdle = 0;
-    InterlockedCompareExchange(&isIdle, result, m_signal - m_completed);
-
-    return (isIdle == result);
+    return (m_signal.load() - m_completed.load()) == 0;
 }
 
 bool Fence::InUse() const
 {
-    LUZASSERT(m_completed <= m_signal);
-
-    UINT64 result = UINT64_MAX;
-    UINT64 inUse = 1;
-    InterlockedCompareExchange(&inUse, result, m_signal - m_completed);
-
-    return (inUse == result);
+    return (m_signal.load() - m_completed.load()) == 1;
 }
 
 bool Fence::IsWaiting() const
 {
-    LUZASSERT(m_completed <= m_signal);
-
-    UINT64 result = UINT64_MAX;
-    UINT64 isWaiting = 2;
-    InterlockedCompareExchange(&isWaiting, result, m_signal - m_completed);
-
-    return (isWaiting == result);
+    return (m_signal.load() - m_completed.load()) > 1;
 }
 
 void Fence::IncrementSignal()
 {
-    InterlockedIncrement(&m_signal);
+    m_signal.fetch_add(1);
 }

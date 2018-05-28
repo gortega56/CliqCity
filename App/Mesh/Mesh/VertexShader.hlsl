@@ -12,7 +12,8 @@ struct VS_OUTPUT
     float3 tangent : TANGENT;
     float3 bitangent : BINORMAL;
     float3 norm : NORMAL;
-    float2 uv : TEXCOORD;
+    float2 uv : TEXCOORD0;
+    int mat : BLENDINDICES;
 };
 
 cbuffer Constants : register(b0)
@@ -30,5 +31,6 @@ VS_OUTPUT main(VS_INPUT input)
     output.bitangent = cross(input.norm, input.tangent.xyz) * input.tangent.w;
     output.norm = input.norm;
     output.uv = input.uv.xy;
+    output.mat = (int)input.uv.z;
     return output;
 }

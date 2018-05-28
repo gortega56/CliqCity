@@ -22,9 +22,8 @@ namespace Dx12
         bool IsWaiting() const;
      
         ID3D12Fence* Ptr() const { return m_fence; }
-        UINT64 Completed() const { return m_completed; }
-        UINT64 Signal() const { return m_signal; }
-        UINT64* SignalPtr() { return &m_signal; }
+        UINT64 Signal() const { return m_signal.load(); }
+        UINT64 Completed() const { return m_completed.load(); }
         HANDLE Event() const { return m_event; }
 
         void IncrementSignal();
@@ -32,8 +31,8 @@ namespace Dx12
     protected:
         friend class CommandQueue;
 
-        UINT64 m_signal;
-        UINT64 m_completed;
+        std::atomic_uint64_t m_completed;
+        std::atomic_uint64_t m_signal;
         ID3D12Fence* m_fence;
         HANDLE m_event;
     };

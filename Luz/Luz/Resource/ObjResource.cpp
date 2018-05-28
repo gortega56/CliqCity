@@ -19,17 +19,29 @@ namespace Resource
         return mesh.Faces.size() != 0;
     }
 
-    i32 Obj::GetNumMeshes() const
+    const Obj::MeshDesc Obj::GetMeshDesc(const u32 i) const
     {
-        return static_cast<i32>(m_meshes.size());
+        MeshDesc desc = { 0 };
+        const Mesh* pMesh = &m_meshes[i];
+        desc.Name = pMesh->Name.c_str();
+        desc.MaterialName = pMesh->MaterialName.c_str();
+        desc.FacesPtr = pMesh->Faces.data();
+        desc.NumFaces = static_cast<u32>(pMesh->Faces.size());
+        desc.MaterialIndex = pMesh->MaterialIndex;
+        return desc;
     }
 
-    i32 Obj::GetNumMaterials() const
+    u32 Obj::GetNumMeshes() const
     {
-        return static_cast<i32>(m_materialNames.size());
+        return static_cast<u32>(m_meshes.size());
     }
 
-    std::string Obj::GetMaterialName(const i32 i) const
+    u32 Obj::GetNumMaterials() const
+    {
+        return static_cast<u32>(m_materialNames.size());
+    }
+
+    std::string Obj::GetMaterialName(const u32 i) const
     {
         return m_materialNames[i];
     }
@@ -49,7 +61,7 @@ namespace Resource
         {
             m_meshes.emplace_back();
             pMesh = &m_meshes.back();
-            pMesh->Name = name;
+            pMesh->Name = name.c_str();
         }
 
         return pMesh;
@@ -87,7 +99,7 @@ namespace Resource
                     pMesh->MaterialIndex = materialIndex;
                     if (materialIndex != -1)
                     {
-                        pMesh->MaterialName = pResource->m_materialNames[materialIndex];
+                        pMesh->MaterialName = pResource->m_materialNames[materialIndex].c_str();
                     }
                 }
                 else if (statement.compare("v") == 0)
@@ -151,7 +163,7 @@ namespace Resource
 
                     pMesh->Faces.emplace_back();
                     
-                    Mesh::Face* pFace = &pMesh->Faces.back();
+                    Face* pFace = &pMesh->Faces.back();
                     i32* p0 = &pFace->Data[0];
                     i32* t0 = &pFace->Data[1];
                     i32* n0 = &pFace->Data[2];
