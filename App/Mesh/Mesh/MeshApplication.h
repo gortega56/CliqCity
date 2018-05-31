@@ -70,6 +70,12 @@ struct ConstantBufferData
     gmath::float4x4 proj;
 };
 
+struct MaterialIndex
+{
+    u32 Index;
+    gmath::float3 _padding;
+};
+
 struct PhongMaterial
 {
     gmath::float3 Specular;   
@@ -85,11 +91,6 @@ struct PhongMaterial
     int TextureIndices[3] = { -1, -1, -1 };
     float _padding1;
     gmath::float4 _padding2[10];    
-};
-
-struct Surface
-{
-
 };
 
 class MeshApplication :
@@ -114,6 +115,7 @@ public:
 
     std::shared_ptr<MaterialState> m_material;
 
+    MaterialIndex m_materialIndex;
     ConstantBufferData m_cbvData;
     std::vector<PhongMaterial> m_materialConstants;
 

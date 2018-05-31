@@ -188,21 +188,21 @@ bool MeshApplication::Initialize()
             materials.push_back(pObj->GetMaterialName(i));
         }
 
-        meshes.resize(static_cast<size_t>(pObj->GetNumMeshes()));
-        pObj->CreateVertices<Vertex, u32>([&meshes](const u32 index, const Vertex* pVertices, u32 numVertices, const u32* pIndices, const u32 numIndices)
+        meshes.resize(static_cast<size_t>(pObj->GetNumSurfaces()));
+        pObj->CreateStructuredSurfaces<Vertex, u32>([&](const u32 index, const Resource::Obj::StructuredSurface<Vertex, u32>& desc)
         {
-            meshes[index].SetVertices(pVertices, numVertices);
-            meshes[index].SetIndices(pIndices, numIndices);
+            meshes[index].SetVertices(desc.VerticesPtr, desc.NumVertices);
+            meshes[index].SetIndices(desc.IndicesPtr, desc.NumIndices);
+            m_materialIndices.push_back(desc.MaterialHandle);
         });
+    }
 
-        m_renderables.resize(meshes.size());
-        for (size_t i = 0; i < meshes.size(); ++i)
-        {
-            m_materialIndices.push_back(pObj->GetMeshDesc(i).MaterialIndex);
-            m_renderables[i] = std::make_shared<Renderable>();
-            m_renderables[i]->LoadMesh(&meshes[i]);
-            m_renderables[i]->m_isRenderable.store(true);
-        }
+    m_renderables.resize(meshes.size());
+    for (size_t i = 0; i < meshes.size(); ++i)
+    {
+        m_renderables[i] = std::make_shared<Renderable>();
+        m_renderables[i]->LoadMesh(&meshes[i]);
+        m_renderables[i]->m_isRenderable.store(true);
     }
 
     std::vector<std::string> textureNames;
@@ -265,27 +265,27 @@ bool MeshApplication::Initialize()
 
     std::stringstream ss;
 
-    for (u32 i = 0, count = pObj->GetNumMeshes(); i < count; ++i)
-    {
-        auto md = pObj->GetMeshDesc(i);
-        
-        
-        ss << md.Name << std::endl;
-        ss << md.MaterialName << std::endl;
-        auto pMat = pMtl->GetMaterial(md.MaterialName);
-        if (pMat)
-        {
-            ss << "Diffuse: " << pMat->DiffuseTextureName << std::endl;
-            ss << "Normal: " << pMat->NormalTextureName << std::endl;
-            ss << "Dissolve" << pMat->DissolveTextureName << std::endl;
-        }
-        else
-        {
-            ss << "No material" << std::endl;
-        }
+    //for (u32 i = 0, count = pObj->GetNumMeshes(); i < count; ++i)
+    //{
+    //    auto md = pObj->GetMeshDesc(i);
+    //    
+    //    
+    //    ss << md.Name << std::endl;
+    //    ss << md.MaterialName << std::endl;
+    //    auto pMat = pMtl->GetMaterial(md.MaterialName);
+    //    if (pMat)
+    //    {
+    //        ss << "Diffuse: " << pMat->DiffuseTextureName << std::endl;
+    //        ss << "Normal: " << pMat->NormalTextureName << std::endl;
+    //        ss << "Dissolve" << pMat->DissolveTextureName << std::endl;
+    //    }
+    //    else
+    //    {
+    //        ss << "No material" << std::endl;
+    //    }
 
-        ss << std::endl;
-    }
+    //    ss << std::endl;
+    //}
 
     std::cout << ss.str();
     return true;

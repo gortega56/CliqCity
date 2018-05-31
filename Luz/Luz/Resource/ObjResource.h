@@ -29,6 +29,19 @@ namespace Resource
         using VertexIndirectEqual = TArrayEqual<u32, 3>;
 
     public:
+        template<typename VertexType, typename IndexType>
+        struct StructuredSurface
+        {
+            const char* Name;
+            const char* GroupName;
+            const char* MaterialName;
+            VertexType* VerticesPtr;
+            IndexType* IndicesPtr;
+            u32 NumVertices;
+            u32 NumIndices;
+            u16 MaterialHandle;
+        };
+
         struct LUZ_API Face : public TArray<i32, 12>
         {
             bool HasNormals = false;
@@ -39,6 +52,7 @@ namespace Resource
         struct LUZ_API MeshDesc
         {
             const char* Name;
+            const char* GroupName;
             const char* MaterialName;
             const Face* FacesPtr;
             u32 NumFaces;
@@ -50,34 +64,32 @@ namespace Resource
         LUZ_API Obj();
         LUZ_API ~Obj();
 
-        const MeshDesc LUZ_API GetMeshDesc(const u32 i) const;
-
-        u32 LUZ_API GetNumMeshes() const;
+        u32 LUZ_API GetNumSurfaces() const;
         u32 LUZ_API GetNumMaterials() const;
-
         std::string LUZ_API GetMaterialName(const u32 i) const;
+
         template<typename VertexType, typename IndexType>
-        void CreateVertices(std::function<void(const u32, const VertexType*, const u32, const IndexType*, const u32)> onComplete) const;
+        void CreateStructuredSurfaces(std::function<void(const u32, const StructuredSurface<VertexType, IndexType>&)> onCreate) const;
 
     private:
-        struct Mesh
+        struct Surface
         {
-            std::string Name;
-            std::string MaterialName;
-            std::vector<Face> Faces;
-            i32 MaterialIndex;
+            u32 FacesStart;
+            u32 NumFaces;
+            u16 ObjectHandle;
+            u16 GroupHandle;
+            u16 MaterialHandle;
         };
 
+        std::vector<std::string> m_objectNames;
+        std::vector<std::string> m_groupNames;
+        std::vector<std::string> m_materialNames;
         std::vector<Position> m_positions;
         std::vector<Normal> m_normals;
         std::vector<UV> m_uvs;
-        std::vector<Mesh> m_meshes;
+        std::vector<Face> m_faces;
+        std::vector<Surface> m_surfaces;
         std::vector<Async<Mtl>> m_mtls;
-        std::vector<std::string> m_materialNames;
-    
-        Mesh* FindOrCreateMesh(const std::string name);
-
-        bool IsValid(const Mesh& mesh) const;
 
         template<typename VertexType, typename IndexType>
         void AddFaceVertex(
@@ -89,32 +101,35 @@ namespace Resource
     };
         
     template<typename VertexType, typename IndexType>
-    void Obj::CreateVertices(std::function<void(const u32, const VertexType*, const u32, const IndexType*, const u32)> onComplete) const
+    void Obj::CreateStructuredSurfaces(std::function<void(const u32, const StructuredSurface<VertexType, IndexType>&)> onCreate) const
     {
         std::unordered_map<VertexIndirect, u32, VertexIndirectHash, VertexIndirectEqual> indirects;
-        
         std::vector<Resource::Mesh<VertexType, IndexType>> meshes;
-        meshes.resize(m_meshes.size());
+        meshes.resize(m_surfaces.size());
 
-        for (u32 i = 0, count = (u32)m_meshes.size(); i < count; ++i)
+        u32 numSurfaces = GetNumSurfaces();
+
+        for (u32 i = 0; i < numSurfaces; ++i)
         {
-            const Mesh& objMesh = m_meshes[i];
+            const Surface& surface = m_surfaces[i];
 
             std::vector<VertexType>& vertices = meshes[i].Vertices;
             std::vector<IndexType>& indices = meshes[i].Indices;
 
-            vertices.reserve(objMesh.Faces.size() * 3);
-            indices.reserve(objMesh.Faces.size() * 3);
+            vertices.reserve(surface.NumFaces * 3);
+            indices.reserve(surface.NumFaces * 3);
 
-            for (auto& face : objMesh.Faces)
+            for (u32 j = surface.FacesStart; j < surface.FacesStart + surface.NumFaces; ++j)
             {
+                auto& face = m_faces[j];
+
                 // Always add the first 3 vertices
-                for (size_t i = 0; i < 3; ++i)
+                for (u32 k = 0; k < 3; ++k)
                 {
                     VertexIndirect vi;
-                    vi.Data[0] = face.Data[3 * i + 0] - 1;
-                    vi.Data[1] = face.Data[3 * i + 1] - 1;
-                    vi.Data[2] = face.Data[3 * i + 2] - 1;
+                    vi.Data[0] = face.Data[3 * k + 0] - 1;
+                    vi.Data[1] = face.Data[3 * k + 1] - 1;
+                    vi.Data[2] = face.Data[3 * k + 2] - 1;
 
                     AddFaceVertex(face, vi, indirects, vertices, indices);
                 }
@@ -122,12 +137,12 @@ namespace Resource
                 // Add the other half of the quad
                 if (!face.IsTri)
                 {
-                    for (size_t i = 2; i < 5; ++i)
+                    for (u32 k = 2; k < 5; ++k)
                     {
                         VertexIndirect vi;
-                        vi.Data[0] = face.Data[3 * (i % 4) + 0] - 1;
-                        vi.Data[1] = face.Data[3 * (i % 4) + 1] - 1;
-                        vi.Data[2] = face.Data[3 * (i % 4) + 2] - 1;
+                        vi.Data[0] = face.Data[3 * (k % 4) + 0] - 1;
+                        vi.Data[1] = face.Data[3 * (k % 4) + 1] - 1;
+                        vi.Data[2] = face.Data[3 * (k % 4) + 2] - 1;
 
                         AddFaceVertex(face, vi, indirects, vertices, indices);
                     }
@@ -140,14 +155,25 @@ namespace Resource
             }
         }
 
-        for (u32 i = 0, count = (u32)meshes.size(); i < count; ++i)
+        for (u32 i = 0; i < numSurfaces; ++i)
         {
+            auto& surface = m_surfaces[i];
             auto& mesh = meshes[i];
-            VertexType* pVertices = mesh.Vertices.data();
-            IndexType* pIndices = mesh.Indices.data();
-            u32 numVertices = static_cast<u32>(mesh.Vertices.size());
-            u32 numIndices = static_cast<u32>(mesh.Indices.size());
-            onComplete(i, pVertices, numVertices, pIndices, numIndices);
+
+            if (mesh.Vertices.empty()) __debugbreak();
+            if (mesh.Indices.empty()) __debugbreak();
+
+
+            StructuredSurface<VertexType, IndexType> desc = { 0 };
+            desc.Name = m_objectNames[surface.ObjectHandle].c_str();
+            desc.GroupName = m_groupNames[surface.GroupHandle].c_str();
+            desc.MaterialName = m_materialNames[surface.MaterialHandle].c_str();
+            desc.MaterialHandle = surface.MaterialHandle;
+            desc.VerticesPtr = mesh.Vertices.data();
+            desc.IndicesPtr = mesh.Indices.data();
+            desc.NumVertices = static_cast<u32>(mesh.Vertices.size());
+            desc.NumIndices = static_cast<u32>(mesh.Indices.size());
+            onCreate(i, desc);
         }
     }
 
