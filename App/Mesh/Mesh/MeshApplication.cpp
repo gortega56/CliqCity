@@ -9,7 +9,6 @@
 #include "Resource\Texture.h"
 #include "Resource\Fbx.h"
 #include "Resource\ObjResource.h"
-#include "Resource\MtlResource.h"
 #include "Platform\Window.h"
 #include "Graphics.h"
 #include "Console.h"
@@ -73,8 +72,11 @@ bool MeshApplication::Initialize()
         return false;
     }
 
-    auto loadingObj = Resource::Async<Resource::Obj>::Load(SPONZA_OBJ_PATH);
-    auto loadingMtl = Resource::Async<Resource::Mtl>::Load(SPONZA_MTL_PATH);
+    Resource::Obj::Desc desc;
+    desc.Filename = SPONZA_OBJ_PATH;
+    desc.Directory = ".\\Assets\\sponza_obj\\";
+    desc.TextureDirectory = ".\\Assets\\sponza_textures\\";
+    auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
 
     m_cameraController = CameraController(m_engine->OS()->GetInput());
 
@@ -176,18 +178,13 @@ bool MeshApplication::Initialize()
     //m_material1 = mb1.ToImmutable();
 
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
-    std::vector<std::string> materials;
 
     std::shared_ptr<const Resource::Obj> pObj = loadingObj.Get();
-    std::shared_ptr<const Resource::Mtl> pMtl = loadingMtl.Get();
+    std::vector<std::string> textureNames;
 
     if (pObj)
     {
-        for (u32 i = 0, numMaterials = pObj->GetNumMaterials(); i < numMaterials; ++i)
-        {
-            materials.push_back(pObj->GetMaterialName(i));
-        }
-
+        // Create geo
         meshes.resize(static_cast<size_t>(pObj->GetNumSurfaces()));
         pObj->CreateStructuredSurfaces<Vertex, u32>([&](const u32 index, const Resource::Obj::StructuredSurface<Vertex, u32>& desc)
         {
@@ -195,6 +192,28 @@ bool MeshApplication::Initialize()
             meshes[index].SetIndices(desc.IndicesPtr, desc.NumIndices);
             m_materialIndices.push_back(desc.MaterialHandle);
         });
+
+        // Create mats
+        for (u32 i = 0, numMaterials = pObj->GetNumMaterials(); i < numMaterials; ++i)
+        {
+            auto md = pObj->GetMaterialDesc(i);
+
+            m_materialConstants.emplace_back();
+            auto& mc = m_materialConstants.back();
+            mc.SpecularExponent = md.SpecularExponent;
+            mc.Transparency = md.Transparency;
+            mc.OpticalDensity = md.OpticalDensity;
+            mc.Dissolve = md.Dissolve;
+            mc.Specular = float3(md.Specular[0], md.Specular[1], md.Specular[2]);
+            mc.TransmissionFilter = float3(md.TransmissionFilter[0], md.TransmissionFilter[1], md.TransmissionFilter[2]);
+            mc.Ambient = float3(md.Ambient[0], md.Ambient[1], md.Ambient[2]);
+            mc.Diffuse = float3(md.Diffuse[0], md.Diffuse[1], md.Diffuse[2]);
+            mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
+
+            if (strlen(md.DiffuseTextureName)) mc.TextureIndices[0] = FindOrPushBackTextureName(textureNames, md.DiffuseTextureName);
+            if (strlen(md.NormalTextureName)) mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, md.NormalTextureName);
+            if (strlen(md.DissolveTextureName)) mc.TextureIndices[2] = FindOrPushBackTextureName(textureNames, md.DissolveTextureName);
+        }
     }
 
     m_renderables.resize(meshes.size());
@@ -205,63 +224,24 @@ bool MeshApplication::Initialize()
         m_renderables[i]->m_isRenderable.store(true);
     }
 
-    std::vector<std::string> textureNames;
-    std::string texturePath = SPONZA_TEX_PATH;
 
-    if (pMtl)
+    MaterialBuilder builder(m_rs);
+    builder.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData);
+
+    for (int i = 0; i < (int)m_materialConstants.size(); ++i)
     {
-        MaterialBuilder builder(m_rs);
-        builder.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData);
-
-        for (auto& name : materials)
-        {
-            if (auto pMat = pMtl->GetMaterial(name))
-            {
-                m_materialConstants.emplace_back();
-
-                auto& mc = m_materialConstants.back();
-                mc.SpecularExponent = pMat->SpecularExponent;
-                mc.Transparency = pMat->Transparency;
-                mc.OpticalDensity = pMat->OpticalDensity;
-                mc.Dissolve = pMat->Dissolve;
-                mc.Specular = float3(pMat->Specular);
-                mc.TransmissionFilter = float3(pMat->TransmissionFilter);
-                mc.Ambient = float3(pMat->Ambient);
-                mc.Diffuse = float3(pMat->Diffuse);
-                mc.Emissive = float3(pMat->Emissive);
-                
-                if (pMat->DiffuseTextureName.size() != 0)
-                {
-                    mc.TextureIndices[0] = FindOrPushBackTextureName(textureNames, texturePath + pMat->DiffuseTextureName);
-                }
-
-                if (pMat->NormalTextureName.size() != 0)
-                {
-                    mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, texturePath + pMat->NormalTextureName);
-                }
-
-                if (pMat->DissolveTextureName.size() != 0)
-                {
-                    mc.TextureIndices[2]= FindOrPushBackTextureName(textureNames, texturePath + pMat->DissolveTextureName);
-                }
-            }
-        }
-
-        for (int i = 0; i < (int)m_materialConstants.size(); ++i)
-        {
-            builder.SetDescriptorTableEntry(1, 0, i, (u32)sizeof(PhongMaterial), (u32)sizeof(PhongMaterial), 1, &m_materialConstants[i]);
-        }
-
-        typedef std::codecvt_utf8<wchar_t> convert_type;
-        std::wstring_convert<convert_type, wchar_t> converter;
-
-        for (int i = 0; i < (int)textureNames.size(); ++i)
-        {
-            builder.SetDescriptorTableEntry(1, 1, i, converter.from_bytes(textureNames[i]));
-        }
-
-        m_material = builder.ToImmutable();
+        builder.SetDescriptorTableEntry(1, 0, i, (u32)sizeof(PhongMaterial), (u32)sizeof(PhongMaterial), 1, &m_materialConstants[i]);
     }
+
+    typedef std::codecvt_utf8<wchar_t> convert_type;
+    std::wstring_convert<convert_type, wchar_t> converter;
+
+    for (int i = 0; i < (int)textureNames.size(); ++i)
+    {
+        builder.SetDescriptorTableEntry(1, 1, i, converter.from_bytes(textureNames[i]));
+    }
+
+    m_material = builder.ToImmutable();
 
     std::stringstream ss;
 

@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "ObjResource.h"
-#include "MtlResource.h"
 
 // Each obj surface has a material... not each obj object... an obj object can have multiple surfaces each with it's own material.
 // Need to refactor so that we flatten this list out to surfaces / meshes whatever.. so long as we create a new mesh based on material
@@ -26,16 +25,12 @@ namespace Resource
         return (u32)v.size() - 1;
     }
 
-    std::string CreateAnonymousMeshName(std::string filename, u32& numAnonymous)
-    {
-        return filename + "unknown_mesh_" + std::to_string(numAnonymous++);
-    }
 
-    std::shared_ptr<const Obj> Obj::Load(const std::string& filename)
+    std::shared_ptr<const Obj> Obj::Load(const Desc desc)
     {
         std::shared_ptr<Obj> pResource;
 
-        std::ifstream fileStream(filename.c_str());
+        std::ifstream fileStream(desc.Filename.c_str());
         if (fileStream.is_open())
         {
             pResource = std::make_shared<Obj>();
@@ -46,8 +41,10 @@ namespace Resource
             auto& normals = pResource->m_normals;
             auto& materialNames = pResource->m_materialNames;
             auto& surfaces = pResource->m_surfaces;
-            auto& loadingMtls = pResource->m_mtls;
             auto& faces = pResource->m_faces;
+            auto& mtls = pResource->m_mtls;
+            auto& materials = pResource->m_materials;
+            std::vector<Resource::Async<Mtl>> loadingMtls;
 
             Surface* pCurrentSurface = nullptr;
 
@@ -108,10 +105,14 @@ namespace Resource
                 }
                 else if (statement.compare("mtllib") == 0)
                 {
-                    std::string mtlFilename;
-                    fileStream >> mtlFilename;
+                    std::string filename;
+                    fileStream >> filename;
+                    
+                    Mtl::Desc mtl;
+                    mtl.Filename = desc.Directory + filename;
+                    mtl.TextureDirectory = desc.TextureDirectory;
 
-                    //loadingMtls.push_back(Resource::Async<Mtl>::Load(mtlFilename));
+                    loadingMtls.push_back(Resource::Async<Mtl>::Load(mtl));
                 }
                 else if (statement.compare("f") == 0)
                 {
@@ -204,6 +205,25 @@ namespace Resource
                     }
                 }
             }
+
+            mtls.reserve(loadingMtls.size());
+            for (auto& loadingMtl : loadingMtls)
+            {
+                mtls.push_back(loadingMtl.Get());
+            }
+
+            // Sort our materials in the order we found them...
+            for (auto& materialName : materialNames)
+            {
+                Mtl::MaterialDesc md;
+                for (auto mtl : mtls)
+                {
+                    if (mtl->TryGetMaterialDesc(materialName, md))
+                    {
+                        materials.push_back(md);
+                    }
+                }
+            }
         }
 
         return pResource;
@@ -233,5 +253,20 @@ namespace Resource
     std::string Obj::GetMaterialName(const u32 i) const
     {
         return m_materialNames[i];
+    }
+
+    u32 Obj::GetNumMtls() const
+    {
+        return static_cast<u32>(m_mtls.size());
+    }
+
+    std::shared_ptr<const Mtl> Obj::GetMtl(const u32 i) const
+    {
+        return m_mtls[i];
+    }
+
+    const Mtl::MaterialDesc Obj::GetMaterialDesc(const u32 i) const
+    {
+        return m_materials[i];
     }
 }

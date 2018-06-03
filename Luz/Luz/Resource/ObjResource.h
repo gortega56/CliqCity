@@ -14,10 +14,12 @@
 #include "ResourceManager.h"
 #endif
 
+#ifndef MTLRESOURCE_H
+#include "MtlResource.h"
+#endif
+
 namespace Resource
 {
-    class Mtl;
-
     class Obj
     {
         using Position = TArray<float, 3>;
@@ -29,6 +31,29 @@ namespace Resource
         using VertexIndirectEqual = TArrayEqual<u32, 3>;
 
     public:
+        struct LUZ_API Desc
+        {
+            std::string Filename;
+            std::string Directory;
+            std::string TextureDirectory;
+            bool InvertUVs;
+        };
+
+        static std::shared_ptr<const Obj> LUZ_API Load(const Desc desc);
+ 
+        Obj();
+        ~Obj();
+
+        u32 LUZ_API GetNumSurfaces() const;
+
+        u32 LUZ_API GetNumMtls() const;
+        std::shared_ptr<const Mtl> LUZ_API GetMtl(const u32 i) const;
+
+        u32 LUZ_API GetNumMaterials() const;
+        std::string LUZ_API GetMaterialName(const u32 i) const;
+
+        const Mtl::MaterialDesc LUZ_API GetMaterialDesc(const u32 i) const;
+
         template<typename VertexType, typename IndexType>
         struct StructuredSurface
         {
@@ -42,36 +67,17 @@ namespace Resource
             u16 MaterialHandle;
         };
 
-        struct LUZ_API Face : public TArray<i32, 12>
+        template<typename VertexType, typename IndexType>
+        void CreateStructuredSurfaces(std::function<void(const u32, const StructuredSurface<VertexType, IndexType>&)> onCreate) const;
+
+    private:
+        struct Face : public TArray<i32, 12>
         {
             bool HasNormals = false;
             bool HasUvs = false;
             bool IsTri = false;
         };
 
-        struct LUZ_API MeshDesc
-        {
-            const char* Name;
-            const char* GroupName;
-            const char* MaterialName;
-            const Face* FacesPtr;
-            u32 NumFaces;
-            u32 MaterialIndex;
-        };
-
-        static std::shared_ptr<const Obj> LUZ_API Load(const std::string& filename);
- 
-        LUZ_API Obj();
-        LUZ_API ~Obj();
-
-        u32 LUZ_API GetNumSurfaces() const;
-        u32 LUZ_API GetNumMaterials() const;
-        std::string LUZ_API GetMaterialName(const u32 i) const;
-
-        template<typename VertexType, typename IndexType>
-        void CreateStructuredSurfaces(std::function<void(const u32, const StructuredSurface<VertexType, IndexType>&)> onCreate) const;
-
-    private:
         struct Surface
         {
             u32 FacesStart;
@@ -89,7 +95,8 @@ namespace Resource
         std::vector<UV> m_uvs;
         std::vector<Face> m_faces;
         std::vector<Surface> m_surfaces;
-        std::vector<Async<Mtl>> m_mtls;
+        std::vector<std::shared_ptr<const Mtl>> m_mtls;
+        std::vector<Resource::Mtl::MaterialDesc> m_materials;
 
         template<typename VertexType, typename IndexType>
         void AddFaceVertex(

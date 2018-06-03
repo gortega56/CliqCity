@@ -145,7 +145,7 @@ void GpuBuffer::CreateConstantBufferView(const DescriptorHandle& descriptorHandl
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
     desc.BufferLocation = m_resource->GetGPUVirtualAddress();
-    desc.SizeInBytes = m_bufferSize;// (m_bufferSize + 255) & ~255;
+    desc.SizeInBytes = static_cast<UINT>(m_bufferSize);// (m_bufferSize + 255) & ~255;
 
     Device::SharedInstance()->DX()->CreateConstantBufferView(&desc, m_cbvHandle.CpuHandle());
 }

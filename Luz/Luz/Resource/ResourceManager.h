@@ -15,7 +15,8 @@ namespace Resource
     class Async
     {
     public:
-        static Async Load(const std::string& filename);
+        template<class DescType>
+        static Async<ResourceType> Load(const DescType desc);
 
         Async();
         ~Async();
@@ -33,10 +34,12 @@ namespace Resource
     };
 
     template<class ResourceType>
-    Async<ResourceType> Async<ResourceType>::Load(const std::string& filename)
+    template<class DescType>
+    Async<ResourceType> Async<ResourceType>::Load(const DescType desc)
     {
+        static_assert(std::is_copy_constructible<DescType>::value, "Resource description type must be copy constructible");
         Async load;
-        load.m_future = std::async(std::launch::async, [filename]() { return ResourceType::Load(filename); });
+        load.m_future = std::async(std::launch::async, [desc]() { return ResourceType::Load(desc); });
         return load;
     }
 
