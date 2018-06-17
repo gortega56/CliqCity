@@ -1,4 +1,125 @@
 #include "stdafx.h"
+#include "Graphics.h"
+
+#ifdef DX12
+
+#ifndef DX12GRAPHICSTYPES_H
+#include "Dx12GraphicsTypes.h"
+#endif
+
+// DirectX12TK
+#include "Audio.h"
+#include "CommonStates.h"
+#include "DDSTextureLoader.h"
+#include "DescriptorHeap.h"
+#include "DirectXHelpers.h"
+#include "Effects.h"
+#include "GamePad.h"
+#include "GeometricPrimitive.h"
+#include "GraphicsMemory.h"
+#include "Keyboard.h"
+#include "Model.h"
+#include "Mouse.h"
+#include "PrimitiveBatch.h"
+#include "RenderTargetState.h"
+#include "ResourceUploadBatch.h"
+#include "ScreenGrab.h"
+#include "SimpleMath.h"
+#include "SpriteBatch.h"
+#include "SpriteFont.h"
+#include "VertexTypes.h"
+#include "WICTextureLoader.h"
+
+#include "DirectXTex.h"
+
+#include <wincodec.h>
+
+using namespace DirectX;
+
+
+
+static ID3D12Debug* g_debug = nullptr;
+static ID3D12DebugDevice* g_debugDevice = nullptr;
+
+namespace Graphics
+{
+    static Device s_device;
+
+    bool Initialize(Window* pWindow, u32 numBackBuffers)
+    {
+        auto pPlatformWindow = dynamic_cast<MS::PlatformWindow*>(pWindow);
+        auto handle = pPlatformWindow->Handle();
+        auto width = pPlatformWindow->Width();
+        auto height = pPlatformWindow->Height();
+        auto fullscreen = pPlatformWindow->FullScreen();
+
+        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&s_device.pFactory4));
+        if (FAILED(hr)) return false;
+
+        IDXGIAdapter1* pAdapter;
+
+        bool adapterFound = false;
+        int adapterIdx = 0;
+
+        while (s_device.pFactory4->EnumAdapters1(adapterIdx, &pAdapter) != DXGI_ERROR_NOT_FOUND)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            pAdapter->GetDesc1(&desc);
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                ++adapterIdx;
+                continue;
+            }
+
+            hr = D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&s_device.pDevice));
+            if (SUCCEEDED(hr))
+            {
+                adapterFound = true;
+                break;
+            }
+        }
+
+        if (!adapterFound)
+        {
+            return false;
+        }
+
+
+
+        return true;
+    }
+
+    void Shutdown()
+    {
+
+    }
+
+    VertexBufferHandle CreateVertexBuffer(const BufferDesc& desc)
+    {
+
+    }
+
+    IndexBufferHandle CreateIndexBuffer(const BufferDesc& desc)
+    {
+
+    }
+
+    ConstantBufferHandle CreateConstantBuffer(const BufferDesc& desc)
+    {
+
+    }
+
+    TextureHandle CreateTexture(const TextureDesc& desc)
+    {
+
+    }
+
+}
+
+
+#endif
+
 #include "Dx12Graphics.h"
 #include "CommandQueue.h"
 #include "SwapChain.h"
@@ -12,8 +133,7 @@ using namespace Dx12;
 
 static SwapChainContext* g_swapChainContext = nullptr;
 
-static ID3D12Debug* g_debug = nullptr;
-static ID3D12DebugDevice* g_debugDevice = nullptr;
+
 static void EnableDebugLayer();
 static void ConfigureDebugLayer();
 

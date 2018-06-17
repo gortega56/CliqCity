@@ -2,43 +2,23 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#ifndef GRAPHICSTYPES_H
+#include "GraphicsTypes.h"
+#endif
+
+#define DX12
+
 class Window;
 
 namespace Graphics
 {
     LUZ_API bool Initialize(Window* pWindow, u32 numBackBuffers);
     LUZ_API void Shutdown();
+
+    LUZ_API VertexBufferHandle CreateVertexBuffer(const BufferDesc& desc);
+    LUZ_API IndexBufferHandle CreateIndexBuffer(const BufferDesc& desc);
+    LUZ_API ConstantBufferHandle CreateConstantBuffer(const BufferDesc& desc);
+    LUZ_API TextureHandle CreateTexture(const TextureDesc& desc);
 }
-
-#if _WIN64 || _WIN32
-#ifndef DX12_SHADER_H
-#include "DirectX12\Shader.h"
-#endif
-
-typedef Dx12::Shader Shader;
-typedef Dx12::InputLayout InputLayout;
-
-#ifndef DX12_PIPELINESTATE_H
-#include "DirectX12\PipelineState.h"
-#endif
-
-typedef Dx12::GraphicsPipeline GraphicsPipeline;
-
-#ifndef DX12_ROOTSIGNATURE_H
-#include "DirectX12\RootSignature.h"
-#endif
-
-typedef Dx12::RootSignature RootSignature;
-
-#ifndef DX12_GPUSTATE_H
-#include "DirectX12\GpuState.h"
-#endif
-
-typedef Dx12::RasterizerState RasterizerState;
-typedef Dx12::DepthStencilState DepthStencilState;
-typedef Dx12::BlendState BlendState;
-#elif __APPLE__
-
-#endif
 
 #endif

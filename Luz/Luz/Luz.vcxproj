@@ -203,7 +203,7 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraController.cpp" />
-    <ClCompile Include="Graphics\Graphics.cpp" />
+    <ClCompile Include="Graphics\GraphicsTypes.cpp" />
     <ClCompile Include="IApplication.cpp" />
     <ClCompile Include="LzAssert.cpp" />
     <ClCompile Include="Console.cpp" />
@@ -251,7 +251,9 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GeneralMacros.h" />
+    <ClInclude Include="Graphics\DirectX12\Dx12GraphicsTypes.h" />
     <ClInclude Include="Graphics\Graphics.h" />
+    <ClInclude Include="Graphics\GraphicsTypes.h" />
     <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="LuzExport.h" />
     <ClInclude Include="LzAssert.h" />
