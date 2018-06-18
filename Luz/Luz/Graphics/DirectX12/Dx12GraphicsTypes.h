@@ -152,6 +152,8 @@ namespace Graphics
     D3D12_CULL_MODE GetD3D12CullMode(const CullMode cull);
     D3D12_CONSERVATIVE_RASTERIZATION_MODE GetD3D12RasterizationMode(const ConservativeRasterizationMode mode);
 
+    D3D12_DEPTH_WRITE_MASK GetD3D12DepthWriteMask(const DepthWriteMask mask);
+    D3D12_STENCIL_OP GetD3D12StencilOp(const StencilOp op);
 }
 
 #endif

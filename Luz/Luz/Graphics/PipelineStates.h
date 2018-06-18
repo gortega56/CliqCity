@@ -460,8 +460,8 @@ namespace Graphics
 
     struct LUZ_API PipelineDesc
     {
-        InputLayoutDesc InputLayout;
         SignatureDesc Signature;
+        InputLayoutDesc InputLayout;
         DepthStencilState DepthStencil;
         RasterizerState Rasterizer;
         BlendState Blend;
@@ -474,6 +474,8 @@ namespace Graphics
         u32 SampleCount = 1;
         u32 SampleQuality = 0;
         u32 SampleMask = 0xffffffff;
+        u32 NodeMask = 0;
+        u8 NumRenderTargets = 0;
         TextureHandle* pRenderTargets = nullptr;
         DepthStencilHandle DsHandle = GPU_RESOURCE_HANDLE_INVALID;
     };

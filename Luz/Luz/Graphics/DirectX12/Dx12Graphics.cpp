@@ -379,9 +379,7 @@ namespace Graphics
             rt.RenderTargetWriteMask = GetD3D12ColorWriteEnable(bs.RenderTargetWriteMask);
         }
 
-        // Samples
-        pso.SampleDesc.Quality = desc.SampleQuality;
-        pso.SampleDesc.Count = desc.SampleCount;
+        // Sample Mask
         pso.SampleMask = desc.SampleMask;
 
         // RasterizerState
@@ -398,6 +396,20 @@ namespace Graphics
         pso.RasterizerState.ConservativeRaster = GetD3D12RasterizationMode(desc.Rasterizer.RasterizationMode);
 
         // DepthStencilState
+        pso.DepthStencilState.DepthEnable = desc.DepthStencil.DepthEnable;
+        pso.DepthStencilState.DepthWriteMask = GetD3D12DepthWriteMask(desc.DepthStencil.WriteMask);
+        pso.DepthStencilState.DepthFunc = GetComparisonType(desc.DepthStencil.Comparison);
+        pso.DepthStencilState.StencilEnable = desc.DepthStencil.StencilEnable;
+        pso.DepthStencilState.StencilReadMask = desc.DepthStencil.StencilReadMask;
+        pso.DepthStencilState.StencilWriteMask = desc.DepthStencil.StencilWriteMask;
+        pso.DepthStencilState.FrontFace.StencilFailOp = GetD3D12StencilOp(desc.DepthStencil.FrontFace.StencilFailOp);
+        pso.DepthStencilState.FrontFace.StencilDepthFailOp = GetD3D12StencilOp(desc.DepthStencil.FrontFace.StencilDepthFailOp);
+        pso.DepthStencilState.FrontFace.StencilPassOp = GetD3D12StencilOp(desc.DepthStencil.FrontFace.StencilPassOp);
+        pso.DepthStencilState.FrontFace.StencilFunc = GetComparisonType(desc.DepthStencil.FrontFace.Comparison);
+        pso.DepthStencilState.BackFace.StencilFailOp = GetD3D12StencilOp(desc.DepthStencil.BackFace.StencilFailOp);
+        pso.DepthStencilState.BackFace.StencilDepthFailOp = GetD3D12StencilOp(desc.DepthStencil.BackFace.StencilDepthFailOp);
+        pso.DepthStencilState.BackFace.StencilPassOp = GetD3D12StencilOp(desc.DepthStencil.BackFace.StencilPassOp);
+        pso.DepthStencilState.BackFace.StencilFunc = GetComparisonType(desc.DepthStencil.BackFace.Comparison);
 
         // InputLayout
         const InputLayoutDesc& il = desc.InputLayout;
@@ -428,16 +440,31 @@ namespace Graphics
         // Topology
         pso.PrimitiveTopologyType = GetD3D12PrimitiveTopoglogyType(desc.Topology);
 
+        // RenderTargets and DepthStencil
+        pso.NumRenderTargets = desc.NumRenderTargets;
+        for (u32 i = 0; i < desc.NumRenderTargets; ++i)
+        {
+            pso.RTVFormats[i] = s_textureCollection.GetResource(desc.pRenderTargets[i]).pResource->GetDesc().Format;
+        }
 
-        // RenderTargets
+        pso.DSVFormat = s_textureCollection.GetResource(desc.DsHandle).pResource->GetDesc().Format;
 
         // Samplers
+        pso.SampleDesc.Quality = desc.SampleQuality;
+        pso.SampleDesc.Count = desc.SampleCount;
 
         // NodeMask
+        pso.NodeMask = desc.NodeMask;
 
         // Cached PSO
+        pso.CachedPSO.CachedBlobSizeInBytes = 0;
+        pso.CachedPSO.pCachedBlob = nullptr;
 
         // Flags
+        pso.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+        hr = s_device.pDevice->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&pipeline.pPipelineState));
+        LUZASSERT(SUCCEEDED(hr));
 
         return handle;
     }
