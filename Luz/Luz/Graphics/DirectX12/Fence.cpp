@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "Fence.h"
 #include "dx12_internal.h"
-#include "Device.h"
 
 using namespace Dx12;
 
@@ -20,10 +19,10 @@ Fence::~Fence()
   //  CloseHandle(m_event);
 }
 
-bool Fence::Initialize(std::shared_ptr<const Device> pDevice)
+bool Fence::Initialize(ID3D12Device* pDevice)
 {
     UINT64 signal = 0;
-    if (!CreateFences(pDevice->DX(), &m_fence, &signal, D3D12_FENCE_FLAG_NONE, 1))
+    if (!CreateFences(pDevice, &m_fence, &signal, D3D12_FENCE_FLAG_NONE, 1))
     {
         return false;
     }

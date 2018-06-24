@@ -27,7 +27,7 @@ namespace Graphics
         virtual u32 NumVertices() const = 0;
         virtual u32 NumIndices() const = 0;
 
-        virtual u32 NumVertexBytes() const = 0;
+        virtual u64 NumVertexBytes() const = 0;
         virtual u32 NumIndexBytes() const = 0;
     };
 
@@ -57,7 +57,7 @@ namespace Graphics
         u32 NumVertices() const override;
         u32 NumIndices() const override;
 
-        u32 NumVertexBytes() const override;
+        u64 NumVertexBytes() const override;
         u32 NumIndexBytes() const override;
 
         static void CreateTangents(VertexType* pVertices, const u32 numVertices, IndexType* pIndices, const u32 numIndices);
@@ -158,9 +158,9 @@ namespace Graphics
     }
 
     template<class VertexType, class IndexType>
-    inline u32 Mesh<VertexType, IndexType>::NumVertexBytes() const
+    inline u64 Mesh<VertexType, IndexType>::NumVertexBytes() const
     { 
-        return static_cast<u32>(sizeof(VertexType) * m_vertices.size());
+        return static_cast<u64>(sizeof(VertexType) * m_vertices.size());
     }
 
     template<class VertexType, class IndexType>

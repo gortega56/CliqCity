@@ -23,25 +23,25 @@ namespace Graphics
         ResourceType& GetResource(const GpuResourceHandle handle);
 
     private:
-        constexpr size_t sm_maxHandleSlots = maxResources / 8;
+        static const size_t sm_maxHandleSlots = maxResources / 8;
         ResourceType m_resources[maxResources];
         u8 m_handleSlots[sm_maxHandleSlots];
     };
 
     template<class ResourceType, size_t maxResources>
-    ResourceCollection<ResourceType>::ResourceCollection()
+    ResourceCollection<ResourceType, maxResources>::ResourceCollection()
     {
 
     }
 
     template<class ResourceType, size_t maxResources>
-    ResourceCollection<ResourceType>::~ResourceCollection()
+    ResourceCollection<ResourceType, maxResources>::~ResourceCollection()
     {
         // Application is responsible for freeing any resources prior to dtor
     }
 
     template<class ResourceType, size_t maxResources>
-    GpuResourceHandle ResourceCollection<ResourceType>::AllocateHandle()
+    GpuResourceHandle ResourceCollection<ResourceType, maxResources>::AllocateHandle()
     {
         GpuResourceHandle handle = GpuResourceHandle::GPU_RESOURCE_HANDLE_INVALID;
 
@@ -66,7 +66,7 @@ namespace Graphics
     }
 
     template<class ResourceType, size_t maxResources>
-    GpuResourceHandle ResourceCollection<ResourceType>::FreeHandle(const GpuResourceHandle handle)
+    void ResourceCollection<ResourceType, maxResources>::FreeHandle(const GpuResourceHandle handle)
     {
         auto h = static_cast<std::underlying_type<GpuResourceHandle>::type>(handle);
         auto i = h / 8;
@@ -79,7 +79,7 @@ namespace Graphics
     }
 
     template<class ResourceType, size_t maxResources>
-    ResourceType& ResourceCollection<ResourceType>::GetResource(const GpuResourceHandle handle)
+    ResourceType& ResourceCollection<ResourceType, maxResources>::GetResource(const GpuResourceHandle handle)
     {
         return m_resources[static_cast<std::underlying_type<GpuResourceHandle>::type>(handle)];
     }

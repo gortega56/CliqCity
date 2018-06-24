@@ -55,7 +55,7 @@ namespace Resource
     {
         std::shared_ptr<Mtl> pResource;
 
-        std::ifstream fileStream(desc.Filename.c_str());
+        std::ifstream fileStream(desc.Filename);
         if (fileStream.is_open())
         {
             pResource = std::make_shared<Mtl>();

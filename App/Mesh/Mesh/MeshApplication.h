@@ -1,8 +1,11 @@
 #pragma once
 #ifndef MESHAPPLICATION_H
 #define MESHAPPLICATION_H
+#include <unordered_map>
 #include <unordered_set>
 #include <mutex>
+#include <atomic>
+
 #include <wrl.h>
 #include "GeneralMacros.h"
 
@@ -14,28 +17,8 @@
 #include "TypeDefs.h"
 #endif
 
-#ifndef DX12_SHADER_H
-#include "DirectX12\Shader.h"
-#endif
-
-#ifndef DX12_PIPELINESTATE_H
-#include "DirectX12\PipelineState.h"
-#endif
-
-#ifndef DX12_SHADER_H
-#include "DirectX12\Shader.h"
-#endif
-
-#ifndef DX12_ROOTSIGNATURE_H
-#include "DirectX12\RootSignature.h"
-#endif
-
-#ifndef RENDERABLE_H
-#include "Renderable.h"
-#endif
-
-#ifndef MATERIAL_H
-#include "Material.h"
+#ifndef GRAPHICSTYPES_H
+#include "GraphicsTypes.h"
 #endif
 
 #ifndef GMATH_H
@@ -93,6 +76,12 @@ struct PhongMaterial
     gmath::float4 _padding2[10];    
 };
 
+struct Surface
+{
+    Graphics::VertexBufferHandle vb;
+    Graphics::IndexBufferHandle ib;
+};
+
 class MeshApplication :
     public IApplication, public std::enable_shared_from_this<MeshApplication>
 {
@@ -101,19 +90,12 @@ public:
 
     std::shared_ptr<Window> m_window;
 
-    Dx12::Shader m_vs;
-    Dx12::Shader m_ps;
-    Dx12::GraphicsPipeline m_pipeline;
+    Graphics::ShaderHandle m_vs;
+    Graphics::ShaderHandle m_ps;
+    Graphics::PipelineStateHandle m_pipeline;
+    std::vector<Surface> m_surfaces;
 
-    std::shared_ptr<Dx12::RootSignature> m_rs;
-
-    std::vector<std::shared_ptr<Renderable>> m_renderables;
-    std::vector<std::shared_ptr<MaterialState>> m_materials;
-
-    std::shared_ptr<MaterialState> m_material0;
-    std::shared_ptr<MaterialState> m_material1;
-
-    std::shared_ptr<MaterialState> m_material;
+    Graphics::ConstantBufferHandle m_viewProjectionHandle;
 
     MaterialIndex m_materialIndex;
     ConstantBufferData m_cbvData;

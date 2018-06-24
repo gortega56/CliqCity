@@ -307,6 +307,12 @@ namespace Graphics
         return *this;
     }
 
+    SignatureDesc& SignatureDesc::AppendDescriptorTable(const ShaderVisibility visibility /*= SHADER_VISIBILITY_ALL*/)
+    {
+        AppendParam()->InitializeDescriptorTable(visibility);
+        return *this;
+    }
+
     SignatureDesc& SignatureDesc::AppendDescriptorTableRange(const u32& tableIndex, const u32& numDescriptors, const u32& baseRegister, const u32& registerSpace, const DescriptorTable::Range::Type& type)
     {
         LUZASSERT(tableIndex < (u32)m_params.size());
@@ -420,7 +426,6 @@ namespace Graphics
 
     Parameter* SignatureDesc::AppendParam()
     {
-        m_params.emplace_back();
-        return &m_params.back();
+        return &m_params.emplace_back();
     }
 }

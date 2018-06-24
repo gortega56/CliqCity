@@ -8,15 +8,6 @@
 
 namespace Graphics
 {
-    enum LUZ_API PrimitiveTopologyType : u8
-    {
-        GFX_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED = 0,
-        GFX_PRIMITIVE_TOPOLOGY_TYPE_POINT = 1,
-        GFX_PRIMITIVE_TOPOLOGY_TYPE_LINE = 2,
-        GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE = 3,
-        GFX_PRIMITIVE_TOPOLOGY_TYPE_PATCH = 4
-    };
-
     enum LUZ_API FilterType : u8
     {
         FILTER_TYPE_MIN_MAG_MIP_POINT = 0,
@@ -266,6 +257,7 @@ namespace Graphics
         LUZ_API SignatureDesc& AppendConstantView(const u32& shaderRegister, const u32 registerSpace = 0U, const Parameter::DataFlags flags = Parameter::DataFlags::PARAMETER_DATA_FLAG_NONE, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
         LUZ_API SignatureDesc& AppendShaderView(const u32& shaderRegister, const u32 registerSpace = 0U, const Parameter::DataFlags flags = Parameter::DataFlags::PARAMETER_DATA_FLAG_NONE, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
         LUZ_API SignatureDesc& AppendComputeView(const u32& shaderRegister, const u32 registerSpace = 0U, const Parameter::DataFlags flags = Parameter::DataFlags::PARAMETER_DATA_FLAG_NONE, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
+        LUZ_API SignatureDesc& AppendDescriptorTable(const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
         LUZ_API SignatureDesc& AppendDescriptorTableRange(const u32& tableIndex, const u32& numDescriptors, const u32& baseRegister, const u32& registerSpace, const DescriptorTable::Range::Type& type);
 
         LUZ_API SignatureDesc& AppendAnisotropicWrapSampler(const u32& shaderRegister);
@@ -478,6 +470,7 @@ namespace Graphics
         u8 NumRenderTargets = 0;
         TextureHandle* pRenderTargets = nullptr;
         DepthStencilHandle DsHandle = GPU_RESOURCE_HANDLE_INVALID;
+        bool UseSwapChain = false; // Ignores render target and depth stencil members and uses native swap chain
     };
 }
 

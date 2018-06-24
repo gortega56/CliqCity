@@ -3,18 +3,17 @@
 #define DX12_FENCE_H
 
 struct ID3D12Fence;
+struct ID3D12Device;
 
 namespace Dx12
 {
-    class Device;
-
     class Fence
     {
     public:
         Fence();
         ~Fence();
 
-        bool Initialize(std::shared_ptr<const Device> pDevice);
+        bool Initialize(ID3D12Device* pDevice);
         bool Wait();
 
         bool IsIdle() const;

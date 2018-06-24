@@ -6,6 +6,11 @@
 #include "d3dx12.h"
 #endif
 
+namespace Graphics
+{
+    struct Device;
+}
+
 namespace Dx12
 {
     class Device;
@@ -38,12 +43,12 @@ namespace Dx12
         CD3DX12_CPU_DESCRIPTOR_HANDLE CpuHandle(int i = 0);
         CD3DX12_GPU_DESCRIPTOR_HANDLE GpuHandle(int i = 0);
 
-        bool Initialize(std::shared_ptr<const Device> pDevice, DescriptorHeapParams const* pParams, std::wstring name);
+        bool Initialize(DescriptorHeapParams const* pParams, std::wstring name);
 
-        bool InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
-        bool InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
-        bool InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
-        bool InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name = L"");
+        bool InitializeRTV(std::wstring name = L"");
+        bool InitializeDSV(std::wstring name = L"");
+        bool InitializeMixed(std::wstring name = L"");
+        bool InitializeSampler(std::wstring name = L"");
 
     private:
         ID3D12DescriptorHeap* m_descriptorHeap;
@@ -87,7 +92,7 @@ namespace Dx12
     class DescriptorHeapAllocator
     {
     public:
-        static void Initialize();
+        static void Initialize(Graphics::Device* pDevice);
         static void Destroy();
 
         DescriptorHeapAllocator() : m_currentHeap(nullptr), m_remainingHandles(sm_handlesPerHeap) {}
@@ -107,25 +112,6 @@ namespace Dx12
         u32 m_remainingHandles;
         std::mutex m_allocMutex;
         std::vector<DescriptorHeap> m_descriptorHeaps;
-    };
-
-    class DescriptorHandleCollection
-    {
-    public:
-        DescriptorHandleCollection();
-        ~DescriptorHandleCollection() = default;
-
-        bool TrySet(const DescriptorHandle& handle, u16* pIndex);
-        const DescriptorHandle Get(i32 i) const;
-        void Remove(i32 i);
-
-    private:
-        static const u32 sm_stateBits = 8;
-        static const u32 sm_maxHandles = 1024;
-        static const u32 sm_maxHandleStates = sm_maxHandles / sm_stateBits;
-
-        DescriptorHandle m_handles[sm_maxHandles];
-        u8 m_handleStates[sm_maxHandleStates];
     };
 
     DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count = 1);

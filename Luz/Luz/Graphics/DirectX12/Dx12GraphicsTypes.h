@@ -67,6 +67,11 @@ namespace Graphics
         ID3D12Device1* pDevice1;
     };
 
+    struct SwapChain
+    {
+
+    };
+
     struct SwapChainContext
     {
         static constexpr u8 MaxBuffers = 4;
@@ -75,6 +80,10 @@ namespace Graphics
         IDXGISwapChain1* pSwapChain1;
         IDXGISwapChain2* pSwapChain2;
         IDXGISwapChain3* pSwapChain3;
+        
+        ID3D12DescriptorHeap* pRenderTargetDescriptorHeap;
+        ID3D12DescriptorHeap* pDepthStencilDescriptorHeap;
+        
         ID3D12Resource* pDepthStencilResource;
 
         D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetViewHandles[MaxBuffers];
@@ -105,8 +114,9 @@ namespace Graphics
         ID3D12PipelineState* pPipelineState = nullptr;
     };
 
-    struct RenderTargetView
+    struct RenderTarget
     {
+        ID3D12Resource* pResource;
         D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
         D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
     };
@@ -118,17 +128,46 @@ namespace Graphics
         DescriptorHandle ShaderResourceViewHandle;
     };
 
+    struct VertexBuffer
+    {
+        ID3D12Resource* pResource;
+        D3D12_VERTEX_BUFFER_VIEW View;
+    };
+
+    struct IndexBuffer
+    {
+        ID3D12Resource* pResource;
+        D3D12_INDEX_BUFFER_VIEW View;
+        u32 NumIndices;
+    };
+
     struct ConstantBuffer
     {
         ID3D12Resource* pResource;
-        DescriptorHandle ConstantBufferViewHandle;
+        D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
+        D3D12_GPU_VIRTUAL_ADDRESS GpuVirtualAddress;
     };
 
     struct Texture
     {
         ID3D12Resource* pResource;
-        DescriptorHandle ShaderResourceViewHandle;
-        DescriptorHandle RenderTargetViewHandle;
+        D3D12_GPU_VIRTUAL_ADDRESS GpuVirtualAddress;
+        DescriptorHandle SrvHandle;
+        DescriptorHandle RtvHandle;
+        DescriptorHandle UavHandle;
+    };
+
+    struct CommandList
+    {
+        union
+        {
+            ID3D12CommandList* pCommandList;
+            ID3D12GraphicsCommandList* pGraphicsCommandList;
+        };
+
+        ID3D12CommandQueue* pCommandQueue;
+        void* pAlloc;
     };
 
     DXGI_FORMAT GetDxgiFormat(const Format format);
@@ -154,6 +193,8 @@ namespace Graphics
 
     D3D12_DEPTH_WRITE_MASK GetD3D12DepthWriteMask(const DepthWriteMask mask);
     D3D12_STENCIL_OP GetD3D12StencilOp(const StencilOp op);
+
+    D3D12_PRIMITIVE_TOPOLOGY GetD3D12PrimitiveTogopology(const PrimitiveSubtopology topology);
 }
 
 #endif

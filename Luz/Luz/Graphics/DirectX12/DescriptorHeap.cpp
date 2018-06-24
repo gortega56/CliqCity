@@ -1,69 +1,19 @@
 #include "stdafx.h"
 #include "DescriptorHeap.h"
+#include "Dx12GraphicsTypes.h"
 #include "dx12_internal.h"
-#include "Dx12Graphics.h"
-#include "GpuResource.h"
-#include "Device.h"
-
-
 
 namespace Dx12
 {
     static u8 g_memory[sizeof(DescriptorHeapAllocator) * D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
     static DescriptorHeapAllocator* g_allocators = nullptr;
-    static DescriptorHandleCollection g_handles;
+    static ID3D12Device* s_pDevice = nullptr;
 
-    DescriptorHandleCollection::DescriptorHandleCollection()
+    void DescriptorHeapAllocator::Initialize(Graphics::Device* pDevice)
     {
-        memset(m_handles, 0, sizeof(DescriptorHandle) * sm_maxHandles);
-        memset(m_handleStates, 0, sizeof(u8) * sm_maxHandleStates);
-    }
+        LUZASSERT(!s_pDevice);
+        s_pDevice = pDevice->pDevice;
 
-    bool DescriptorHandleCollection::TrySet(const DescriptorHandle& handle, u16* pIndex)
-    {
-        bool found = false;
-        for (u32 i = 0; i < sm_maxHandleStates; ++i)
-        {
-            for (u8 j = 0; j < sm_stateBits; j++)
-            {
-                u8 handleState = m_handleStates[i] << j;
-                if (handleState == 0)
-                {
-                    // Set value in memory
-                    u32 index = i * sm_stateBits + j;
-                    m_handles[index] = handle;
-
-                    // Update vacancy
-                    m_handleStates[i] = handleState & (1 << j);
-                    
-                    if (pIndex) *pIndex = index;
-
-                    found = true;
-                    break;
-                }
-            }
-        }
-
-        return found;
-    }
-
-    const DescriptorHandle DescriptorHandleCollection::Get(i32 i) const
-    {
-        return m_handles[i];
-    }
-
-    void DescriptorHandleCollection::Remove(i32 i)
-    {
-        memset(&m_handles[i], 0, sizeof(DescriptorHandle));
-        u32 hi = ((u32)i / sm_stateBits) - 1;
-        u8 bi = hi % sm_stateBits;
-
-        u8 handleState = m_handleStates[hi] << bi;
-        m_handleStates[hi] = handleState & ~(1 << bi);
-    }
-
-    void DescriptorHeapAllocator::Initialize()
-    {
         LUZASSERT(!g_allocators);
         for (int i = 0, count = (int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i < count; ++i)
         {
@@ -131,38 +81,38 @@ namespace Dx12
         return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize);
     }
 
-    bool DescriptorHeap::Initialize(std::shared_ptr<const Device> pDevice, DescriptorHeapParams const* pParams, std::wstring name)
+    bool DescriptorHeap::Initialize(DescriptorHeapParams const* pParams, std::wstring name)
     {
-        if (!CreateDescriptorHeap(pDevice->DX(), &m_descriptorHeap, name.c_str(), pParams->Type, pParams->Flags, m_numDescriptors))
+        if (!CreateDescriptorHeap(s_pDevice, &m_descriptorHeap, name.c_str(), pParams->Type, pParams->Flags, m_numDescriptors))
         {
             return false;
         }
 
-        m_descriptorHeapSize = pDevice->DX()->GetDescriptorHandleIncrementSize(pParams->Type);
+        m_descriptorHeapSize = s_pDevice->GetDescriptorHandleIncrementSize(pParams->Type);
 
         return true;
     }
 
-    bool DescriptorHeap::InitializeRTV(std::shared_ptr<const Device> pDevice, std::wstring name)
+    bool DescriptorHeap::InitializeRTV(std::wstring name)
     {
-        return Initialize(pDevice, &RtvHeapParams, name);
+        return Initialize(&RtvHeapParams, name);
     }
 
-    bool DescriptorHeap::InitializeDSV(std::shared_ptr<const Device> pDevice, std::wstring name)
+    bool DescriptorHeap::InitializeDSV(std::wstring name)
     {
-        return Initialize(pDevice, &DsvHeapParams, name);
-
-    }
-
-    bool DescriptorHeap::InitializeMixed(std::shared_ptr<const Device> pDevice, std::wstring name)
-    {
-        return Initialize(pDevice, &CbvSrvUavHeapParams, name);
+        return Initialize(&DsvHeapParams, name);
 
     }
 
-    bool DescriptorHeap::InitializeSampler(std::shared_ptr<const Device> pDevice, std::wstring name)
+    bool DescriptorHeap::InitializeMixed(std::wstring name)
     {
-        return Initialize(pDevice, &SamplerHeapParams, name);
+        return Initialize(&CbvSrvUavHeapParams, name);
+
+    }
+
+    bool DescriptorHeap::InitializeSampler(std::wstring name)
+    {
+        return Initialize(&SamplerHeapParams, name);
     }
 
     DescriptorHandle::DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 descriptorIndex, u32 descriptorOffset) :
@@ -231,16 +181,16 @@ namespace Dx12
             switch (type)
             {
             case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
-                m_currentHeap->InitializeMixed(Device::SharedInstance(), L"CBV UAV SRV Heap" + (u32)(m_descriptorHeaps.size() - 1));
+                m_currentHeap->InitializeMixed(L"CBV UAV SRV Heap" + (u32)(m_descriptorHeaps.size() - 1));
                 break;
             case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
-                m_currentHeap->InitializeDSV(Device::SharedInstance(), L"DSV Heap" + (u32)(m_descriptorHeaps.size() - 1));
+                m_currentHeap->InitializeDSV(L"DSV Heap" + (u32)(m_descriptorHeaps.size() - 1));
                 break;
             case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
-                m_currentHeap->InitializeRTV(Device::SharedInstance(), L"RTV Heap" + (u32)(m_descriptorHeaps.size() - 1));
+                m_currentHeap->InitializeRTV(L"RTV Heap" + (u32)(m_descriptorHeaps.size() - 1));
                 break;
             case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-                m_currentHeap->InitializeSampler(Device::SharedInstance(), L"Sampler Heap" + (u32)(m_descriptorHeaps.size() - 1));
+                m_currentHeap->InitializeSampler(L"Sampler Heap" + (u32)(m_descriptorHeaps.size() - 1));
                 break;
             }
 
@@ -256,7 +206,6 @@ namespace Dx12
     DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count /*= 1*/)
     {
         DescriptorHandle handle = g_allocators[type].Allocate(type, count);
-        g_handles.TrySet(handle, nullptr);
         return handle;
     }
 

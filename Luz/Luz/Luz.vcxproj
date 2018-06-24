@@ -211,27 +211,15 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="LzAssert.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
-    <ClCompile Include="Graphics\DirectX12\CommandQueue.cpp" />
     <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\Device.cpp" />
-    <ClCompile Include="Graphics\DirectX12\dx12_renderable.cpp" />
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp" />
     <ClCompile Include="Graphics\DirectX12\Fence.cpp" />
-    <ClCompile Include="Graphics\DirectX12\GpuResource.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Material.cpp" />
-    <ClCompile Include="Graphics\DirectX12\PipelineState.cpp" />
-    <ClCompile Include="Graphics\DirectX12\RenderContext.cpp" />
-    <ClCompile Include="Graphics\DirectX12\RootSignature.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Shader.cpp" />
-    <ClCompile Include="Graphics\DirectX12\SwapChain.cpp" />
-    <ClCompile Include="Graphics\DirectX12\TextureImpl.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Viewport.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\MSPlatformWindow.cpp" />
@@ -242,7 +230,6 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClCompile Include="Resource\MtlResource.cpp" />
     <ClCompile Include="Resource\ObjResource.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
-    <ClCompile Include="Resource\Texture.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Platform\Window.cpp" />
     <ClCompile Include="Platform\WindowsMessageCenter.cpp" />
@@ -264,28 +251,14 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="LzAssert.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\CommandContext.h" />
-    <ClInclude Include="Graphics\DirectX12\CommandQueue.h" />
     <ClInclude Include="Graphics\DirectX12\d3dx12.h" />
     <ClInclude Include="Graphics\DirectX12\DescriptorHeap.h" />
-    <ClInclude Include="Graphics\DirectX12\Device.h" />
-    <ClInclude Include="Graphics\DirectX12\dx12_renderable.h" />
-    <ClInclude Include="Graphics\DirectX12\Dx12Graphics.h" />
     <ClInclude Include="Graphics\DirectX12\dx12_internal.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Graphics\DirectX12\Fence.h" />
-    <ClInclude Include="Graphics\DirectX12\GpuResource.h" />
-    <ClInclude Include="Graphics\DirectX12\GpuState.h" />
-    <ClInclude Include="Graphics\DirectX12\Material.h" />
-    <ClInclude Include="Graphics\DirectX12\RenderContext.h" />
-    <ClInclude Include="Graphics\DirectX12\RootSignature.h" />
-    <ClInclude Include="Graphics\DirectX12\Shader.h" />
-    <ClInclude Include="Graphics\DirectX12\SwapChain.h" />
-    <ClInclude Include="Graphics\DirectX12\TextureImpl.h" />
-    <ClInclude Include="Graphics\DirectX12\Viewport.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Graphics\Renderable.h" />
-    <ClInclude Include="Graphics\DirectX12\PipelineState.h" />
     <ClInclude Include="Platform\Input.h" />
     <ClInclude Include="Platform\MSPlatformWindow.h" />
     <ClInclude Include="Platform\Platform.h" />
@@ -295,7 +268,6 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Resource\MtlResource.h" />
     <ClInclude Include="Resource\ObjResource.h" />
     <ClInclude Include="Resource\ResourceManager.h" />
-    <ClInclude Include="Resource\Texture.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="IApplication.h" />

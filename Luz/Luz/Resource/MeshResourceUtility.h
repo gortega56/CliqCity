@@ -22,7 +22,7 @@ namespace Resource
     template<typename T, size_t N>
     TArray<T, N>::TArray()
     {
-        memset(Data, static_cast<T>(0), sizeof(T) * N);
+        memset(Data, 0, sizeof(T) * N);
     }
 
     template<typename T, size_t N>

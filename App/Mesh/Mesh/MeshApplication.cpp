@@ -2,12 +2,9 @@
 #include "Engine.h"
 #include "Resource\ResourceManager.h"
 #include "Mesh.h"
-#include "DirectX12\GpuResource.h"
 #include <functional>
 #include <memory>
-#include "DirectX12\CommandContext.h"
-#include "Resource\Texture.h"
-#include "Resource\Fbx.h"
+//#include "Resource\Fbx.h"
 #include "Resource\ObjResource.h"
 #include "Platform\Window.h"
 #include "Graphics.h"
@@ -56,9 +53,9 @@ MeshApplication::MeshApplication()
     m_renderableIndex = -1;
 }
 
-
 MeshApplication::~MeshApplication()
 {
+
 }
 
 bool MeshApplication::Initialize()
@@ -112,58 +109,52 @@ bool MeshApplication::Initialize()
     //    }
     //});
 
-    if (!m_vs.InitializeVS(L"VertexShader.hlsl"))
-    {
-        return false;
-    }
+    m_vs = Graphics::CreateVertexShader("VertexShader.hlsl");
+    m_ps = Graphics::CreatePixelShader("PixelShader.hlsl");
 
-    if (!m_ps.InitializePS(L"PixelShader.hlsl"))
-    {
-        return false;
-    }
-
-    InputLayout inputLayout;
-    inputLayout
-        .AppendFloat4("TANGENT")
-        .AppendPosition3F()
-        .AppendNormal3F()
-        .AppendUV3()
-        .Finalize();
-
-    auto range = Dx12::DescriptorTable(2).AppendRangeCBV(26, 1).AppendRangeSRV(36, 0);
-
-    m_rs = std::make_shared<Dx12::RootSignature>(2);
-    m_rs->AllowInputLayout()
+    Graphics::PipelineDesc pd;
+    pd.Signature.AllowInputLayout()
         .DenyHS()
         .DenyDS()
         .DenyGS()
-        .AppendRootCBV(0)
-        .AppendRootDescriptorTable(range, D3D12_SHADER_VISIBILITY_PIXEL)
+        .AppendConstantView(0)
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
+        .AppendDescriptorTableRange(0, 26, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
+        .AppendDescriptorTableRange(0, 36, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendAnisotropicWrapSampler(0);
-
-    if (!m_rs->Finalize())
-    {
-        return false;
-    }
-
-    m_pipeline.SetInputLayout(&inputLayout);
-    m_pipeline.SetRootSignature(m_rs.get());
-    m_pipeline.SetVS(&m_vs);
-    m_pipeline.SetPS(&m_ps);
-    m_pipeline.SetTriangleTopology();
-    m_pipeline.SetSampleCount(1);
-    m_pipeline.SetSampleQuality(0);
-    m_pipeline.SetSampleMask(0xffffffff);
-    m_pipeline.SetDepthStencilState(&DepthStencilState());
-    m_pipeline.SetRasterizerState(&RasterizerState()); 
-    m_pipeline.SetBlendState(&BlendState());
-    m_pipeline.SetRenderTargets();
+    pd.InputLayout.AppendFloat4("TANGENT")
+        .AppendPosition3F()
+        .AppendNormal3F()
+        .AppendUV3();
+    pd.VertexShaderHandle = m_vs;
+    pd.PixelShaderHandle = m_ps;
+    pd.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pd.SampleCount = 1;
+    pd.SampleQuality = 0;
+    pd.SampleMask = 0xffffffff;
+    pd.DepthStencil.WriteMask = Graphics::GFX_DEPTH_WRITE_MASK_ALL;
+    pd.DepthStencil.Comparison = Graphics::COMPARISON_TYPE_LESS;
+    pd.DepthStencil.DepthEnable = true;
+    pd.DepthStencil.StencilReadMask = 0xff;
+    pd.DepthStencil.StencilWriteMask = 0xff;
+    pd.DepthStencil.FrontFace.StencilFailOp = Graphics::GFX_STENCIL_OP_KEEP;
+    pd.DepthStencil.FrontFace.StencilDepthFailOp = Graphics::GFX_STENCIL_OP_KEEP;
+    pd.DepthStencil.FrontFace.StencilPassOp = Graphics::GFX_STENCIL_OP_KEEP;
+    pd.DepthStencil.FrontFace.Comparison = Graphics::COMPARISON_TYPE_ALWAYS;
+    pd.DepthStencil.BackFace.StencilFailOp = Graphics::GFX_STENCIL_OP_KEEP;
+    pd.DepthStencil.BackFace.StencilDepthFailOp = Graphics::GFX_STENCIL_OP_KEEP;
+    pd.DepthStencil.BackFace.StencilPassOp = Graphics::GFX_STENCIL_OP_KEEP;
+    pd.DepthStencil.BackFace.Comparison = Graphics::COMPARISON_TYPE_ALWAYS;
+    pd.DepthStencil.StencilEnable = true;
+    pd.Rasterizer.Fill = Graphics::GFX_FILL_MODE_SOLID;
+    pd.Rasterizer.Cull = Graphics::GFX_CULL_MODE_BACK;
+    pd.Rasterizer.DepthClipEnable = true;
+    pd.Blend.AlphaToCoverageEnable = false;
+    pd.Blend.IndependentBlendEnable = false;
+    pd.Blend.BlendStates[0].BlendEnable = false;
+    pd.UseSwapChain = true;
+    m_pipeline = Graphics::CreateGraphicsPipelineState(pd);
     
-    if (!m_pipeline.Finalize())
-    {
-        return false;
-    }
-
     //MaterialBuilder matBuilder0(m_rs);
     //matBuilder0.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData0);
     //matBuilder0.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH0);
@@ -216,32 +207,48 @@ bool MeshApplication::Initialize()
         }
     }
 
-    m_renderables.resize(meshes.size());
-    for (size_t i = 0; i < meshes.size(); ++i)
+    m_surfaces.resize(meshes.size());
+    for (u32 i = 0, count = static_cast<u32>(meshes.size()); i < count; ++i)
     {
-        m_renderables[i] = std::make_shared<Renderable>();
-        m_renderables[i]->LoadMesh(&meshes[i]);
-        m_renderables[i]->m_isRenderable.store(true);
+        auto& mesh = meshes[i];
+        
+        Graphics::BufferDesc vbd;
+        vbd.SizeInBytes = mesh.NumVertexBytes();
+        vbd.StrideInBytes = static_cast<u16>(mesh.VertexStride());
+        vbd.pData = mesh.Vertices();
+
+        Graphics::BufferDesc ibd;
+        ibd.SizeInBytes = mesh.NumIndexBytes();
+        ibd.StrideInBytes = mesh.IndexStride();
+        ibd.pData = mesh.Indices();
+
+        auto& surface = m_surfaces[i];
+        surface.vb = Graphics::CreateVertexBuffer(vbd);
+        surface.ib = Graphics::CreateIndexBuffer(ibd);
+       // surface.isReady = true;
     }
 
+    Graphics::BufferDesc cbd;
+    cbd.SizeInBytes = sizeof(ConstantBufferData);
+    cbd.StrideInBytes = sizeof(ConstantBufferData);
+    cbd.pData = &m_cbvData;
+    m_viewProjectionHandle = Graphics::CreateConstantBuffer(cbd);
 
-    MaterialBuilder builder(m_rs);
-    builder.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData);
-
-    for (int i = 0; i < (int)m_materialConstants.size(); ++i)
+    cbd.SizeInBytes = sizeof(PhongMaterial);
+    cbd.StrideInBytes = sizeof(PhongMaterial);
+    for (u32 i = 0, count = static_cast<u32>(m_materialConstants.size()); i < count; ++i)
     {
-        builder.SetDescriptorTableEntry(1, 0, i, (u32)sizeof(PhongMaterial), (u32)sizeof(PhongMaterial), 1, &m_materialConstants[i]);
+        cbd.pData = &m_materialConstants[i];
+        Graphics::CreateConstantBuffer(cbd);
     }
 
-    typedef std::codecvt_utf8<wchar_t> convert_type;
-    std::wstring_convert<convert_type, wchar_t> converter;
-
-    for (int i = 0; i < (int)textureNames.size(); ++i)
+    for (u32 i = 0, count = static_cast<u32>(textureNames.size()); i < count; ++i)
     {
-        builder.SetDescriptorTableEntry(1, 1, i, converter.from_bytes(textureNames[i]));
+        Graphics::TextureFileDesc td;
+        td.Filename = textureNames[i].c_str();
+        td.GenMips = true;
+        Graphics::CreateTexture(td);
     }
-
-    m_material = builder.ToImmutable();
 
     std::stringstream ss;
 
@@ -281,35 +288,52 @@ int MeshApplication::Shutdown()
 void MeshApplication::Update(double dt)
 {
     static int frame = 0;
+    static const float clear[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
+    static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f };
+    static const Graphics::Rect scissor = { 0, 0, 1600, 900 };
+    
+    Graphics::UpdateConstantBuffer(&m_cbvData, sizeof(m_cbvData), m_viewProjectionHandle);
 
-    auto pCtx = Dx12::GraphicsCommandContext::Create();
-    pCtx->Reset(&m_pipeline);
+    Graphics::CommandStreamDesc csd;
+    csd.PipelineHandle = m_pipeline;
+    csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_MAIN;
 
-    pCtx->SetRenderContext();
-    pCtx->ClearRenderContext();
-    pCtx->SetViewport();
+    Graphics::CommandStream cs;
+    Graphics::CreateCommandStream(csd, &cs);
 
-    pCtx->SetRootSignature(m_rs.get());
-    m_material->UpdateConstantBufferView(0, &m_cbvData);
-    m_material->Prepare(pCtx.get());
-
+    cs.Reset(m_pipeline);
+    cs.SetRenderTargets();
+    cs.ClearRenderTarget(clear);
+    cs.ClearDepthStencil(1.0f, 0);
+    cs.SetViewport(vp);
+    cs.SetScissorRect(scissor);
+    cs.SetConstantBuffer(0, m_viewProjectionHandle);
+    // TODO: Descriptor heaps
+    // TODO: Descriptor handles
+    
+    cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     if (m_renderableIndex != -1)
     {
-        m_renderables[m_renderableIndex]->Prepare(pCtx.get());
-        m_renderables[m_renderableIndex]->DrawIndexedInstanced(pCtx.get());
+        auto& surface = m_surfaces[m_renderableIndex];
+        cs.SetVertexBuffer(surface.vb);
+        cs.SetIndexBuffer(surface.ib);
+        cs.DrawInstanceIndexed(surface.ib);
     }
     else
     {
-        for (int i = 0, count = (int)m_renderables.size(); i < count; ++i)
+        for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
         {
             if (m_materialIndices[i] == -1) continue;
-            m_renderables[i]->Prepare(pCtx.get());
-            m_renderables[i]->DrawIndexedInstanced(pCtx.get());
+            auto& surface = m_surfaces[m_renderableIndex];
+            cs.SetVertexBuffer(surface.vb);
+            cs.SetIndexBuffer(surface.ib);
+            cs.DrawInstanceIndexed(surface.ib);
         }
     }
-    
-    
-    pCtx->Present();
+
+    Graphics::SubmitCommandStream(&cs, false);
+    Graphics::Present();
+
     frame++;
 
     auto pInput = m_engine->OS()->GetInput();
@@ -318,7 +342,7 @@ void MeshApplication::Update(double dt)
         if (pInput->GetKeyUp(KEYCODE_UP))
         {
             m_renderableIndex += 1;
-            if (m_renderableIndex >= (i32)m_renderables.size())
+            if (m_renderableIndex >= (i32)m_surfaces.size())
             {
                 m_renderableIndex = -1;
             }
@@ -332,7 +356,4 @@ void MeshApplication::FixedUpdate(double dt)
 {
     m_cameraController.Update(dt);
     m_cbvData.view = m_cameraController.GetCamera()->GetView().transpose();
-
-    
-
 }
