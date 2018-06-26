@@ -42,7 +42,7 @@ namespace Graphics
     
     LUZ_API IndexBufferHandle CreateIndexBuffer(const BufferDesc& desc);
     
-    LUZ_API ConstantBufferHandle CreateConstantBuffer(const BufferDesc& desc);
+    LUZ_API ConstantBufferHandle CreateConstantBuffer(const ConstantBufferDesc& desc);
     
     LUZ_API TextureHandle CreateTexture(const TextureDesc& desc);
 
@@ -96,6 +96,8 @@ namespace Graphics
         void SetConstantBuffer(const u32 param, const ConstantBufferHandle handle);
 
         void SetTexture(const u32 param, const TextureHandle handle);
+
+        void SetDescriptorTable(const u32 param, const ConstantBufferHandle baseHandle);
 
         void DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount = 1, const u32 startIndex = 0, const i32 baseVertexLocation = 0, const u32 startInstanceLocation = 0);
 

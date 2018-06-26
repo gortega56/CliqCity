@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "DescriptorHeap.h"
-#include "Dx12GraphicsTypes.h"
 #include "dx12_internal.h"
 
 namespace Dx12
@@ -9,10 +8,10 @@ namespace Dx12
     static DescriptorHeapAllocator* g_allocators = nullptr;
     static ID3D12Device* s_pDevice = nullptr;
 
-    void DescriptorHeapAllocator::Initialize(Graphics::Device* pDevice)
+    void DescriptorHeapAllocator::Initialize(ID3D12Device* pDevice)
     {
         LUZASSERT(!s_pDevice);
-        s_pDevice = pDevice->pDevice;
+        s_pDevice = pDevice;
 
         LUZASSERT(!g_allocators);
         for (int i = 0, count = (int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i < count; ++i)
@@ -71,12 +70,12 @@ namespace Dx12
         return *this;
     }
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CpuHandle(int i)
+    CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CpuHandle(int i) const
     {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize);
     }
 
-    CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GpuHandle(int i)
+    CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GpuHandle(int i) const
     {
         return CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), i, m_descriptorHeapSize);
     }
@@ -228,6 +227,22 @@ namespace Dx12
                 out.push_back(pHeap->Native());
             }
         }
+    }
+
+    ID3D12DescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle)
+    {
+        for (u32 i = 0, count = g_allocators[type].NumHeaps(); i < count; ++i)
+        {
+            auto pHeap = g_allocators[type].GetHeap(i);
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pHeap->CpuHandle();
+            D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle = pHeap->GpuHandle();
+            if (cpuDescriptorHandle.ptr == cpuHandle.ptr && gpuDescriptorHandle.ptr == gpuHandle.ptr)
+            {
+                return pHeap->Native();
+            }
+        }
+
+        return nullptr;
     }
 }
 

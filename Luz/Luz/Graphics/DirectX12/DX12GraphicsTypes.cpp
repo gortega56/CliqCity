@@ -240,13 +240,13 @@ namespace Graphics
     {
         D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_ALLOW_INPUT_LAYOUT) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_VS) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_HS) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_DS) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_GS) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_PS) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT) != 0) flags &= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_ALLOW_INPUT_LAYOUT) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_VS) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_HS) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_DS) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_GS) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_DENY_PS) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+        if ((signatureFlags & SignatureDesc::Flags::SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT) != 0) flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
 
         return flags;
     }

@@ -49,17 +49,26 @@ namespace Graphics
         for (u32 i = 0, numSlots = (maxResources / 8); i < numSlots; ++i)
         {
             u8 slots = m_handleSlots[i];
+            bool success = false;
+
 
             for (u32 j = 0; j < 8; j++)
             {
-                if ((slots & (1 << j)) == 0)
+                u8 slotMask = (1 << j);
+                success = (slots & slotMask) == 0;
+                if (success)
                 {
                     // Found free slot
                     handle = static_cast<GpuResourceHandle>(i * 8 + j);
                     slots = slots | (1 << j);
                     m_handleSlots[i] = slots;
+                    success = true;
+                    break;
                 }
             }
+
+            // break outer loop
+            if (success) break;
         }
 
         return handle;
@@ -70,7 +79,7 @@ namespace Graphics
     {
         auto h = static_cast<std::underlying_type<GpuResourceHandle>::type>(handle);
         auto i = h / 8;
-        auto j = h / (i * 8);
+        auto j = h % 8;
 
         u8 m = ~(1 << j);
         u8 s = m_handleSlots[i];

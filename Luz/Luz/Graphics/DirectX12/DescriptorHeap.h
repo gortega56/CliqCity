@@ -6,15 +6,8 @@
 #include "d3dx12.h"
 #endif
 
-namespace Graphics
-{
-    struct Device;
-}
-
 namespace Dx12
 {
-    class Device;
-
     struct DescriptorHeapParams
     {
         D3D12_DESCRIPTOR_HEAP_TYPE Type;
@@ -40,8 +33,8 @@ namespace Dx12
         u32 Size() const { return m_descriptorHeapSize; }
         u32 NumDescriptors() { return m_numDescriptors; }
 
-        CD3DX12_CPU_DESCRIPTOR_HANDLE CpuHandle(int i = 0);
-        CD3DX12_GPU_DESCRIPTOR_HANDLE GpuHandle(int i = 0);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE CpuHandle(int i = 0) const;
+        CD3DX12_GPU_DESCRIPTOR_HANDLE GpuHandle(int i = 0) const;
 
         bool Initialize(DescriptorHeapParams const* pParams, std::wstring name);
 
@@ -92,14 +85,15 @@ namespace Dx12
     class DescriptorHeapAllocator
     {
     public:
-        static void Initialize(Graphics::Device* pDevice);
+        static void Initialize(ID3D12Device* pDevice);
         static void Destroy();
 
         DescriptorHeapAllocator() : m_currentHeap(nullptr), m_remainingHandles(sm_handlesPerHeap) {}
         ~DescriptorHeapAllocator() = default;
 
         const DescriptorHeap* GetHeap(int i) const { return &m_descriptorHeaps[i]; }
-        
+        const u32 NumHeaps() const { return static_cast<u32>(m_descriptorHeaps.size()); }
+
         DescriptorHeap* Current() const { return m_currentHeap; }
         u32 RemainingHandles() const { return m_remainingHandles; }
     
@@ -117,6 +111,7 @@ namespace Dx12
     DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 count = 1);
     const DescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, u32 index);
     void GetDescriptorHeaps(std::vector<DescriptorHandle>& handles, std::vector<ID3D12DescriptorHeap*>& out);
+    ID3D12DescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle);
 }
 
 #endif

@@ -306,7 +306,7 @@ namespace Graphics
         if (FAILED(hr)) return false;
 
         // Initialize Descriptor heaps
-        Dx12::DescriptorHeapAllocator::Initialize(&s_device);
+        Dx12::DescriptorHeapAllocator::Initialize(s_device.pDevice);
 
         // Create swap chain
         s_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -361,11 +361,13 @@ namespace Graphics
         }
 
         // Create Render Target Views for back buffers
-        for (u32 i = 0; i < numBackBuffers; ++i)
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = s_swapChain.pRenderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        UINT descriptorHandleSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        for (u32 i = 0; i < s_swapChain.NumBuffers; ++i)
         {
             ID3D12Resource* pSwapChainBuffer = nullptr;
             s_swapChain.pSwapChain3->GetBuffer(i, IID_PPV_ARGS(&pSwapChainBuffer));
-            s_swapChain.RenderTargetViewHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(s_swapChain.pRenderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), i, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            s_swapChain.RenderTargetViewHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHandle, static_cast<INT>(i), descriptorHandleSize);
             s_device.pDevice->CreateRenderTargetView(pSwapChainBuffer, nullptr, s_swapChain.RenderTargetViewHandles[i]);
         }
 
@@ -386,7 +388,7 @@ namespace Graphics
 
         heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
         heapDesc.NumDescriptors = 1;
-        hr = s_device.pDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&s_swapChain.pRenderTargetDescriptorHeap));
+        hr = s_device.pDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&s_swapChain.pDepthStencilDescriptorHeap));
         if (FAILED(hr))
         {
             return false;
@@ -470,7 +472,7 @@ namespace Graphics
         auto handle = s_shaderCollection.AllocateHandle();
         if (handle != GpuResourceHandle::GPU_RESOURCE_HANDLE_INVALID)
         {
-            auto shader = s_shaderCollection.GetResource(handle);
+            Shader& shader = s_shaderCollection.GetResource(handle);
             Internal::CompileShader(filename, entryPoint, target, &shader.pShader);
             if (shader.pShader)
             {
@@ -606,7 +608,7 @@ namespace Graphics
             LUZASSERT(SUCCEEDED(hr));
 
             pso.pRootSignature = pipeline.pSignature;
-
+            
             // Shaders
             LUZASSERT(desc.VertexShaderHandle != GPU_RESOURCE_HANDLE_INVALID);
             pso.VS = s_shaderCollection.GetResource(desc.VertexShaderHandle).ByteCode;
@@ -851,12 +853,12 @@ namespace Graphics
 
                 Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
                 hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
-                LUZASSERT(hr);
+                LUZASSERT(SUCCEEDED(hr));
 
                 UpdateSubresources(pGraphicsCommandList, vb.pResource, pUploadBuffer, 0, 0, 1, &subresource);
                 pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vb.pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
                 hr = pGraphicsCommandList->Close();
-                LUZASSERT(hr);
+                LUZASSERT(SUCCEEDED(hr));
 
                 // TODO: Use main queue?
                 ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
@@ -923,12 +925,12 @@ namespace Graphics
 
                 Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
                 hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
-                LUZASSERT(hr);
+                LUZASSERT(SUCCEEDED(hr));
 
                 UpdateSubresources(pGraphicsCommandList, ib.pResource, pUploadBuffer, 0, 0, 1, &subresource);
                 pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ib.pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
                 hr = pGraphicsCommandList->Close();
-                LUZASSERT(hr);
+                LUZASSERT(SUCCEEDED(hr));
 
                 // TODO: COmmand queue
                 ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
@@ -962,7 +964,7 @@ namespace Graphics
         return handle;
     }
 
-    ConstantBufferHandle CreateConstantBuffer(const BufferDesc& desc)
+    ConstantBufferHandle CreateConstantBuffer(const ConstantBufferDesc& desc)
     {
         ConstantBufferHandle handle = s_constantBufferCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
@@ -984,12 +986,22 @@ namespace Graphics
                 hr = cb.pResource->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&gpuAddress));
                 LUZASSERT(SUCCEEDED(hr));
                 memcpy(gpuAddress, desc.pData, static_cast<size_t>(desc.SizeInBytes));
-
-                Dx12::DescriptorHandle dh = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
-                cb.CpuHandle = dh.CpuHandle();
-                cb.GpuHandle = dh.GpuHandle();
-                cb.GpuVirtualAddress = cb.pResource->GetGPUVirtualAddress();
                 cb.pResource->Unmap(0, &CD3DX12_RANGE(0, 0));
+
+                cb.GpuVirtualAddress = cb.pResource->GetGPUVirtualAddress();
+
+                if (desc.AllocHeap)
+                {
+                    Dx12::DescriptorHandle dh = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+                    cb.CpuHandle = dh.CpuHandle();
+                    cb.GpuHandle = dh.GpuHandle();
+
+                    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+                    ZeroMemory(&cbvDesc, sizeof(D3D12_CONSTANT_BUFFER_VIEW_DESC));
+                    cbvDesc.BufferLocation = cb.GpuVirtualAddress;
+                    cbvDesc.SizeInBytes = static_cast<UINT>(desc.SizeInBytes);
+                    s_device.pDevice->CreateConstantBufferView(&cbvDesc, cb.CpuHandle);
+                }
             }
         }
 
@@ -1089,7 +1101,7 @@ namespace Graphics
         return handle;
     }
 
-    TextureHandle CreateTexture(const TextureFileDesc& desc)
+    TextureHandle CreateTexture(const TextureFileDesc& desc) 
     {
         TextureHandle handle = s_textureCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
@@ -1154,11 +1166,13 @@ namespace Graphics
 
             Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
             hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
-            LUZASSERT(hr);
+            LUZASSERT(SUCCEEDED(hr));
 
             UpdateSubresources(pGraphicsCommandList, tex.pResource, pUploadBuffer, 0, 0, subresourceSize, subresources.data());
             pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(tex.pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-
+            hr = pGraphicsCommandList->Close();
+            LUZASSERT(SUCCEEDED(hr));
+            
             ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
             pCommandQueue->ExecuteCommandLists(1, &pCommandList);
 
@@ -1173,6 +1187,14 @@ namespace Graphics
             tex.SrvHandle.CpuHandle = heap.CpuHandle();
             tex.SrvHandle.GpuHandle = heap.GpuHandle();
 
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+            ZeroMemory(&srvDesc, sizeof(D3D12_SHADER_RESOURCE_VIEW_DESC));
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.Format = image.GetMetadata().format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = image.GetMetadata().mipLevels;
+
+            s_device.pDevice->CreateShaderResourceView(tex.pResource, &srvDesc, tex.SrvHandle.CpuHandle);
             // TODO: RTV, UAV?
 
             // TODO: need to wait here
@@ -1202,15 +1224,16 @@ namespace Graphics
 
         cl.pCommandQueue->ExecuteCommandLists(1, &cl.pCommandList);
 
+        Dx12::CommandAllocator* pAlloc = reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc);
+        LUZASSERT(pAlloc);
+
+        auto& fence = pAlloc->GetFence();
+        fence.IncrementSignal();
+        hr = cl.pCommandQueue->Signal(fence.Ptr(), fence.Signal());
+        LUZASSERT(SUCCEEDED(hr));
+
         if (wait)
         {
-            Dx12::CommandAllocator* pAlloc = reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc);
-            LUZASSERT(pAlloc);
-
-            auto& fence = pAlloc->GetFence();
-            fence.IncrementSignal();
-            hr = cl.pCommandQueue->Signal(fence.Ptr(), fence.Signal());
-            LUZASSERT(SUCCEEDED(hr));
             fence.Wait();
         }
     }
@@ -1225,7 +1248,7 @@ namespace Graphics
 
         Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
         HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
-        LUZASSERT(hr);
+        LUZASSERT(SUCCEEDED(hr));
 
         ID3D12Resource* pResource = nullptr;
         hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
@@ -1282,7 +1305,6 @@ namespace Graphics
         {
             LUZASSERT(false);
         }
-
     }
 
     void ReleaseCommandStream(CommandStream* pCommandStream)
@@ -1458,6 +1480,18 @@ namespace Graphics
         Texture tx = s_textureCollection.GetResource(handle);
 
         cl.pGraphicsCommandList->SetComputeRootShaderResourceView(static_cast<UINT>(param), tx.GpuVirtualAddress);
+    }
+
+    void CommandStream::SetDescriptorTable(const u32 param, const ConstantBufferHandle baseHandle)
+    {
+        ConstantBuffer& cb = s_constantBufferCollection.GetResource(baseHandle);
+
+        ID3D12DescriptorHeap* pHeap = Dx12::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cb.CpuHandle, cb.GpuHandle);
+
+        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+
+        cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
+        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), cb.GpuHandle);
     }
 
     void CommandStream::DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount /*= 1*/, const u32 startIndex /*= 0*/, const i32 baseVertexLocation /*= 0*/, const u32 startInstanceLocation /*= 0*/)

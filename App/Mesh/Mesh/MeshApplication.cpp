@@ -119,8 +119,8 @@ bool MeshApplication::Initialize()
         .DenyGS()
         .AppendConstantView(0)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
-        .AppendDescriptorTableRange(0, 26, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
-        .AppendDescriptorTableRange(0, 36, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
+        .AppendDescriptorTableRange(1, 26, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
+        .AppendDescriptorTableRange(1, 36, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendAnisotropicWrapSampler(0);
     pd.InputLayout.AppendFloat4("TANGENT")
         .AppendPosition3F()
@@ -154,25 +154,11 @@ bool MeshApplication::Initialize()
     pd.Blend.BlendStates[0].BlendEnable = false;
     pd.UseSwapChain = true;
     m_pipeline = Graphics::CreateGraphicsPipelineState(pd);
-    
-    //MaterialBuilder matBuilder0(m_rs);
-    //matBuilder0.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData0);
-    //matBuilder0.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH0);
-    //matBuilder0.SetDescriptorTableEntry(1, 0, 1, NORM_PATH0);
-    //m_material0 = matBuilder0.ToImmutable();
-    //
-
-    //MaterialBuilder mb1(m_rs);
-    //mb1.SetRootConstantBufferView(0, 0, sizeof(ConstantBufferData), sizeof(ConstantBufferData), 1, &m_cbvData1);
-    //mb1.SetDescriptorTableEntry(1, 0, 0, DIFF_PATH1);
-    //mb1.SetDescriptorTableEntry(1, 0, 1, NORM_PATH1);
-    //m_material1 = mb1.ToImmutable();
 
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
-
-    std::shared_ptr<const Resource::Obj> pObj = loadingObj.Get();
     std::vector<std::string> textureNames;
 
+    std::shared_ptr<const Resource::Obj> pObj = loadingObj.Get();
     if (pObj)
     {
         // Create geo
@@ -213,11 +199,13 @@ bool MeshApplication::Initialize()
         auto& mesh = meshes[i];
         
         Graphics::BufferDesc vbd;
+        vbd.Alignment = 0;
         vbd.SizeInBytes = mesh.NumVertexBytes();
         vbd.StrideInBytes = static_cast<u16>(mesh.VertexStride());
         vbd.pData = mesh.Vertices();
 
         Graphics::BufferDesc ibd;
+        ibd.Alignment = 0;
         ibd.SizeInBytes = mesh.NumIndexBytes();
         ibd.StrideInBytes = mesh.IndexStride();
         ibd.pData = mesh.Indices();
@@ -228,18 +216,22 @@ bool MeshApplication::Initialize()
        // surface.isReady = true;
     }
 
-    Graphics::BufferDesc cbd;
+    Graphics::ConstantBufferDesc cbd;
+    cbd.Alignment = 0;
     cbd.SizeInBytes = sizeof(ConstantBufferData);
     cbd.StrideInBytes = sizeof(ConstantBufferData);
+    cbd.AllocHeap = false;
     cbd.pData = &m_cbvData;
     m_viewProjectionHandle = Graphics::CreateConstantBuffer(cbd);
 
     cbd.SizeInBytes = sizeof(PhongMaterial);
     cbd.StrideInBytes = sizeof(PhongMaterial);
+    cbd.AllocHeap = true;
     for (u32 i = 0, count = static_cast<u32>(m_materialConstants.size()); i < count; ++i)
     {
         cbd.pData = &m_materialConstants[i];
-        Graphics::CreateConstantBuffer(cbd);
+        Graphics::ConstantBufferHandle cbHandle = Graphics::CreateConstantBuffer(cbd);
+        if (i == 0) m_baseDescriptorHandle = cbHandle;
     }
 
     for (u32 i = 0, count = static_cast<u32>(textureNames.size()); i < count; ++i)
@@ -301,13 +293,14 @@ void MeshApplication::Update(double dt)
     Graphics::CommandStream cs;
     Graphics::CreateCommandStream(csd, &cs);
 
-    cs.Reset(m_pipeline);
+    cs.SetPipeline(m_pipeline);
     cs.SetRenderTargets();
     cs.ClearRenderTarget(clear);
     cs.ClearDepthStencil(1.0f, 0);
     cs.SetViewport(vp);
     cs.SetScissorRect(scissor);
     cs.SetConstantBuffer(0, m_viewProjectionHandle);
+    cs.SetDescriptorTable(1, m_baseDescriptorHandle);
     // TODO: Descriptor heaps
     // TODO: Descriptor handles
     
@@ -324,7 +317,7 @@ void MeshApplication::Update(double dt)
         for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
         {
             if (m_materialIndices[i] == -1) continue;
-            auto& surface = m_surfaces[m_renderableIndex];
+            auto& surface = m_surfaces[i];
             cs.SetVertexBuffer(surface.vb);
             cs.SetIndexBuffer(surface.ib);
             cs.DrawInstanceIndexed(surface.ib);

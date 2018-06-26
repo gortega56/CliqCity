@@ -96,6 +96,7 @@ public:
     std::vector<Surface> m_surfaces;
 
     Graphics::ConstantBufferHandle m_viewProjectionHandle;
+    Graphics::ConstantBufferHandle m_baseDescriptorHandle;
 
     MaterialIndex m_materialIndex;
     ConstantBufferData m_cbvData;

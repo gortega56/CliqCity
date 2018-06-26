@@ -199,9 +199,18 @@ namespace Graphics
 
     struct LUZ_API BufferDesc
     {
-        uint64_t SizeInBytes;
         uint64_t Alignment;
+        uint64_t SizeInBytes;
         uint16_t StrideInBytes;
+        void* pData = nullptr;
+    };
+
+    struct LUZ_API ConstantBufferDesc
+    {
+        uint64_t Alignment;
+        uint64_t SizeInBytes;
+        uint16_t StrideInBytes;
+        bool AllocHeap;
         void* pData = nullptr;
     };
 
@@ -300,6 +309,27 @@ namespace Graphics
         u32 Top;
         u32 Right;
         u32 Bottom;
+    };
+
+    struct LUZ_API DescriptorTableBinding
+    {
+        union
+        {
+            ConstantBufferHandle* pCbHandle;
+            TextureHandle* pTextureHandle;
+        };
+
+        u32 Param;
+        u32 NumHandles;
+    };
+
+    struct LUZ_API DescriptorTableDesc
+    {
+        DescriptorTableBinding* pCbDescriptors;
+        DescriptorTableBinding* pTextureDescriptors;
+        
+        u32 NumCbBindings;
+        u32 NumTextureBindings;
     };
 }
 
