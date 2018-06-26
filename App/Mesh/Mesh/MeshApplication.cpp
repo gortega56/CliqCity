@@ -132,11 +132,13 @@ bool MeshApplication::Initialize()
     pd.SampleCount = 1;
     pd.SampleQuality = 0;
     pd.SampleMask = 0xffffffff;
+
+    pd.DepthStencil.DepthEnable = true;
     pd.DepthStencil.WriteMask = Graphics::GFX_DEPTH_WRITE_MASK_ALL;
     pd.DepthStencil.Comparison = Graphics::COMPARISON_TYPE_LESS;
-    pd.DepthStencil.DepthEnable = true;
     pd.DepthStencil.StencilReadMask = 0xff;
     pd.DepthStencil.StencilWriteMask = 0xff;
+    pd.DepthStencil.StencilEnable = false;
     pd.DepthStencil.FrontFace.StencilFailOp = Graphics::GFX_STENCIL_OP_KEEP;
     pd.DepthStencil.FrontFace.StencilDepthFailOp = Graphics::GFX_STENCIL_OP_KEEP;
     pd.DepthStencil.FrontFace.StencilPassOp = Graphics::GFX_STENCIL_OP_KEEP;
@@ -145,13 +147,31 @@ bool MeshApplication::Initialize()
     pd.DepthStencil.BackFace.StencilDepthFailOp = Graphics::GFX_STENCIL_OP_KEEP;
     pd.DepthStencil.BackFace.StencilPassOp = Graphics::GFX_STENCIL_OP_KEEP;
     pd.DepthStencil.BackFace.Comparison = Graphics::COMPARISON_TYPE_ALWAYS;
-    pd.DepthStencil.StencilEnable = true;
+
     pd.Rasterizer.Fill = Graphics::GFX_FILL_MODE_SOLID;
     pd.Rasterizer.Cull = Graphics::GFX_CULL_MODE_BACK;
+    pd.Rasterizer.FrontCounterClockwise = false;
+    pd.Rasterizer.DepthBias = 0;
+    pd.Rasterizer.DepthBiasClamp = 0.0f;
+    pd.Rasterizer.SlopeScaledDepthBias = 0.0f;
     pd.Rasterizer.DepthClipEnable = true;
+    pd.Rasterizer.MsaaEnable = false;
+    pd.Rasterizer.AntialiasedLineEnable = false;
+    pd.Rasterizer.RasterizationMode = Graphics::GFX_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
     pd.Blend.AlphaToCoverageEnable = false;
     pd.Blend.IndependentBlendEnable = false;
     pd.Blend.BlendStates[0].BlendEnable = false;
+    pd.Blend.BlendStates[0].LogicOpEnable = false;
+    pd.Blend.BlendStates[0].SrcBlend = Graphics::GFX_BLEND_ONE;
+    pd.Blend.BlendStates[0].DestBlend = Graphics::GFX_BLEND_ZERO;
+    pd.Blend.BlendStates[0].BlendOp = Graphics::GFX_BLEND_OP_ADD;
+    pd.Blend.BlendStates[0].SrcBlendAlpha = Graphics::GFX_BLEND_ONE;
+    pd.Blend.BlendStates[0].DestBlendAlpha = Graphics::GFX_BLEND_ZERO;
+    pd.Blend.BlendStates[0].BlendOpAlpha = Graphics::GFX_BLEND_OP_ADD;
+    pd.Blend.BlendStates[0].LogicOp = Graphics::GFX_LOGIC_OP_NOOP;
+    pd.Blend.BlendStates[0].RenderTargetWriteMask = Graphics::GFX_COLOR_WRITE_ENABLE_ALL;
+
     pd.UseSwapChain = true;
     m_pipeline = Graphics::CreateGraphicsPipelineState(pd);
 
@@ -281,7 +301,7 @@ void MeshApplication::Update(double dt)
 {
     static int frame = 0;
     static const float clear[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
-    static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f };
+    static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f, 0.0f, 1.0f };
     static const Graphics::Rect scissor = { 0, 0, 1600, 900 };
     
     Graphics::UpdateConstantBuffer(&m_cbvData, sizeof(m_cbvData), m_viewProjectionHandle);

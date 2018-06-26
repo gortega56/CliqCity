@@ -373,14 +373,14 @@ namespace Graphics
 
         // Create Depth Stencil View
         D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-        depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        depthOptimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
         depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
         depthOptimizedClearValue.DepthStencil.Stencil = 0;
 
         hr = s_device.pDevice->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D24_UNORM_S8_UINT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+            &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
             D3D12_RESOURCE_STATE_DEPTH_WRITE,
             &depthOptimizedClearValue,
             IID_PPV_ARGS(&s_swapChain.pDepthStencilResource));
@@ -1192,7 +1192,7 @@ namespace Graphics
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
             srvDesc.Format = image.GetMetadata().format;
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            srvDesc.Texture2D.MipLevels = image.GetMetadata().mipLevels;
+            srvDesc.Texture2D.MipLevels = static_cast<UINT>(image.GetMetadata().mipLevels);
 
             s_device.pDevice->CreateShaderResourceView(tex.pResource, &srvDesc, tex.SrvHandle.CpuHandle);
             // TODO: RTV, UAV?
@@ -1266,7 +1266,7 @@ namespace Graphics
         fence.IncrementSignal();
         hr = pCommandQueue->Signal(fence.Ptr(), fence.Signal());
         LUZASSERT(SUCCEEDED(hr));
-        //fence.Wait();
+        fence.Wait();
 
         hr = s_swapChain.pSwapChain3->Present(0, 0);
         if (FAILED(hr))
@@ -1434,13 +1434,13 @@ namespace Graphics
         CommandList& cl = s_commandListCollection.GetResource(m_handle);
         DepthStencil& ds = s_depthStencilCollection.GetResource(handle);
 
-        cl.pGraphicsCommandList->ClearDepthStencilView(ds.DepthStencilViewHandle.CpuHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
+        cl.pGraphicsCommandList->ClearDepthStencilView(ds.DepthStencilViewHandle.CpuHandle, D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
     }
 
     void CommandStream::ClearDepthStencil(const float depth, const u8 stencil)
     {
         CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        cl.pGraphicsCommandList->ClearDepthStencilView(s_swapChain.DepthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
+        cl.pGraphicsCommandList->ClearDepthStencilView(s_swapChain.DepthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
     }
 
     void CommandStream::SetPrimitiveTopology(const PrimitiveSubtopology topology)
