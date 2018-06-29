@@ -92,7 +92,8 @@ public:
 
     Graphics::ShaderHandle m_vs;
     Graphics::ShaderHandle m_ps;
-    Graphics::PipelineStateHandle m_pipeline;
+    Graphics::PipelineStateHandle m_opaquePipeline;
+    Graphics::PipelineStateHandle m_transparentPipeline;
     std::vector<Surface> m_surfaces;
 
     Graphics::ConstantBufferHandle m_viewProjectionHandle;

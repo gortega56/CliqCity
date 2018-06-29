@@ -48,6 +48,22 @@ namespace Graphics
 
     LUZ_API TextureHandle CreateTexture(const TextureFileDesc& desc);
 
+    LUZ_API void ReleaseShader(const ShaderHandle handle);
+
+    LUZ_API void ReleasePipeline(const PipelineStateHandle handle);
+
+    LUZ_API void ReleaseRenderTarget(const RenderTargetHandle handle);
+
+    LUZ_API void ReleaseDepthStencil(const DepthStencilHandle handle);
+
+    LUZ_API void ReleaseVertexBuffer(const VertexBufferHandle handle);
+
+    LUZ_API void ReleaseIndexBuffer(const IndexBufferHandle handle);
+
+    LUZ_API void ReleaseConstantBuffer(const ConstantBufferHandle handle);
+
+    LUZ_API void ReleaseTexture(const TextureHandle handle);
+
     LUZ_API void UpdateConstantBuffer(const void* pData, const u64 sizeInBytes, const ConstantBufferHandle handle);
 
     LUZ_API void SubmitCommandStream(const CommandStream* pCommandStream, bool wait = false);

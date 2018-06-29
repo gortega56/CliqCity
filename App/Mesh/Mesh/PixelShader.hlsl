@@ -69,6 +69,12 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
             albedo = dot(n, -l);
         }
+
+        if (mask != -1)
+        {
+            float4 m = textures[mask].Sample(samp, input.uv);
+            if ((m.x + m.y + m.z) == 0) clip(-1);
+        }
     }
 
     return color * diff * saturate(albedo);

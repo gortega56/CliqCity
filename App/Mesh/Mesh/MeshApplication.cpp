@@ -173,7 +173,22 @@ bool MeshApplication::Initialize()
     pd.Blend.BlendStates[0].RenderTargetWriteMask = Graphics::GFX_COLOR_WRITE_ENABLE_ALL;
 
     pd.UseSwapChain = true;
-    m_pipeline = Graphics::CreateGraphicsPipelineState(pd);
+
+    m_opaquePipeline = Graphics::CreateGraphicsPipelineState(pd);
+    
+    pd.Blend.BlendStates[0].BlendEnable = true;
+    pd.Blend.BlendStates[0].LogicOpEnable = false;
+    pd.Blend.BlendStates[0].SrcBlend = Graphics::GFX_BLEND_SRC_ALPHA;
+    pd.Blend.BlendStates[0].DestBlend = Graphics::GFX_BLEND_INV_SRC_ALPHA;
+    pd.Blend.BlendStates[0].BlendOp = Graphics::GFX_BLEND_OP_ADD;
+    pd.Blend.BlendStates[0].SrcBlendAlpha = Graphics::GFX_BLEND_ONE;
+    pd.Blend.BlendStates[0].DestBlendAlpha = Graphics::GFX_BLEND_ZERO;
+    pd.Blend.BlendStates[0].BlendOpAlpha = Graphics::GFX_BLEND_OP_ADD;
+    pd.Blend.BlendStates[0].LogicOp = Graphics::GFX_LOGIC_OP_NOOP;
+    pd.Blend.BlendStates[0].RenderTargetWriteMask = Graphics::GFX_COLOR_WRITE_ENABLE_ALL;
+
+    m_transparentPipeline = Graphics::CreateGraphicsPipelineState(pd);
+
 
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
     std::vector<std::string> textureNames;
@@ -261,32 +276,7 @@ bool MeshApplication::Initialize()
         td.GenMips = true;
         Graphics::CreateTexture(td);
     }
-
-    std::stringstream ss;
-
-    //for (u32 i = 0, count = pObj->GetNumMeshes(); i < count; ++i)
-    //{
-    //    auto md = pObj->GetMeshDesc(i);
-    //    
-    //    
-    //    ss << md.Name << std::endl;
-    //    ss << md.MaterialName << std::endl;
-    //    auto pMat = pMtl->GetMaterial(md.MaterialName);
-    //    if (pMat)
-    //    {
-    //        ss << "Diffuse: " << pMat->DiffuseTextureName << std::endl;
-    //        ss << "Normal: " << pMat->NormalTextureName << std::endl;
-    //        ss << "Dissolve" << pMat->DissolveTextureName << std::endl;
-    //    }
-    //    else
-    //    {
-    //        ss << "No material" << std::endl;
-    //    }
-
-    //    ss << std::endl;
-    //}
-
-    std::cout << ss.str();
+    
     return true;
 }
 
@@ -307,13 +297,13 @@ void MeshApplication::Update(double dt)
     Graphics::UpdateConstantBuffer(&m_cbvData, sizeof(m_cbvData), m_viewProjectionHandle);
 
     Graphics::CommandStreamDesc csd;
-    csd.PipelineHandle = m_pipeline;
+    csd.PipelineHandle = m_opaquePipeline;
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_MAIN;
 
     Graphics::CommandStream cs;
     Graphics::CreateCommandStream(csd, &cs);
 
-    cs.SetPipeline(m_pipeline);
+    cs.SetPipeline(m_opaquePipeline);
     cs.SetRenderTargets();
     cs.ClearRenderTarget(clear);
     cs.ClearDepthStencil(1.0f, 0);
@@ -345,6 +335,9 @@ void MeshApplication::Update(double dt)
     }
 
     Graphics::SubmitCommandStream(&cs, false);
+    
+  //  cs.SetPipeline(m_transparentPipeline);
+    
     Graphics::Present();
 
     frame++;

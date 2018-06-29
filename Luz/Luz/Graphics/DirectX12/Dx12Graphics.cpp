@@ -1212,6 +1212,83 @@ namespace Graphics
         return handle;
     }
 
+    void ReleaseShader(const ShaderHandle handle)
+    {
+        Shader& shader = s_shaderCollection.GetData(handle);
+        shader.ByteCode.BytecodeLength = 0;
+        shader.ByteCode.pShaderBytecode = nullptr;
+        SAFE_RELEASE(shader.pShader);
+        s_shaderCollection.FreeHandle(handle);
+    }
+
+    void ReleasePipeline(const PipelineStateHandle handle)
+    {
+        Pipeline& pipeline = s_pipelineCollection.GetData(handle);
+        SAFE_RELEASE(pipeline.pPipelineState);
+        SAFE_RELEASE(pipeline.pSignature);
+        s_pipelineCollection.FreeHandle(handle);
+    }
+
+    void ReleaseRenderTarget(const RenderTargetHandle handle)
+    {
+        RenderTarget rt = s_renderTargetCollection.GetData(handle);
+        rt.CpuHandle.ptr = 0;
+        rt.GpuHandle.ptr = 0;
+        SAFE_RELEASE(rt.pResource);
+        s_renderTargetCollection.FreeHandle(handle);
+    }
+
+    void ReleaseDepthStencil(const DepthStencilHandle handle)
+    {
+        DepthStencil ds = s_depthStencilCollection.GetData(handle);
+        ds.DepthStencilViewHandle.CpuHandle.ptr = 0;
+        ds.DepthStencilViewHandle.GpuHandle.ptr = 0;
+        ds.ShaderResourceViewHandle.CpuHandle.ptr = 0;
+        ds.ShaderResourceViewHandle.GpuHandle.ptr = 0;
+        SAFE_RELEASE(ds.pResource);
+        s_depthStencilCollection.FreeHandle(handle);
+    }
+
+    void ReleaseVertexBuffer(const VertexBufferHandle handle)
+    {
+        VertexBuffer vb = s_vertexBufferCollection.GetData(handle);
+        vb.View.BufferLocation = 0;
+        vb.View.SizeInBytes = 0;
+        vb.View.StrideInBytes = 0;
+        SAFE_RELEASE(vb.pResource);
+        s_vertexBufferCollection.FreeHandle(handle);
+    }
+
+    void ReleaseIndexBuffer(const IndexBufferHandle handle)
+    {
+        IndexBuffer ib = s_indexBufferCollection.GetData(handle);
+        ib.View.BufferLocation = 0;
+        ib.View.SizeInBytes = 0;
+        ib.View.Format = DXGI_FORMAT_UNKNOWN;
+        SAFE_RELEASE(ib.pResource);
+        s_indexBufferCollection.FreeHandle(handle);
+    }
+
+    void ReleaseConstantBuffer(const ConstantBufferHandle handle)
+    {
+        ConstantBuffer cb = s_constantBufferCollection.GetData(handle);
+        cb.CpuHandle.ptr = 0;
+        cb.GpuHandle.ptr = 0;
+        SAFE_RELEASE(cb.pResource);
+        s_constantBufferCollection.FreeHandle(handle);
+    }
+
+    void ReleaseTexture(const TextureHandle handle)
+    {
+        Texture tex = s_textureCollection.GetData(handle);
+        tex.RtvHandle.CpuHandle.ptr = 0;
+        tex.RtvHandle.GpuHandle.ptr = 0;
+        tex.SrvHandle.CpuHandle.ptr = 0;
+        tex.SrvHandle.GpuHandle.ptr = 0;
+        SAFE_RELEASE(tex.pResource);
+        s_textureCollection.FreeHandle(handle);
+    }
+
     void UpdateConstantBuffer(const void* pData, const u64 sizeInBytes, const ConstantBufferHandle handle)
     {
         LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);

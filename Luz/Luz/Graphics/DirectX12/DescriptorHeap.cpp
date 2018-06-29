@@ -100,13 +100,11 @@ namespace Dx12
     bool DescriptorHeap::InitializeDSV(std::wstring name)
     {
         return Initialize(&DsvHeapParams, name);
-
     }
 
     bool DescriptorHeap::InitializeMixed(std::wstring name)
     {
         return Initialize(&CbvSrvUavHeapParams, name);
-
     }
 
     bool DescriptorHeap::InitializeSampler(std::wstring name)
