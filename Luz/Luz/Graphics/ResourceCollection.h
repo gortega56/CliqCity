@@ -8,89 +8,92 @@
 
 namespace Graphics
 {
-    template<class ResourceType, size_t maxResources>
-    class ResourceCollection
+    template<typename HandleType, typename DataType, size_t N>
+    class TCollection
     {
-        static_assert(maxResources % 8 == 0, "ResourceCollection requires maxResources be a multiple of 8");
-
+        typedef uint32_t proxy_t;
+        typedef std::atomic_uint32_t atomic_proxy_t;
+        static const size_t sm_proxy_bit_size = sizeof(proxy_t) * 8;
+        static const size_t sm_proxy_count = N / sm_proxy_bit_size;
+        static_assert(N % sm_proxy_count == 0, "TCollection requires N be a multiple of sm_proxy_bit_size");
     public:
-        ResourceCollection();
-        ~ResourceCollection();
+        TCollection();
+        ~TCollection();
 
-        GpuResourceHandle AllocateHandle();
-        void FreeHandle(const GpuResourceHandle handle);
+        HandleType AllocateHandle();
+        void FreeHandle(const HandleType handle);
 
-        ResourceType& GetResource(const GpuResourceHandle handle);
+        inline DataType& GetData(const HandleType handle)
+        {
+            return m_data[static_cast<std::underlying_type<HandleType>::type>(handle)];
+        }
 
     private:
-        static const size_t sm_maxHandleSlots = maxResources / 8;
-        ResourceType m_resources[maxResources];
-        u8 m_handleSlots[sm_maxHandleSlots];
+        DataType m_data[N];
+        atomic_proxy_t m_proxy[sm_proxy_count];
     };
 
-    template<class ResourceType, size_t maxResources>
-    ResourceCollection<ResourceType, maxResources>::ResourceCollection()
+    template<typename HandleType, typename DataType, size_t N>
+    TCollection<HandleType, DataType, N>::TCollection()
     {
 
     }
 
-    template<class ResourceType, size_t maxResources>
-    ResourceCollection<ResourceType, maxResources>::~ResourceCollection()
+    template<typename HandleType, typename DataType, size_t N>
+    TCollection<HandleType, DataType, N>::~TCollection()
     {
         // Application is responsible for freeing any resources prior to dtor
     }
 
-    template<class ResourceType, size_t maxResources>
-    GpuResourceHandle ResourceCollection<ResourceType, maxResources>::AllocateHandle()
+    template<typename HandleType, typename DataType, size_t N>
+    HandleType TCollection<HandleType, DataType, N>::AllocateHandle()
     {
-        GpuResourceHandle handle = GpuResourceHandle::GPU_RESOURCE_HANDLE_INVALID;
+        uint32_t i, j;
+        proxy_t current, updated;
+        bool success = false;
 
-        // Find available slot
-        for (u32 i = 0, numSlots = (maxResources / 8); i < numSlots; ++i)
+        for (i = 0; i < sm_proxy_count; ++i)
         {
-            u8 slots = m_handleSlots[i];
-            bool success = false;
+            current = m_proxy[i].load();
 
-
-            for (u32 j = 0; j < 8; j++)
+            for (j = 0; j < 32; j++)
             {
-                u8 slotMask = (1 << j);
-                success = (slots & slotMask) == 0;
-                if (success)
+                bool cas_success = false;
+                do
                 {
-                    // Found free slot
-                    handle = static_cast<GpuResourceHandle>(i * 8 + j);
-                    slots = slots | (1 << j);
-                    m_handleSlots[i] = slots;
-                    success = true;
-                    break;
-                }
+                    success = (current & (1 << j)) == 0;
+                    if (!success) break;
+
+                    // Found Free handle.. enter cas loop
+                    updated = current | (1 << j);
+                    cas_success = m_proxy[i].compare_exchange_strong(current, updated);
+                } while (!cas_success);
+
+                // break inner
+                if (success) break;
             }
 
-            // break outer loop
+            // break outer
             if (success) break;
         }
 
-        return handle;
+        return (success) ? HandleType(i * 32 + j) : HandleType(-1);
     }
 
-    template<class ResourceType, size_t maxResources>
-    void ResourceCollection<ResourceType, maxResources>::FreeHandle(const GpuResourceHandle handle)
+    template<typename HandleType, typename DataType, size_t N>
+    void TCollection<HandleType, DataType, N>::FreeHandle(const HandleType handle)
     {
-        auto h = static_cast<std::underlying_type<GpuResourceHandle>::type>(handle);
-        auto i = h / 8;
-        auto j = h % 8;
+        auto h = static_cast<uint32_t>(handle);
+        auto i = h / static_cast<uint32_t>(sm_proxy_bit_size);
+        auto j = h % static_cast<uint32_t>(sm_proxy_bit_size);
 
-        u8 m = ~(1 << j);
-        u8 s = m_handleSlots[i];
-        s = s & m;
-        m_handleSlots[i] = s;
-    }
+        proxy_t current = m_proxy[i].load();
+        proxy_t updated;
 
-    template<class ResourceType, size_t maxResources>
-    ResourceType& ResourceCollection<ResourceType, maxResources>::GetResource(const GpuResourceHandle handle)
-    {
-        return m_resources[static_cast<std::underlying_type<GpuResourceHandle>::type>(handle)];
+        do
+        {
+            updated = current & ~(1 << j);
+        } while (!m_proxy[i].compare_exchange_strong(current, updated));
     }
 }
 

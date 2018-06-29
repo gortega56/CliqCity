@@ -10,21 +10,20 @@
 #include "MSPlatformWindow.h"
 
 #include <Shlwapi.h>
-
 #pragma comment(lib, "Shlwapi.lib")
 
-
+//#define DX_DEBUG
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
-#define PIPELINE_MAX 16
+#define PIPELINE_MAX 32
 #define SHADER_MAX 32
-#define RENDER_TARGET_MAX 16
+#define RENDER_TARGET_MAX 32
 #define DEPTH_STENCIL_MAX 1024
 #define VERTEX_BUFFER_MAX 1024
 #define INDEX_BUFFER_MAX 1024
 #define CONSTANT_BUFFER_MAX 1024
 #define TEXTURE_MAX 1024
-#define COMMAND_LIST_MAX 16
+#define COMMAND_LIST_MAX 32
 
 namespace Internal
 {
@@ -217,18 +216,18 @@ namespace Graphics
     static ID3D12Debug* s_pDebug = nullptr;
     static ID3D12DebugDevice* s_pDebugDevice = nullptr;
 
-    typedef ResourceCollection<Pipeline, PIPELINE_MAX> PipelineCollection;
-    typedef ResourceCollection<Shader, SHADER_MAX> ShaderCollection;
+    typedef TCollection<PipelineStateHandle, Pipeline, PIPELINE_MAX> PipelineCollection;
+    typedef TCollection<ShaderHandle, Shader, SHADER_MAX> ShaderCollection;
 
-    typedef ResourceCollection<RenderTarget, RENDER_TARGET_MAX> RenderTargetCollection;
-    typedef ResourceCollection<DepthStencil, DEPTH_STENCIL_MAX> DepthStencilCollection;
+    typedef TCollection<RenderTargetHandle, RenderTarget, RENDER_TARGET_MAX> RenderTargetCollection;
+    typedef TCollection<DepthStencilHandle, DepthStencil, DEPTH_STENCIL_MAX> DepthStencilCollection;
     
-    typedef ResourceCollection<VertexBuffer, VERTEX_BUFFER_MAX> VertexBufferCollection;
-    typedef ResourceCollection<IndexBuffer, INDEX_BUFFER_MAX> IndexBufferCollection;
-    typedef ResourceCollection<ConstantBuffer, CONSTANT_BUFFER_MAX> ConstantBufferCollection;
-    typedef ResourceCollection<Texture, TEXTURE_MAX> TextureCollection;
+    typedef TCollection<VertexBufferHandle, VertexBuffer, VERTEX_BUFFER_MAX> VertexBufferCollection;
+    typedef TCollection<IndexBufferHandle, IndexBuffer, INDEX_BUFFER_MAX> IndexBufferCollection;
+    typedef TCollection<ConstantBufferHandle, ConstantBuffer, CONSTANT_BUFFER_MAX> ConstantBufferCollection;
+    typedef TCollection<TextureHandle, Texture, TEXTURE_MAX> TextureCollection;
     
-    typedef ResourceCollection<CommandList, COMMAND_LIST_MAX> CommandListCollection;
+    typedef TCollection<CommandStreamHandle, CommandList, COMMAND_LIST_MAX> CommandListCollection;
 
     static ShaderCollection s_shaderCollection;
     
@@ -252,7 +251,7 @@ namespace Graphics
 
     bool Initialize(Window* pWindow, u32 numBackBuffers)
     {
-#ifdef _DEBUG
+#ifdef DX_DEBUG
         Internal::EnableDebugLayer(&s_pDebug);
 #endif
 
@@ -408,7 +407,61 @@ namespace Graphics
         Dx12::CommandAllocatorPool::Destroy();
         Dx12::DescriptorHeapAllocator::Destroy();
 
-#ifdef _DEBUG
+        for (u32 i = 0; i < PIPELINE_MAX; ++i)
+        {
+            SAFE_RELEASE(s_pipelineCollection.GetData(static_cast<PipelineStateHandle>(i)).pPipelineState);
+            SAFE_RELEASE(s_pipelineCollection.GetData(static_cast<PipelineStateHandle>(i)).pSignature);
+        }
+
+        for (u32 i = 0; i < SHADER_MAX; ++i)
+        {
+            SAFE_RELEASE(s_shaderCollection.GetData(static_cast<ShaderHandle>(i)).pShader);
+        }
+
+        for (u32 i = 0; i < RENDER_TARGET_MAX; ++i)
+        {
+            SAFE_RELEASE(s_renderTargetCollection.GetData(static_cast<RenderTargetHandle>(i)).pResource);
+        }
+
+        for (u32 i = 0; i < DEPTH_STENCIL_MAX; ++i)
+        {
+            SAFE_RELEASE(s_depthStencilCollection.GetData(static_cast<DepthStencilHandle>(i)).pResource);
+        }
+
+        for (u32 i = 0; i < VERTEX_BUFFER_MAX; ++i)
+        {
+            SAFE_RELEASE(s_vertexBufferCollection.GetData(static_cast<VertexBufferHandle>(i)).pResource);
+        }
+
+        for (u32 i = 0; i < INDEX_BUFFER_MAX; ++i)
+        {
+            SAFE_RELEASE(s_indexBufferCollection.GetData(static_cast<IndexBufferHandle>(i)).pResource);
+        }
+
+        for (u32 i = 0; i < CONSTANT_BUFFER_MAX; ++i)
+        {
+            SAFE_RELEASE(s_constantBufferCollection.GetData(static_cast<ConstantBufferHandle>(i)).pResource);
+        }
+
+        for (u32 i = 0; i < TEXTURE_MAX; ++i)
+        {
+            SAFE_RELEASE(s_textureCollection.GetData(static_cast<TextureHandle>(i)).pResource);
+        }
+
+        for (u32 i = 0; i < COMMAND_LIST_MAX; ++i)
+        {
+            SAFE_RELEASE(s_commandListCollection.GetData(static_cast<CommandStreamHandle>(i)).pCommandList);
+        }
+
+        SAFE_RELEASE(s_pGraphicsQueue);
+
+        SAFE_RELEASE(s_swapChain.pRenderTargetDescriptorHeap);
+        SAFE_RELEASE(s_swapChain.pDepthStencilDescriptorHeap);
+        SAFE_RELEASE(s_swapChain.pDepthStencilResource);
+        SAFE_RELEASE(s_swapChain.pSwapChain3);
+        SAFE_RELEASE(s_device.pFactory4);
+
+#ifdef DX_DEBUG
         s_device.pDevice->QueryInterface(IID_PPV_ARGS(&s_pDebugDevice));
         if (s_pDebugDevice)
         {
@@ -419,51 +472,6 @@ namespace Graphics
         SAFE_RELEASE(s_pDebugDevice);
 #endif
 
-        for (u32 i = 0; i < PIPELINE_MAX; ++i)
-        {
-            SAFE_RELEASE(s_pipelineCollection.GetResource(static_cast<PipelineStateHandle>(i)).pPipelineState);
-            SAFE_RELEASE(s_pipelineCollection.GetResource(static_cast<PipelineStateHandle>(i)).pSignature);
-        }
-
-        for (u32 i = 0; i < SHADER_MAX; ++i)
-        {
-            SAFE_RELEASE(s_shaderCollection.GetResource(static_cast<ShaderHandle>(i)).pShader);
-        }
-
-        for (u32 i = 0; i < RENDER_TARGET_MAX; ++i)
-        {
-            SAFE_RELEASE(s_renderTargetCollection.GetResource(static_cast<RenderTargetHandle>(i)).pResource);
-        }
-
-        for (u32 i = 0; i < DEPTH_STENCIL_MAX; ++i)
-        {
-            SAFE_RELEASE(s_depthStencilCollection.GetResource(static_cast<DepthStencilHandle>(i)).pResource);
-        }
-
-        for (u32 i = 0; i < VERTEX_BUFFER_MAX; ++i)
-        {
-            SAFE_RELEASE(s_vertexBufferCollection.GetResource(static_cast<VertexBufferHandle>(i)).pResource);
-        }
-
-        for (u32 i = 0; i < INDEX_BUFFER_MAX; ++i)
-        {
-            SAFE_RELEASE(s_indexBufferCollection.GetResource(static_cast<IndexBufferHandle>(i)).pResource);
-        }
-
-        for (u32 i = 0; i < CONSTANT_BUFFER_MAX; ++i)
-        {
-            SAFE_RELEASE(s_constantBufferCollection.GetResource(static_cast<ConstantBufferHandle>(i)).pResource);
-        }
-
-        for (u32 i = 0; i < TEXTURE_MAX; ++i)
-        {
-            SAFE_RELEASE(s_textureCollection.GetResource(static_cast<TextureHandle>(i)).pResource);
-        }
-
-        SAFE_RELEASE(s_swapChain.pRenderTargetDescriptorHeap);
-        SAFE_RELEASE(s_swapChain.pDepthStencilDescriptorHeap);
-        SAFE_RELEASE(s_swapChain.pDepthStencilResource);
-        SAFE_RELEASE(s_swapChain.pSwapChain3);
         SAFE_RELEASE(s_device.pDevice);
     }
 
@@ -472,7 +480,7 @@ namespace Graphics
         auto handle = s_shaderCollection.AllocateHandle();
         if (handle != GpuResourceHandle::GPU_RESOURCE_HANDLE_INVALID)
         {
-            Shader& shader = s_shaderCollection.GetResource(handle);
+            Shader& shader = s_shaderCollection.GetData(handle);
             Internal::CompileShader(filename, entryPoint, target, &shader.pShader);
             if (shader.pShader)
             {
@@ -499,7 +507,7 @@ namespace Graphics
         PipelineStateHandle handle = s_pipelineCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            Pipeline& pipeline = s_pipelineCollection.GetResource(handle);
+            Pipeline& pipeline = s_pipelineCollection.GetData(handle);
 
             D3D12_GRAPHICS_PIPELINE_STATE_DESC pso;
             ZeroMemory(&pso, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -611,11 +619,11 @@ namespace Graphics
             
             // Shaders
             LUZASSERT(desc.VertexShaderHandle != GPU_RESOURCE_HANDLE_INVALID);
-            pso.VS = s_shaderCollection.GetResource(desc.VertexShaderHandle).ByteCode;
-            if (desc.HullShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.HS = s_shaderCollection.GetResource(desc.HullShaderHandle).ByteCode;
-            if (desc.DomainShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.DS = s_shaderCollection.GetResource(desc.DomainShaderHandle).ByteCode;
-            if (desc.GeometryShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.GS = s_shaderCollection.GetResource(desc.GeometryShaderHandle).ByteCode;
-            if (desc.PixelShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.PS = s_shaderCollection.GetResource(desc.PixelShaderHandle).ByteCode;
+            pso.VS = s_shaderCollection.GetData(desc.VertexShaderHandle).ByteCode;
+            if (desc.HullShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.HS = s_shaderCollection.GetData(desc.HullShaderHandle).ByteCode;
+            if (desc.DomainShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.DS = s_shaderCollection.GetData(desc.DomainShaderHandle).ByteCode;
+            if (desc.GeometryShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.GS = s_shaderCollection.GetData(desc.GeometryShaderHandle).ByteCode;
+            if (desc.PixelShaderHandle != GPU_RESOURCE_HANDLE_INVALID) pso.PS = s_shaderCollection.GetData(desc.PixelShaderHandle).ByteCode;
 
             // BlendState
 
@@ -715,10 +723,10 @@ namespace Graphics
                 pso.NumRenderTargets = desc.NumRenderTargets;
                 for (u32 i = 0; i < desc.NumRenderTargets; ++i)
                 {
-                    pso.RTVFormats[i] = s_textureCollection.GetResource(desc.pRenderTargets[i]).pResource->GetDesc().Format;
+                    pso.RTVFormats[i] = s_textureCollection.GetData(desc.pRenderTargets[i]).pResource->GetDesc().Format;
                 }
 
-                pso.DSVFormat = s_textureCollection.GetResource(desc.DsHandle).pResource->GetDesc().Format;
+                pso.DSVFormat = s_textureCollection.GetData(desc.DsHandle).pResource->GetDesc().Format;
             }
 
             // Samplers
@@ -747,7 +755,7 @@ namespace Graphics
         RenderTargetHandle handle = s_renderTargetCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            RenderTarget& rt = s_renderTargetCollection.GetResource(handle);
+            RenderTarget& rt = s_renderTargetCollection.GetData(handle);
 
             DXGI_FORMAT format = GetDxgiFormat(desc.Format);
 
@@ -780,7 +788,7 @@ namespace Graphics
         DepthStencilHandle handle = s_depthStencilCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            DepthStencil& ds = s_depthStencilCollection.GetResource(handle);
+            DepthStencil& ds = s_depthStencilCollection.GetData(handle);
 
             // Create Depth Stencil View
             DXGI_FORMAT format = GetDxgiFormat(desc.Format);
@@ -815,7 +823,7 @@ namespace Graphics
         VertexBufferHandle handle = s_vertexBufferCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            VertexBuffer& vb = s_vertexBufferCollection.GetResource(handle);
+            VertexBuffer& vb = s_vertexBufferCollection.GetData(handle);
 
             // No lock required https://msdn.microsoft.com/en-us/library/windows/desktop/dn899178(v=vs.85).aspx
             HRESULT hr = s_device.pDevice->CreateCommittedResource(
@@ -887,7 +895,7 @@ namespace Graphics
         IndexBufferHandle handle = s_indexBufferCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            IndexBuffer& ib = s_indexBufferCollection.GetResource(handle);
+            IndexBuffer& ib = s_indexBufferCollection.GetData(handle);
 
             // No lock required https://msdn.microsoft.com/en-us/library/windows/desktop/dn899178(v=vs.85).aspx
             HRESULT hr = s_device.pDevice->CreateCommittedResource(
@@ -969,7 +977,7 @@ namespace Graphics
         ConstantBufferHandle handle = s_constantBufferCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            ConstantBuffer& cb = s_constantBufferCollection.GetResource(handle);
+            ConstantBuffer& cb = s_constantBufferCollection.GetData(handle);
 
             HRESULT hr = s_device.pDevice->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -1013,7 +1021,7 @@ namespace Graphics
         TextureHandle handle = s_textureCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            Texture& tex = s_textureCollection.GetResource(handle);
+            Texture& tex = s_textureCollection.GetData(handle);
 
             DXGI_FORMAT format = GetDxgiFormat(desc.Format);
 
@@ -1134,7 +1142,7 @@ namespace Graphics
                 Internal::LoadWICImage(ws, image, desc.GenMips);
             }
 
-            Texture& tex = s_textureCollection.GetResource(handle);
+            Texture& tex = s_textureCollection.GetData(handle);
             HRESULT hr = DirectX::CreateTexture(s_device.pDevice, image.GetMetadata(), &tex.pResource);
             LUZASSERT(SUCCEEDED(hr));
 
@@ -1169,7 +1177,7 @@ namespace Graphics
             LUZASSERT(SUCCEEDED(hr));
 
             UpdateSubresources(pGraphicsCommandList, tex.pResource, pUploadBuffer, 0, 0, subresourceSize, subresources.data());
-            pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(tex.pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+            pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(tex.pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
             hr = pGraphicsCommandList->Close();
             LUZASSERT(SUCCEEDED(hr));
             
@@ -1207,7 +1215,7 @@ namespace Graphics
     void UpdateConstantBuffer(const void* pData, const u64 sizeInBytes, const ConstantBufferHandle handle)
     {
         LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
-        ConstantBuffer& cb = s_constantBufferCollection.GetResource(handle);
+        ConstantBuffer& cb = s_constantBufferCollection.GetData(handle);
         
         u32* gpuAddress = nullptr;
         HRESULT hr = cb.pResource->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&gpuAddress));
@@ -1217,7 +1225,7 @@ namespace Graphics
 
     void SubmitCommandStream(const CommandStream* pCommandStream, bool wait)
     {
-        CommandList& cl = s_commandListCollection.GetResource(pCommandStream->GetHandle());
+        CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
         
         HRESULT hr = cl.pGraphicsCommandList->Close();
         LUZASSERT(SUCCEEDED(hr));
@@ -1287,14 +1295,14 @@ namespace Graphics
 
             Dx12::CommandAllocator* pAllocator = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-            CommandList& cl = s_commandListCollection.GetResource(handle);
+            CommandList& cl = s_commandListCollection.GetData(handle);
             cl.pCommandQueue = s_pGraphicsQueue;
             cl.pAlloc = reinterpret_cast<void*>(pAllocator);
             
             ID3D12PipelineState* pPipelineState = nullptr;
             if (desc.PipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
             {
-                pPipelineState = s_pipelineCollection.GetResource(desc.PipelineHandle).pPipelineState;
+                pPipelineState = s_pipelineCollection.GetData(desc.PipelineHandle).pPipelineState;
             }
             HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc)->Allocator(), pPipelineState, IID_PPV_ARGS(&cl.pGraphicsCommandList));
             LUZASSERT(SUCCEEDED(hr));
@@ -1309,7 +1317,7 @@ namespace Graphics
 
     void ReleaseCommandStream(CommandStream* pCommandStream)
     {
-        CommandList& cl = s_commandListCollection.GetResource(pCommandStream->GetHandle());
+        CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
         ZeroMemory(&cl, sizeof(CommandList));
         s_commandListCollection.FreeHandle(pCommandStream->GetHandle());
     }
@@ -1333,8 +1341,8 @@ namespace Graphics
 
     void CommandStream::Reset(const PipelineStateHandle handle)
     {
-        Pipeline& pso = s_pipelineCollection.GetResource(handle);
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        Pipeline& pso = s_pipelineCollection.GetData(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         LUZASSERT(cl.pCommandQueue);
         LUZASSERT(cl.pGraphicsCommandList);
         LUZASSERT(cl.pAlloc);
@@ -1346,7 +1354,7 @@ namespace Graphics
         ID3D12PipelineState* pPipelineState = nullptr;
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            pPipelineState = s_pipelineCollection.GetResource(handle).pPipelineState;
+            pPipelineState = s_pipelineCollection.GetData(handle).pPipelineState;
         }
 
         HRESULT hr = cl.pGraphicsCommandList->Reset(reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc)->Allocator(), pPipelineState);
@@ -1357,8 +1365,8 @@ namespace Graphics
 
     void CommandStream::SetPipeline(const PipelineStateHandle handle)
     {
-        Pipeline& pso = s_pipelineCollection.GetResource(handle);
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        Pipeline& pso = s_pipelineCollection.GetData(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         
         cl.pGraphicsCommandList->SetPipelineState(pso.pPipelineState);
         cl.pGraphicsCommandList->SetGraphicsRootSignature(pso.pSignature);
@@ -1366,16 +1374,16 @@ namespace Graphics
 
     void CommandStream::SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        RenderTarget& rt = s_renderTargetCollection.GetResource(pRtHandles[0]);
-        DepthStencil& ds = s_depthStencilCollection.GetResource(dsHandle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        RenderTarget& rt = s_renderTargetCollection.GetData(pRtHandles[0]);
+        DepthStencil& ds = s_depthStencilCollection.GetData(dsHandle);
 
         cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, &rt.CpuHandle, TRUE, &ds.DepthStencilViewHandle.CpuHandle);
     }
 
     void CommandStream::SetRenderTargets()
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         
         ID3D12Resource* pResource = nullptr;
         HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
@@ -1396,7 +1404,7 @@ namespace Graphics
         vp.MinDepth = static_cast<FLOAT>(viewport.MinDepth);
         vp.MaxDepth = static_cast<FLOAT>(viewport.MaxDepth);
 
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         cl.pGraphicsCommandList->RSSetViewports(1, &vp);
     }
 
@@ -1409,86 +1417,86 @@ namespace Graphics
         scissor.right = static_cast<LONG>(rect.Right);
         scissor.bottom = static_cast<LONG>(rect.Bottom);
 
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         cl.pGraphicsCommandList->RSSetScissorRects(1, &scissor);
     }
 
     void CommandStream::ClearRenderTarget(const float* pColor, const RenderTargetHandle handle)
     {
         LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        RenderTarget& rt = s_renderTargetCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        RenderTarget& rt = s_renderTargetCollection.GetData(handle);
         
         cl.pGraphicsCommandList->ClearRenderTargetView(rt.CpuHandle, pColor, 0, nullptr);
     }
 
     void CommandStream::ClearRenderTarget(const float* pColor)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         
         cl.pGraphicsCommandList->ClearRenderTargetView(s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], pColor, 0, nullptr);
     }
 
     void CommandStream::ClearDepthStencil(const float depth, const u8 stencil, const DepthStencilHandle handle)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        DepthStencil& ds = s_depthStencilCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        DepthStencil& ds = s_depthStencilCollection.GetData(handle);
 
         cl.pGraphicsCommandList->ClearDepthStencilView(ds.DepthStencilViewHandle.CpuHandle, D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
     }
 
     void CommandStream::ClearDepthStencil(const float depth, const u8 stencil)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
         cl.pGraphicsCommandList->ClearDepthStencilView(s_swapChain.DepthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
     }
 
     void CommandStream::SetPrimitiveTopology(const PrimitiveSubtopology topology)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
 
         cl.pGraphicsCommandList->IASetPrimitiveTopology(GetD3D12PrimitiveTogopology(topology));
     }
 
     void CommandStream::SetVertexBuffer(const VertexBufferHandle handle)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        VertexBuffer& vb = s_vertexBufferCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        VertexBuffer& vb = s_vertexBufferCollection.GetData(handle);
         
         cl.pGraphicsCommandList->IASetVertexBuffers(0, 1, &vb.View);
     }
 
     void CommandStream::SetIndexBuffer(const IndexBufferHandle handle)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        IndexBuffer& ib = s_indexBufferCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        IndexBuffer& ib = s_indexBufferCollection.GetData(handle);
 
         cl.pGraphicsCommandList->IASetIndexBuffer(&ib.View);
     }
 
     void CommandStream::SetConstantBuffer(const u32 param, const ConstantBufferHandle handle)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        ConstantBuffer cb = s_constantBufferCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        ConstantBuffer cb = s_constantBufferCollection.GetData(handle);
         
         cl.pGraphicsCommandList->SetGraphicsRootConstantBufferView(static_cast<UINT>(param), cb.GpuVirtualAddress);
     }
 
     void CommandStream::SetTexture(const u32 param, const TextureHandle handle)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        Texture tx = s_textureCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        Texture tx = s_textureCollection.GetData(handle);
 
         cl.pGraphicsCommandList->SetComputeRootShaderResourceView(static_cast<UINT>(param), tx.GpuVirtualAddress);
     }
 
     void CommandStream::SetDescriptorTable(const u32 param, const ConstantBufferHandle baseHandle)
     {
-        ConstantBuffer& cb = s_constantBufferCollection.GetResource(baseHandle);
+        ConstantBuffer& cb = s_constantBufferCollection.GetData(baseHandle);
 
         ID3D12DescriptorHeap* pHeap = Dx12::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cb.CpuHandle, cb.GpuHandle);
 
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
 
         cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
         cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), cb.GpuHandle);
@@ -1496,8 +1504,8 @@ namespace Graphics
 
     void CommandStream::DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount /*= 1*/, const u32 startIndex /*= 0*/, const i32 baseVertexLocation /*= 0*/, const u32 startInstanceLocation /*= 0*/)
     {
-        CommandList& cl = s_commandListCollection.GetResource(m_handle);
-        IndexBuffer& ib = s_indexBufferCollection.GetResource(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        IndexBuffer& ib = s_indexBufferCollection.GetData(handle);
 
         cl.pGraphicsCommandList->DrawIndexedInstanced(ib.NumIndices, instanceCount, startIndex, baseVertexLocation, startInstanceLocation);
     }
