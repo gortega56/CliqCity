@@ -51,6 +51,8 @@ struct ConstantBufferData
 {
     gmath::float4x4 view;
     gmath::float4x4 proj;
+    gmath::float4x4 inverseView;
+    gmath::float4x4 inverseProj;
 };
 
 struct MaterialIndex
@@ -71,8 +73,7 @@ struct PhongMaterial
     float Dissolve;               
     gmath::float3 Emissive;
     float _padding0;
-    int TextureIndices[3] = { -1, -1, -1 };
-    float _padding1;
+    int TextureIndices[4] = { -1, -1, -1, -1 };
     gmath::float4 _padding2[10];    
 };
 

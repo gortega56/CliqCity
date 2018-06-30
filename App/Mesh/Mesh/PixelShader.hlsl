@@ -10,19 +10,29 @@ struct Material
     float dissolve;
     float3 emissive;
     float p0;
-    int3 textureIndices; // x - diffuse, y - normal z - dissolve
-    float p1;
+    int4 textureIndices; // x - diffuse, y - normal z - dissolve
     float4 p2[10];
 };
+
+cbuffer Constants : register(b0)
+{
+    float4x4 view;
+    float4x4 proj;
+    float4x4 inverseView;
+    float4x4 inverseProj;
+}
 
 ConstantBuffer<Material> materials[] : register(b1);
 
 Texture2D textures[] : register(t0);
 SamplerState samp : register(s0);
+SamplerState clampSamp : register(s1);
+
 
 struct VS_OUTPUT
 {
     float4 pos: SV_POSITION;
+    float3 worldPos : POSITIONT;
     float3 tangent : TANGENT;
     float3 bitangent : BINORMAL;
     float3 norm : NORMAL;
@@ -32,22 +42,33 @@ struct VS_OUTPUT
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    float3 l = float3(0.0f, -0.5f, 0.5f);
+    float4 output = float4(1, 0, 1, 1); // magenta
 
-    float4 color = float4(0.8, 0.8f, 0.8f, 1.0f);
-
-    float4 diff = float4(1.0f, 0.0f, 1.0f, 1.0f);
-    float albedo = dot(input.norm, -l);
+    float3 N = normalize(input.norm);
+    float3 L = float3(0.0f, -0.5f, 0.5f);
+    float3 Lc = float3(0.8, 0.8f, 0.8f);
+    float Ia = 0.1f;
+    float Id = 1.0f;
+    float Is = 1.0f;
 
     int matIndex = input.mat;
     if (matIndex != -1)
     {
+        float3 ambient =  float3(0, 0, 0);
+        float3 diffuse =  float3(0, 0, 0);
+        float3 specular = float3(0, 0, 0);
+
+        ambient = materials[matIndex].ambient * Lc * Ia;
+
         int diffIndex = materials[matIndex].textureIndices.x;
         int normIndex = materials[matIndex].textureIndices.y;
-        int mask = materials[matIndex].textureIndices.z;
+        int maskIndex = materials[matIndex].textureIndices.z;
+        int specIndex = materials[matIndex].textureIndices.w;
 
-        diff = textures[diffIndex].Sample(samp, input.uv);
-
+        if (diffIndex != -1)
+        {
+            diffuse = materials[matIndex].diffuse * textures[diffIndex].Sample(samp, input.uv).xyz;
+        }
 
         if (normIndex != -1)
         {
@@ -62,20 +83,31 @@ float4 main(VS_OUTPUT input) : SV_TARGET
                 n.x, n.y, n.z
             };
 
-            float3 ns = textures[normIndex].Sample(samp, input.uv).xyz;
-
-            float3 tns = ns * 2.0f - 1.0f;
-            n = mul(tns, tbn);
-
-            albedo = dot(n, -l);
+            normal = textures[normIndex].Sample(samp, input.uv).xyz;
+            normal = normal * 2.0f - 1.0f;
+            N = normalize(mul(n, tbn));
         }
 
-        if (mask != -1)
+        if (maskIndex != -1)
         {
-            float4 m = textures[mask].Sample(samp, input.uv);
+            float4 m = textures[maskIndex].Sample(samp, input.uv);
             if ((m.x + m.y + m.z) == 0) clip(-1);
         }
+
+        if (specIndex != -1)
+        {
+            specular = textures[specIndex].Sample(samp, input.uv).xyz;
+            float specExp = materials[matIndex].specularExponent;
+            float3 eye = float3(inverseView[3][0], inverseView[3][1], inverseView[3][2]);
+            float3 V = normalize(eye - input.worldPos);
+            float3 H = normalize(-L + V);
+            specular = specular * pow(saturate(dot(N, H)), specExp) * Lc * Is;
+        }
+
+        diffuse = diffuse * saturate(dot(N, -L)) * Lc * Id;
+
+        output.xyz = ambient + diffuse + specular;
     }
 
-    return color * diff * saturate(albedo);
+    return output;
 }

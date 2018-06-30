@@ -86,6 +86,8 @@ bool MeshApplication::Initialize()
 
     m_cbvData.view = pCamera->GetView().transpose();
     m_cbvData.proj = pCamera->GetProjection().transpose();
+    m_cbvData.inverseView = pCamera->GetView().inverse().transpose();
+    m_cbvData.inverseProj = pCamera->GetProjection().inverse().transpose();
 
     //rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
     //{
@@ -120,8 +122,9 @@ bool MeshApplication::Initialize()
         .AppendConstantView(0)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
         .AppendDescriptorTableRange(1, 26, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
-        .AppendDescriptorTableRange(1, 36, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
-        .AppendAnisotropicWrapSampler(0);
+        .AppendDescriptorTableRange(1, 52, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
+        .AppendAnisotropicWrapSampler(0)
+        .AppendAnisotropicClampSampler(1);
     pd.InputLayout.AppendFloat4("TANGENT")
         .AppendPosition3F()
         .AppendNormal3F()
@@ -209,7 +212,6 @@ bool MeshApplication::Initialize()
         for (u32 i = 0, numMaterials = pObj->GetNumMaterials(); i < numMaterials; ++i)
         {
             auto md = pObj->GetMaterialDesc(i);
-
             m_materialConstants.emplace_back();
             auto& mc = m_materialConstants.back();
             mc.SpecularExponent = md.SpecularExponent;
@@ -225,6 +227,7 @@ bool MeshApplication::Initialize()
             if (strlen(md.DiffuseTextureName)) mc.TextureIndices[0] = FindOrPushBackTextureName(textureNames, md.DiffuseTextureName);
             if (strlen(md.NormalTextureName)) mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, md.NormalTextureName);
             if (strlen(md.DissolveTextureName)) mc.TextureIndices[2] = FindOrPushBackTextureName(textureNames, md.DissolveTextureName);
+            if (strlen(md.SpecularTextureName)) mc.TextureIndices[3] = FindOrPushBackTextureName(textureNames, md.SpecularTextureName);
         }
     }
 
@@ -362,4 +365,5 @@ void MeshApplication::FixedUpdate(double dt)
 {
     m_cameraController.Update(dt);
     m_cbvData.view = m_cameraController.GetCamera()->GetView().transpose();
+    m_cbvData.inverseView = m_cameraController.GetCamera()->GetView().inverse().transpose();
 }
