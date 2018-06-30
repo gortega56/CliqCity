@@ -245,7 +245,6 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Graphics\Graphics.h" />
     <ClInclude Include="Graphics\GraphicsTypes.h" />
     <ClInclude Include="Graphics\PipelineStates.h" />
-    <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="Graphics\ResourceCollection.h" />
     <ClInclude Include="LuzExport.h" />
     <ClInclude Include="LzAssert.h" />
@@ -258,7 +257,6 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ClInclude Include="Graphics\DirectX12\Fence.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
-    <ClInclude Include="Graphics\Renderable.h" />
     <ClInclude Include="Platform\Input.h" />
     <ClInclude Include="Platform\MSPlatformWindow.h" />
     <ClInclude Include="Platform\Platform.h" />
@@ -289,6 +287,9 @@ xcopy "$(ProjectDir)Library\GMath\bin\$(Configuration)\$(PlatformTarget)\GMath.l
     <ProjectReference Include="Library\GMath\GMath.vcxproj">
       <Project>{17ff21f5-8eb2-4f33-89e8-21f9a0933273}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Graphics\DirectX12\Shaders\Lighting.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

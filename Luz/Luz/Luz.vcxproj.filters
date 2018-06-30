@@ -149,9 +149,6 @@
     <ClInclude Include="Graphics\DirectX12\dx12_internal.h">
       <Filter>Graphics\DirectX12</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Renderable.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\DirectX12\DescriptorHeap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -227,9 +224,6 @@
     <ClInclude Include="CameraController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Material.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\GraphicsTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -242,5 +236,8 @@
     <ClInclude Include="Graphics\PipelineStates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Graphics\DirectX12\Shaders\Lighting.hlsli" />
   </ItemGroup>
 </Project>

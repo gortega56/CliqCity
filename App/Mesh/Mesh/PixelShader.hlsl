@@ -83,9 +83,9 @@ float4 main(VS_OUTPUT input) : SV_TARGET
                 n.x, n.y, n.z
             };
 
-            normal = textures[normIndex].Sample(samp, input.uv).xyz;
-            normal = normal * 2.0f - 1.0f;
-            N = normalize(mul(n, tbn));
+            N = textures[normIndex].Sample(samp, input.uv).xyz;
+            N = N * 2.0f - 1.0f;
+            N = normalize(mul(N, tbn));
         }
 
         if (maskIndex != -1)
