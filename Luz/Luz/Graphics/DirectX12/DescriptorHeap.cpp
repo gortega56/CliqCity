@@ -231,6 +231,7 @@ namespace Dx12
     {
         for (u32 i = 0, count = g_allocators[type].NumHeaps(); i < count; ++i)
         {
+            // TODO: Fix this because it doesn't work if the handle passed in isn't the first handle of the heap
             auto pHeap = g_allocators[type].GetHeap(i);
             D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = pHeap->CpuHandle();
             D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle = pHeap->GpuHandle();

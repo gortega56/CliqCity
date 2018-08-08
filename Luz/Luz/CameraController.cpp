@@ -2,7 +2,7 @@
 #include "CameraController.h"
 #include "Input.h"
 
-using namespace gmath;
+using namespace lina;
 
 namespace Luz
 {
@@ -44,10 +44,10 @@ namespace Luz
 
             if (m_input->GetMouseButton(MOUSEBUTTON_RIGHT))
             {
-                euler rotation = pTransform->GetEuler();
-                rotation.pitch += (mouseY - m_mouseY) * g_radian * m_verticalTurnSpeed;
-                rotation.yaw += (mouseX - m_mouseX) * g_radian * m_horizontalTurnSpeed;
-                rotation.roll = 0.0f;
+                float3 rotation = pTransform->GetEuler();
+                rotation.x += (mouseY - m_mouseY) * g_radian * m_verticalTurnSpeed;
+                rotation.y += (mouseX - m_mouseX) * g_radian * m_horizontalTurnSpeed;
+                rotation.z = 0.0f;
                 pTransform->SetRotation(rotation);
             }
 

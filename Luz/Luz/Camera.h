@@ -12,14 +12,14 @@ public:
     LUZ_API Camera();
     LUZ_API ~Camera() = default;
 
-    LUZ_API gmath::float4x4 GetProjection();
-    LUZ_API gmath::float4x4 GetView();
+    LUZ_API float4x4 GetProjection();
+    LUZ_API float4x4 GetView();
 
     LUZ_API Transform* GetTransform();
 
 protected:
-    gmath::float4x4 m_projection;
-    gmath::float4x4 m_view;
+    float4x4 m_projection;
+    float4x4 m_view;
 
     Transform m_transform;
 };
@@ -31,7 +31,7 @@ public:
     LUZ_API OrthographicCamera();
     LUZ_API ~OrthographicCamera() = default;
 
-    LUZ_API gmath::float4x4 GetProjection();
+    LUZ_API float4x4 GetProjection();
 
     LUZ_API float GetWidth() const;
     LUZ_API float GetHeight() const;
@@ -59,7 +59,7 @@ public:
     LUZ_API PerspectiveCamera();
     LUZ_API ~PerspectiveCamera() = default;
 
-    LUZ_API gmath::float4x4 GetProjection();
+    LUZ_API float4x4 GetProjection();
 
     LUZ_API float GetFieldOfView() const;
     LUZ_API float GetAspectRatio() const;
@@ -80,16 +80,16 @@ private:
     bool m_projectionDirty;
 };
 
-inline gmath::float4x4 Camera::GetProjection()
+inline float4x4 Camera::GetProjection()
 {
     return m_projection;
 }
 
-inline gmath::float4x4 Camera::GetView()
+inline float4x4 Camera::GetView()
 {
     if (m_transform.IsDirty())
     {
-        m_view = gmath::float4x4::look_to_lh(m_transform.GetForward(), m_transform.GetPosition(), m_transform.GetUp());
+        m_view = float4x4::look_to_lh(m_transform.GetForward(), m_transform.GetPosition(), m_transform.GetUp());
     }
 
     return m_view;

@@ -192,6 +192,12 @@ namespace Graphics
         GFX_PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST = 64,
     };
 
+    enum LUZ_API DepthStencilFlags : uint8_t
+    {
+        GFX_DEPTH_STENCIL_FLAG_NONE = 0,
+        GFX_DEPTH_STENCIL_FLAG_SHADER_RESOURCE
+    };
+
     enum LUZ_API GpuResourceFlags : uint16_t
     {
 
@@ -251,6 +257,7 @@ namespace Graphics
         float ClearDepth;
         uint8_t ClearStencil;
         Format Format;
+        DepthStencilFlags Flags;
     };
 
     enum LUZ_API GpuResourceHandle : uint16_t

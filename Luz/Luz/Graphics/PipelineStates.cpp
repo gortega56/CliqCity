@@ -249,7 +249,7 @@ namespace Graphics
         range.Kind = type;
     }
 
-    SignatureDesc::SignatureDesc()
+    SignatureDesc::SignatureDesc() : m_name("unnamed")
     {
 
     }
@@ -257,6 +257,11 @@ namespace Graphics
     SignatureDesc::~SignatureDesc()
     {
 
+    }
+
+    const char* SignatureDesc::GetName() const
+    {
+        return m_name;
     }
 
     const Parameter& SignatureDesc::GetParam(u32 i) const
@@ -282,6 +287,12 @@ namespace Graphics
     SignatureDesc::Flags SignatureDesc::GetFlags() const
     {
         return m_flags;
+    }
+
+    SignatureDesc& SignatureDesc::SetName(const char* pName)
+    {
+        m_name = pName;
+        return *this;
     }
 
     SignatureDesc& SignatureDesc::AppendConstant(const u32& num32BitVals, const u32& shaderRegister, const u32 registerSpace /*= 0U*/, const ShaderVisibility visibility /*= SHADER_VISIBILITY_ALL*/)
@@ -326,63 +337,76 @@ namespace Graphics
     SignatureDesc& SignatureDesc::AppendAnisotropicWrapSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::FILTER_TYPE_ANISOTROPIC,
-            AddressType::ADDRESS_TYPE_WRAP,
-            AddressType::ADDRESS_TYPE_WRAP,
-            AddressType::ADDRESS_TYPE_WRAP);
+            FilterType::GFX_FILTER_ANISOTROPIC,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP);
     }
 
     SignatureDesc& SignatureDesc::AppendAnisotropicClampSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::FILTER_TYPE_ANISOTROPIC,
-            AddressType::ADDRESS_TYPE_CLAMP,
-            AddressType::ADDRESS_TYPE_CLAMP,
-            AddressType::ADDRESS_TYPE_CLAMP);
+            FilterType::GFX_FILTER_ANISOTROPIC,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP);
     }
 
     SignatureDesc& SignatureDesc::AppendPointWrapSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::FILTER_TYPE_MIN_MAG_MIP_POINT,
-            AddressType::ADDRESS_TYPE_WRAP,
-            AddressType::ADDRESS_TYPE_WRAP,
-            AddressType::ADDRESS_TYPE_WRAP);
+            FilterType::GFX_FILTER_MIN_MAG_MIP_POINT,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP);
     }
 
     SignatureDesc& SignatureDesc::AppendPointClampSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::FILTER_TYPE_MIN_MAG_MIP_POINT,
-            AddressType::ADDRESS_TYPE_CLAMP,
-            AddressType::ADDRESS_TYPE_CLAMP,
-            AddressType::ADDRESS_TYPE_CLAMP);
+            FilterType::GFX_FILTER_MIN_MAG_MIP_LINEAR,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP);
     }
 
     SignatureDesc& SignatureDesc::AppendLinearWrapSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::FILTER_TYPE_MIN_MAG_MIP_LINEAR,
-            AddressType::ADDRESS_TYPE_WRAP,
-            AddressType::ADDRESS_TYPE_WRAP,
-            AddressType::ADDRESS_TYPE_WRAP);
+            FilterType::GFX_FILTER_MIN_MAG_MIP_LINEAR,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP);
     }
 
     SignatureDesc& SignatureDesc::AppendLinearClampSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::FILTER_TYPE_MIN_MAG_MIP_LINEAR,
-            AddressType::ADDRESS_TYPE_CLAMP,
-            AddressType::ADDRESS_TYPE_CLAMP,
-            AddressType::ADDRESS_TYPE_CLAMP);
+            FilterType::GFX_FILTER_MIN_MAG_MIP_LINEAR,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP);
+    }
+
+    LUZ_API SignatureDesc& SignatureDesc::AppendComparisonPointBorderSampler(const u32& shaderRegister)
+    {
+        return AppendStaticSampler(shaderRegister, 0,
+            FilterType::GFX_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_BORDER,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_BORDER,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_BORDER,
+            0.0f, 
+            16U,
+            COMPARISON_TYPE_LESS_EQUAL,
+            Graphics::BORDER_COLOR_TYPE_OPAQUE_BLACK);
     }
 
     SignatureDesc& SignatureDesc::AppendStaticSampler(const u32& shaderRegister,
         const u32 registerSpace /*= 0U*/,
-        const FilterType filter /*= FILTER_TYPE_ANISOTROPIC*/,
-        const AddressType addressU /*= ADDRESS_TYPE_WRAP*/,
-        const AddressType addressV /*= ADDRESS_TYPE_WRAP*/,
-        const AddressType addressW /*= ADDRESS_TYPE_WRAP*/,
+        const FilterType filter /*= GFX_FILTER_TYPE_ANISOTROPIC*/,
+        const AddressType addressU /*= GFX_TEXTURE_ADDRESS_MODE_WRAP*/,
+        const AddressType addressV /*= GFX_TEXTURE_ADDRESS_MODE_WRAP*/,
+        const AddressType addressW /*= GFX_TEXTURE_ADDRESS_MODE_WRAP*/,
         const float mipLodBias /*= 0*/,
         const u32 maxAnisotropy /*= 16*/,
         const ComparisonType comparisonFunc /*= COMPARISON_TYPE_LESS_EQUAL*/,

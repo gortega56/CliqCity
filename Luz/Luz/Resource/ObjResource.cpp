@@ -44,6 +44,7 @@ namespace Resource
             auto& faces = pResource->m_faces;
             auto& mtls = pResource->m_mtls;
             auto& materials = pResource->m_materials;
+            auto& boundingBox = pResource->m_boundingBox;
             std::vector<Resource::Async<Mtl>> loadingMtls;
 
             Surface* pCurrentSurface = nullptr;
@@ -71,12 +72,25 @@ namespace Resource
                 {
                     float* position = positions.emplace_back().Data;
                     fileStream >> position[0] >> position[1] >> position[2];
+
+                    if (position[0] < boundingBox.MinX) boundingBox.MinX = position[0];
+                    if (position[1] < boundingBox.MinY) boundingBox.MinY = position[1];
+                    if (position[2] < boundingBox.MinZ) boundingBox.MinZ = position[2];
+
+                    if (position[0] > boundingBox.MaxX) boundingBox.MaxX = position[0];
+                    if (position[1] > boundingBox.MaxY) boundingBox.MaxY = position[1];
+                    if (position[2] > boundingBox.MaxZ) boundingBox.MaxZ = position[2];
                 }
                 else if (statement.compare("vt") == 0)
                 {
                     float* uv = uvs.emplace_back().Data;
                     fileStream >> uv[0] >> uv[1];
-                    uv[1] = 1.0f - uv[1];
+
+                    if (desc.InvertUVs)
+                    {
+                        uv[1] = 1.0f - uv[1];
+                    }
+
                     // Leave the last coordinate alone because
                     // we probably don't have an mtl yet;
                 }
@@ -164,12 +178,14 @@ namespace Resource
                         hasUvs = isTri = true;
                     }
 
+
                     // Handle indices coded as negative indices
-                    for (i32 i = 0; i < 4; ++i)
+                    i32 numVerts = (isTri) ? 3 : 4;
+                    for (i32 i = 0; i < numVerts; ++i)
                     {
                         i32* pP = &pFace->Data[i * 3 + 0];
                         i32* pT = &pFace->Data[i * 3 + 1];
-                        i32* pN = &pFace->Data[i * 3 + 1];
+                        i32* pN = &pFace->Data[i * 3 + 2];
                         i32 p = *pP, t = *pT, n = *pN;
 
                         if (p < 0) *pP = ((i32)positions.size() - 1) + p;
@@ -232,12 +248,22 @@ namespace Resource
 
     Obj::Obj()
     {
-
+        m_boundingBox.MinX = (std::numeric_limits<float>::max)();
+        m_boundingBox.MinY = (std::numeric_limits<float>::max)();
+        m_boundingBox.MinZ = (std::numeric_limits<float>::max)();
+        m_boundingBox.MaxX = (std::numeric_limits<float>::min)();
+        m_boundingBox.MaxY = (std::numeric_limits<float>::min)();
+        m_boundingBox.MaxZ = (std::numeric_limits<float>::min)();
     }
 
     Obj::~Obj()
     {
 
+    }
+
+    Obj::BoundingBox Obj::GetSceneBounds() const
+    {
+        return m_boundingBox;
     }
 
     u32 Obj::GetNumSurfaces() const

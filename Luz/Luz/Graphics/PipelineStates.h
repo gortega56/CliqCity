@@ -8,18 +8,53 @@
 
 namespace Graphics
 {
-    enum LUZ_API FilterType : u8
+    enum LUZ_API FilterType : u32
     {
-        FILTER_TYPE_MIN_MAG_MIP_POINT = 0,
-        FILTER_TYPE_MIN_MAG_MIP_LINEAR,
-        FILTER_TYPE_ANISOTROPIC
+        GFX_FILTER_MIN_MAG_MIP_POINT = 0,
+        GFX_FILTER_MIN_MAG_POINT_MIP_LINEAR = 0x1,
+        GFX_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x4,
+        GFX_FILTER_MIN_POINT_MAG_MIP_LINEAR = 0x5,
+        GFX_FILTER_MIN_LINEAR_MAG_MIP_POINT = 0x10,
+        GFX_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x11,
+        GFX_FILTER_MIN_MAG_LINEAR_MIP_POINT = 0x14,
+        GFX_FILTER_MIN_MAG_MIP_LINEAR = 0x15,
+        GFX_FILTER_ANISOTROPIC = 0x55,
+        GFX_FILTER_COMPARISON_MIN_MAG_MIP_POINT = 0x80,
+        GFX_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR = 0x81,
+        GFX_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x84,
+        GFX_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR = 0x85,
+        GFX_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT = 0x90,
+        GFX_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x91,
+        GFX_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT = 0x94,
+        GFX_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR = 0x95,
+        GFX_FILTER_COMPARISON_ANISOTROPIC = 0xd5,
+        GFX_FILTER_MINIMUM_MIN_MAG_MIP_POINT = 0x100,
+        GFX_FILTER_MINIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x101,
+        GFX_FILTER_MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x104,
+        GFX_FILTER_MINIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x105,
+        GFX_FILTER_MINIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x110,
+        GFX_FILTER_MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x111,
+        GFX_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x114,
+        GFX_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR = 0x115,
+        GFX_FILTER_MINIMUM_ANISOTROPIC = 0x155,
+        GFX_FILTER_MAXIMUM_MIN_MAG_MIP_POINT = 0x180,
+        GFX_FILTER_MAXIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x181,
+        GFX_FILTER_MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x184,
+        GFX_FILTER_MAXIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x185,
+        GFX_FILTER_MAXIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x190,
+        GFX_FILTER_MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x191,
+        GFX_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
+        GFX_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
+        GFX_FILTER_MAXIMUM_ANISOTROPIC = 0x1d5
     };
 
     enum LUZ_API AddressType : u8
     {
-        ADDRESS_TYPE_WRAP = 0,
-        ADDRESS_TYPE_MIRROR,
-        ADDRESS_TYPE_CLAMP
+        GFX_TEXTURE_ADDRESS_MODE_WRAP = 1,
+        GFX_TEXTURE_ADDRESS_MODE_MIRROR = 2,
+        GFX_TEXTURE_ADDRESS_MODE_CLAMP = 3,
+        GFX_TEXTURE_ADDRESS_MODE_BORDER = 4,
+        GFX_TEXTURE_ADDRESS_MODE_MIRROR_ONCE = 5
     };
 
     enum LUZ_API ComparisonType : u8
@@ -246,12 +281,15 @@ namespace Graphics
         LUZ_API SignatureDesc();
         LUZ_API ~SignatureDesc();
 
+        const char* GetName() const;
         const Parameter& GetParam(u32 i) const;
         const Sampler& GetSampler(u32 i) const;
         Flags GetFlags() const;
 
         u32 NumParams() const;
         u32 NumSamplers() const;
+
+        LUZ_API SignatureDesc& SetName(const char* pName);
 
         LUZ_API SignatureDesc& AppendConstant(const u32& num32BitVals, const u32& shaderRegister, const u32 registerSpace = 0U, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
         LUZ_API SignatureDesc& AppendConstantView(const u32& shaderRegister, const u32 registerSpace = 0U, const Parameter::DataFlags flags = Parameter::DataFlags::PARAMETER_DATA_FLAG_NONE, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
@@ -266,12 +304,13 @@ namespace Graphics
         LUZ_API SignatureDesc& AppendPointClampSampler(const u32& shaderRegister);
         LUZ_API SignatureDesc& AppendLinearWrapSampler(const u32& shaderRegister);
         LUZ_API SignatureDesc& AppendLinearClampSampler(const u32& shaderRegister);
+        LUZ_API SignatureDesc& AppendComparisonPointBorderSampler(const u32& shaderRegister);
         LUZ_API SignatureDesc& AppendStaticSampler(const u32& shaderRegister,
             const u32 registerSpace = 0U,
-            const FilterType filter = FILTER_TYPE_ANISOTROPIC,
-            const AddressType addressU = ADDRESS_TYPE_WRAP,
-            const AddressType addressV = ADDRESS_TYPE_WRAP,
-            const AddressType addressW = ADDRESS_TYPE_WRAP,
+            const FilterType filter = GFX_FILTER_ANISOTROPIC,
+            const AddressType addressU = GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            const AddressType addressV = GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            const AddressType addressW = GFX_TEXTURE_ADDRESS_MODE_WRAP,
             const float mipLODBias = 0,
             const u32 maxAnisotropy = 16,
             const ComparisonType comparisonFunc = COMPARISON_TYPE_LESS_EQUAL,
@@ -289,6 +328,7 @@ namespace Graphics
         LUZ_API SignatureDesc& DenyPS();
 
     private:
+        const char* m_name;
         std::vector<Parameter> m_params;
         std::vector<Sampler> m_samplers;
         Flags m_flags;

@@ -6,7 +6,6 @@
 #include "Camera.h"
 #endif
 
-
 namespace Luz
 {
     class Input;

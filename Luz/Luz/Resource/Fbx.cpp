@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Fbx.h"
-#include "gmath.h"
+#include "lina.h"
 #include <fbxsdk.h>
 #include <fstream>
 
@@ -13,8 +13,7 @@
 #define FBX_DEFAULT_AXIS FbxAxisSystem::EPreDefinedAxisSystem::OpenGL
 #endif
 
-
-using namespace gmath;
+using namespace lina;
 
 namespace Resource
 {
@@ -37,7 +36,6 @@ namespace Resource
     static void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode);
     static void GetMeshAttributes(Fbx* pResource, FbxNode* pNode);
 
-    static bool TryWindingOrder(Fbx* pResource, u32 i0, u32 i1, u32 i2);
     static void TriangulatePolygonAdditive(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices);
     static void TriangulatePolygon(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices);
 
@@ -169,28 +167,6 @@ namespace Resource
         }
     }
 
-    bool TryWindingOrder(Fbx* pResource, u32 i0, u32 i1, u32 i2)
-    {
-        auto v0 = pResource->GetVertex(i0);
-        auto v1 = pResource->GetVertex(i1);
-        auto v2 = pResource->GetVertex(i2);
-
-        float e0[3], e1[3], n[3];
-        TVec<float, 3>::subtract(v1->Position, v0->Position, e0);
-        TVec<float, 3>::subtract(v1->Position, v2->Position, e1);
-        TVec<float, 3>::cross(e0, e1, n);
-
-        float i[3] = { 1.0f, 0.0f, 0.0f };
-        float j[3] = { 0.0f, 1.0f, 0.0f };
-        float k[3] = { 0.0f, 0.0f, 1.0f };
-
-        float di = TVec<float, 3>::dot(n, i);
-        float dj = TVec<float, 3>::dot(n, j);
-        float dk = TVec<float, 3>::dot(n, k);
-
-        return (di < 0.0f || dj < 0.0f || dk < 0.0f);
-    }
-
     void TriangulatePolygonAdditive(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices)
     {
         std::vector<u32> polygonVertexIndices;
@@ -208,15 +184,20 @@ namespace Resource
             CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
             polygonVertexIndices.push_back(polygonIndex);
 
-            TVec<float, 3>::add(position, vertex->Position);
-            TVec<float, 3>::add(normal, vertex->Normal);
-            TVec<float, 2>::add(uv, vertex->UV);
+            position[0] += vertex->Position[0]; position[1] += vertex->Position[1]; position[2] += vertex->Position[2];
+
+            normal[0] += vertex->Normal[0]; normal[1] += vertex->Normal[1]; normal[2] += vertex->Normal[2];
+
+            uv[0] += vertex->UV[0]; uv[1] += vertex->UV[1];
         }
 
         float inv = 1.0f / numPolygonVertices;
-        TVec<float, 3>::mul(position, inv);
-        TVec<float, 3>::mul(normal, inv);
-        TVec<float, 2>::mul(uv, inv);
+        
+        position[0] *= inv; position[1] *= inv; position[2] *= inv;
+
+        normal[0] *= inv; normal[1] *= inv; normal[2] *= inv;
+
+        uv[0] *= inv; uv[1] *= inv;
 
         auto index = pResource->AddVertex(position, normal, uv);
 

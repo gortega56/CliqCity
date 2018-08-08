@@ -1,3 +1,5 @@
+#include "Lighting.hlsli"
+
 struct Material
 {
     float3 specular;
@@ -22,12 +24,27 @@ cbuffer Constants : register(b0)
     float4x4 inverseProj;
 }
 
-ConstantBuffer<Material> materials[] : register(b1);
+cbuffer LightConstants : register(b1)
+{
+    float4x4 lightView;
+    float4x4 lightProj;
+    float4x4 lightInverseView;
+    float4x4 lightInverseProj;
+}
 
-Texture2D textures[] : register(t0);
-SamplerState samp : register(s0);
-SamplerState clampSamp : register(s1);
+cbuffer Light : register(b2)
+{
+    float4 Color;
+    float4 Direction;
+}
 
+ConstantBuffer<Material> materials[] : register(b3);
+
+Texture2D textures[] : register(t0, space0);
+Texture2D shadow : register(t0, space1);
+
+SamplerState default_sampler : register(s0);
+SamplerComparisonState shadow_sampler : register(s1);
 
 struct VS_OUTPUT
 {
@@ -44,9 +61,21 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 {
     float4 output = float4(1, 0, 1, 1); // magenta
 
+    matrix T =
+    {
+        0.5f, 0.0f, 0.0f, 0.0f,
+        0.0f,-0.5f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.0f, 1.0f
+    };
+
+    float4x4 VPT = mul(mul(lightView, lightProj), T);
+    float4 Lp = mul(float4(input.worldPos, 1), VPT);
+    float Sf = Shadow_Factor(shadow, shadow_sampler, Lp.xy, Lp.z);
+
     float3 N = normalize(input.norm);
-    float3 L = float3(0.0f, -0.5f, 0.5f);
-    float3 Lc = float3(0.8, 0.8f, 0.8f);
+    float3 L = Direction.xyz;
+    float3 Lc = Color.xyz;
     float Ia = 0.1f;
     float Id = 1.0f;
     float Is = 1.0f;
@@ -67,7 +96,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
         if (diffIndex != -1)
         {
-            diffuse = materials[matIndex].diffuse * textures[diffIndex].Sample(samp, input.uv).xyz;
+           diffuse = materials[matIndex].diffuse * textures[diffIndex].Sample(default_sampler, input.uv).xyz;
         }
 
         if (normIndex != -1)
@@ -83,30 +112,30 @@ float4 main(VS_OUTPUT input) : SV_TARGET
                 n.x, n.y, n.z
             };
 
-            N = textures[normIndex].Sample(samp, input.uv).xyz;
+            N = textures[normIndex].Sample(default_sampler, input.uv).xyz;
             N = N * 2.0f - 1.0f;
             N = normalize(mul(N, tbn));
         }
 
         if (maskIndex != -1)
         {
-            float4 m = textures[maskIndex].Sample(samp, input.uv);
+            float4 m = textures[maskIndex].Sample(default_sampler, input.uv);
             if ((m.x + m.y + m.z) == 0) clip(-1);
         }
 
         if (specIndex != -1)
         {
-            specular = textures[specIndex].Sample(samp, input.uv).xyz;
+            specular = textures[specIndex].Sample(default_sampler, input.uv).xyz;
             float specExp = materials[matIndex].specularExponent;
             float3 eye = float3(inverseView[3][0], inverseView[3][1], inverseView[3][2]);
             float3 V = normalize(eye - input.worldPos);
             float3 H = normalize(-L + V);
-            specular = specular * pow(saturate(dot(N, H)), specExp) * Lc * Is;
+            specular = Blinn_Phong_Spec(specular, N, H, Lc, specExp, Is);
         }
 
-        diffuse = diffuse * saturate(dot(N, -L)) * Lc * Id;
+        diffuse = Blinn_Phong_Diffuse(diffuse, N, -L, Lc, Id);
 
-        output.xyz = ambient + diffuse + specular;
+        output.xyz = (ambient + diffuse + specular) * (Sf + 0.5f);
     }
 
     return output;

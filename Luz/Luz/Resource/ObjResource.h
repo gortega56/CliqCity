@@ -44,6 +44,14 @@ namespace Resource
         Obj();
         ~Obj();
 
+        struct LUZ_API BoundingBox
+        {
+            float MinX, MinY, MinZ;
+            float MaxX, MaxY, MaxZ;
+        };
+
+        BoundingBox LUZ_API GetSceneBounds() const;
+
         u32 LUZ_API GetNumSurfaces() const;
 
         u32 LUZ_API GetNumMtls() const;
@@ -97,6 +105,7 @@ namespace Resource
         std::vector<Surface> m_surfaces;
         std::vector<std::shared_ptr<const Mtl>> m_mtls;
         std::vector<Resource::Mtl::MaterialDesc> m_materials;
+        BoundingBox m_boundingBox;
 
         template<typename VertexType, typename IndexType>
         void AddFaceVertex(

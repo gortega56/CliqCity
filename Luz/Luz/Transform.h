@@ -8,24 +8,24 @@ public:
     LUZ_API Transform();
     LUZ_API ~Transform();
 
-    LUZ_API gmath::float4x3 GetWorld();
-    LUZ_API gmath::float3x3 GetOrientation() const;
+    LUZ_API float4x3 GetWorld();
+    LUZ_API float3x3 GetOrientation() const;
 
-    LUZ_API gmath::quaternion GetRotation() const;
-    LUZ_API gmath::euler GetEuler() const;
-    LUZ_API gmath::float3 GetPosition() const;
-    LUZ_API gmath::float3 GetScale() const;
+    LUZ_API quat GetRotation() const;
+    LUZ_API float3 GetEuler() const;
+    LUZ_API float3 GetPosition() const;
+    LUZ_API float3 GetScale() const;
 
-    LUZ_API gmath::float3 GetRight() const;
-    LUZ_API gmath::float3 GetUp() const;
-    LUZ_API gmath::float3 GetForward() const;
+    LUZ_API float3 GetRight() const;
+    LUZ_API float3 GetUp() const;
+    LUZ_API float3 GetForward() const;
 
     LUZ_API Transform* GetParent() const;
 
-    LUZ_API void SetPosition(const gmath::float3& position);
-    LUZ_API void SetRotation(const gmath::euler& euler);
-    LUZ_API void SetRotation(const gmath::quaternion& quat);
-    LUZ_API void SetScale(const gmath::float3& scale);
+    LUZ_API void SetPosition(const float3& position);
+    LUZ_API void SetRotation(const float3& euler);
+    LUZ_API void SetRotation(const quat& quat);
+    LUZ_API void SetScale(const float3& scale);
 
     LUZ_API void SetRotation(const float& pitch, const float& yaw, const float& roll);
     LUZ_API void SetRotation(const float& x, const float& y, const float& z, const float& w);
@@ -40,62 +40,66 @@ public:
     LUZ_API void RotateYaw(const float& radians);
     LUZ_API void RotateRoll(const float& radians);
 
+    LUZ_API void LookAt(const float3& position);
+    LUZ_API void LookAt(const float x, const float y, const float z);
+
+    LUZ_API void LookTo(const float3& direction);
+    LUZ_API void LookTo(const float x, const float y, const float z);
+
     LUZ_API bool IsDirty();
 
 private:
-    gmath::float4x3 m_world;
-    gmath::float4x3 m_local;
+    float4x3 m_world;
+    float4x3 m_local;
 
-    gmath::quaternion m_rotation;
-    gmath::float3 m_position;
-    gmath::float3 m_scale;
+    quat m_rotation;
+    float3 m_position;
+    float3 m_scale;
 
-    gmath::float3 m_right;
-    gmath::float3 m_up;
-    gmath::float3 m_forward;
+    float3 m_right;
+    float3 m_up;
+    float3 m_forward;
 
     Transform* m_parent;
     bool m_isDirty;
 };
 
-inline gmath::float3x3 Transform::GetOrientation() const
+inline float3x3 Transform::GetOrientation() const
 {
-    return gmath::float3x3(m_world.p_rows[0], m_world.p_rows[1], m_world.p_rows[2]);
+    return float3x3(m_world.p_rows[0], m_world.p_rows[1], m_world.p_rows[2]);
 }
 
-inline gmath::quaternion Transform::GetRotation() const
+inline quat Transform::GetRotation() const
 {
     return m_rotation;
 }
 
-inline gmath::euler Transform::GetEuler() const
+inline float3 Transform::GetEuler() const
 {
-    gmath::euler rollPitchYaw;
-    m_rotation.to_euler(rollPitchYaw);
-    return rollPitchYaw;
+    return m_rotation.euler();
 }
 
-inline gmath::float3 Transform::GetPosition() const
+inline float3 Transform::GetPosition() const
 {
     return m_position;
 }
 
-inline gmath::float3 Transform::GetScale() const
+inline float3 Transform::GetScale() const
 {
     return m_scale;
 }
 
-inline gmath::float3 Transform::GetRight() const
+inline float3 Transform::GetRight() const
 {
     return m_rotation * m_right;
 }
 
-inline gmath::float3 Transform::GetUp() const
+inline float3 Transform::GetUp() const
 {
     return m_rotation * m_up;
 }
 
-inline gmath::float3 Transform::GetForward() const
+inline float3 Transform::GetForward() const
 {
     return m_rotation * m_forward;
 }

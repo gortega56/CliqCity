@@ -12,7 +12,7 @@
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 
-//#define DX_DEBUG
+#define DX_DEBUG
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
 #define PIPELINE_MAX 32
@@ -27,6 +27,48 @@
 
 namespace Internal
 {
+    class ShaderInclude : public ID3DInclude
+    {
+    public:
+        HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFilename, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override;
+        
+        HRESULT Close(LPCVOID pData) override;
+
+        std::string m_filename;
+    };
+
+    HRESULT ShaderInclude::Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFilename, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
+    {
+        static const std::string s_directory = "..\\..\\..\\Luz\\Luz\\Graphics\\DirectX12\\Shaders\\";
+        std::string filename = s_directory + pFilename;
+
+        std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
+
+        if (!ifs.is_open())
+        {
+            return E_FAIL;
+        }
+        
+        long long fileSize = ifs.tellg();
+        char* buffer = new char[fileSize];
+        ifs.seekg(0, std::ios::beg);
+        ifs.read(buffer, fileSize);
+        ifs.close();
+        *ppData = buffer;
+        *pBytes = fileSize;
+
+        return S_OK;
+    }
+
+    HRESULT ShaderInclude::Close(LPCVOID pData)
+    {
+        char* buffer = (char*)pData;
+        delete[] buffer;
+        return S_OK;
+    }
+
+    static std::wstring ConvertCString(const char* cstr);
+
     static void EnableDebugLayer(ID3D12Debug** ppDebug);
     
     static void ConfigureDebugLayer(ID3D12Device* pDevice);
@@ -40,6 +82,16 @@ namespace Internal
     static bool LoadTgaImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary = false);
     
     static HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImage& outImage);
+
+    std::wstring ConvertCString(const char* cstr)
+    {
+        std::wstring ws;
+        ws.resize(strlen(cstr));
+
+        MultiByteToWideChar(CP_UTF8, 0, cstr, -1, ws.data(), static_cast<int>(ws.size()));
+
+        return ws;
+    }
 
     void EnableDebugLayer(ID3D12Debug** ppDebug)
     {
@@ -102,11 +154,6 @@ namespace Internal
 
     bool CompileShader(const char* filename, const char* entryPoint, const char* target, ID3DBlob** ppCode)
     {
-        std::wstring ws;
-        ws.resize(strlen(filename));
-
-        MultiByteToWideChar(CP_UTF8, 0, filename, -1, ws.data(), static_cast<int>(ws.size()));
-
         ID3DBlob* pError;
         UINT flags1 = 0;
 
@@ -116,7 +163,8 @@ namespace Internal
 
         flags1 |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
 
-        HRESULT hr = D3DCompileFromFile(ws.c_str(), nullptr, nullptr, entryPoint, target, flags1, 0, ppCode, &pError);
+        ShaderInclude include;
+        HRESULT hr = D3DCompileFromFile(ConvertCString(filename).c_str(), nullptr, &include, entryPoint, target, flags1, 0, ppCode, &pError);
         if (FAILED(hr))
         {
             OutputDebugStringA((char*)pError->GetBufferPointer());
@@ -465,7 +513,7 @@ namespace Graphics
         s_device.pDevice->QueryInterface(IID_PPV_ARGS(&s_pDebugDevice));
         if (s_pDebugDevice)
         {
-            s_pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+           // s_pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
         }
 
         SAFE_RELEASE(s_pDebug);
@@ -616,7 +664,9 @@ namespace Graphics
             LUZASSERT(SUCCEEDED(hr));
 
             pso.pRootSignature = pipeline.pSignature;
-            
+
+            pso.pRootSignature->SetName(Internal::ConvertCString(desc.Signature.GetName()).c_str());
+
             // Shaders
             LUZASSERT(desc.VertexShaderHandle != GPU_RESOURCE_HANDLE_INVALID);
             pso.VS = s_shaderCollection.GetData(desc.VertexShaderHandle).ByteCode;
@@ -705,6 +755,7 @@ namespace Graphics
             // IBStripCutValue
 
             // Topology
+            LUZASSERT(desc.Topology != PrimitiveTopologyType::GFX_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED);
             pso.PrimitiveTopologyType = GetD3D12PrimitiveTopoglogyType(desc.Topology);
 
             // RenderTargets and DepthStencil
@@ -726,7 +777,7 @@ namespace Graphics
                     pso.RTVFormats[i] = s_textureCollection.GetData(desc.pRenderTargets[i]).pResource->GetDesc().Format;
                 }
 
-                pso.DSVFormat = s_textureCollection.GetData(desc.DsHandle).pResource->GetDesc().Format;
+                pso.DSVFormat = s_depthStencilCollection.GetData(desc.DsHandle).DsvDesc.Format;
             }
 
             // Samplers
@@ -790,10 +841,13 @@ namespace Graphics
         {
             DepthStencil& ds = s_depthStencilCollection.GetData(handle);
 
+            bool createSrv = (desc.Flags & GFX_DEPTH_STENCIL_FLAG_SHADER_RESOURCE);
+            
             // Create Depth Stencil View
-            DXGI_FORMAT format = GetDxgiFormat(desc.Format);
+            DXGI_FORMAT format = (createSrv) ? DXGI_FORMAT_R24G8_TYPELESS : GetDxgiFormat(desc.Format);
+            
             D3D12_CLEAR_VALUE clearValue = {};
-            clearValue.Format = format;
+            clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
             clearValue.DepthStencil.Depth = 1.0f;
             clearValue.DepthStencil.Stencil = 0;
 
@@ -810,9 +864,30 @@ namespace Graphics
             ds.DepthStencilViewHandle.CpuHandle = heap.CpuHandle();
             ds.DepthStencilViewHandle.GpuHandle = heap.GpuHandle();
 
-            s_device.pDevice->CreateDepthStencilView(ds.pResource, nullptr, ds.DepthStencilViewHandle.CpuHandle);
+            ds.DsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            ds.DsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            ds.DsvDesc.Texture2D.MipSlice = 0;
+            ds.DsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+            s_device.pDevice->CreateDepthStencilView(ds.pResource, &ds.DsvDesc, ds.DepthStencilViewHandle.CpuHandle);
 
             // Handle SRV creation
+            if (createSrv)
+            {
+                ds.SrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                ds.SrvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS; // TODO: Maybe a method that converts from depth writable format to depth readable format. How many options are there really?
+                ds.SrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                ds.SrvDesc.Texture2D.MipLevels = 1;
+                ds.SrvDesc.Texture2D.MostDetailedMip = 0;
+                ds.SrvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+                ds.SrvDesc.Texture2D.PlaneSlice = 0;
+
+                Dx12::DescriptorHandle srvHandle = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+                ds.ShaderResourceViewHandle.CpuHandle = srvHandle.CpuHandle();
+                ds.ShaderResourceViewHandle.GpuHandle = srvHandle.GpuHandle();
+
+                s_device.pDevice->CreateShaderResourceView(ds.pResource, &ds.SrvDesc, ds.ShaderResourceViewHandle.CpuHandle);
+            }
         }
 
         return handle;
@@ -1121,32 +1196,29 @@ namespace Graphics
                 s_coInitialized = true;
             }
 
-            std::wstring ws;
-            ws.resize(strlen(desc.Filename));
+            std::wstring filename = Internal::ConvertCString(desc.Filename);
 
-            MultiByteToWideChar(CP_UTF8, 0, desc.Filename, -1, ws.data(), static_cast<int>(ws.size()));
-
-            LPCWSTR extension = PathFindExtension(ws.c_str());
+            LPCWSTR extension = PathFindExtension(filename.c_str());
 
             DirectX::ScratchImage image;
             if (_wcsicmp(L".dds", extension) == 0)
             {
-                Internal::LoadDDSImage(ws, image, desc.GenMips);
+                Internal::LoadDDSImage(filename, image, desc.GenMips);
             }
             else if (_wcsicmp(L".tga", extension) == 0)
             {
-                Internal::LoadTgaImage(ws, image, desc.GenMips);
+                Internal::LoadTgaImage(filename, image, desc.GenMips);
             }
             else
             {
-                Internal::LoadWICImage(ws, image, desc.GenMips);
+                Internal::LoadWICImage(filename, image, desc.GenMips);
             }
 
             Texture& tex = s_textureCollection.GetData(handle);
             HRESULT hr = DirectX::CreateTexture(s_device.pDevice, image.GetMetadata(), &tex.pResource);
             LUZASSERT(SUCCEEDED(hr));
 
-            tex.pResource->SetName(ws.c_str());
+            tex.pResource->SetName(filename.c_str());
 
             std::vector<D3D12_SUBRESOURCE_DATA> subresources;
             hr = PrepareUpload(s_device.pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources);
@@ -1452,10 +1524,16 @@ namespace Graphics
     void CommandStream::SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle)
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-        RenderTarget& rt = s_renderTargetCollection.GetData(pRtHandles[0]);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE pHandles[8] = { 0 };
+        for (u32 i = 0; i < numRenderTargets; ++i)
+        {
+            pHandles[i] = s_renderTargetCollection.GetData(pRtHandles[i]).CpuHandle;
+        }
+
         DepthStencil& ds = s_depthStencilCollection.GetData(dsHandle);
 
-        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, &rt.CpuHandle, TRUE, &ds.DepthStencilViewHandle.CpuHandle);
+        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, &ds.DepthStencilViewHandle.CpuHandle);
     }
 
     void CommandStream::SetRenderTargets()
@@ -1467,7 +1545,7 @@ namespace Graphics
         LUZASSERT(SUCCEEDED(hr));
 
         cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-        cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], FALSE, &s_swapChain.DepthStencilViewHandle);
+        cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], TRUE, &s_swapChain.DepthStencilViewHandle);
     }
 
     void CommandStream::SetViewport(const Viewport& viewport)
@@ -1538,9 +1616,11 @@ namespace Graphics
     void CommandStream::SetVertexBuffer(const VertexBufferHandle handle)
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-        VertexBuffer& vb = s_vertexBufferCollection.GetData(handle);
         
-        cl.pGraphicsCommandList->IASetVertexBuffers(0, 1, &vb.View);
+        D3D12_VERTEX_BUFFER_VIEW* pView = (handle == GPU_RESOURCE_HANDLE_INVALID) ? nullptr : &s_vertexBufferCollection.GetData(handle).View;
+        UINT numViews = (handle == GPU_RESOURCE_HANDLE_INVALID) ? 0 : 1;
+
+        cl.pGraphicsCommandList->IASetVertexBuffers(0, numViews, pView);
     }
 
     void CommandStream::SetIndexBuffer(const IndexBufferHandle handle)
@@ -1564,7 +1644,7 @@ namespace Graphics
         CommandList& cl = s_commandListCollection.GetData(m_handle);
         Texture tx = s_textureCollection.GetData(handle);
 
-        cl.pGraphicsCommandList->SetComputeRootShaderResourceView(static_cast<UINT>(param), tx.GpuVirtualAddress);
+        cl.pGraphicsCommandList->SetGraphicsRootShaderResourceView(static_cast<UINT>(param), tx.GpuVirtualAddress);
     }
 
     void CommandStream::SetDescriptorTable(const u32 param, const ConstantBufferHandle baseHandle)
@@ -1577,6 +1657,34 @@ namespace Graphics
 
         cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
         cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), cb.GpuHandle);
+    }
+
+    void CommandStream::SetDescriptorTable_FixLater(const u32 param, const ConstantBufferHandle hCb, const DepthStencilHandle baseHandle)
+    {
+        ConstantBuffer& cb = s_constantBufferCollection.GetData(hCb);
+
+        ID3D12DescriptorHeap* pHeap = Dx12::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cb.CpuHandle, cb.GpuHandle);
+
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
+
+
+        DepthStencil& ds = s_depthStencilCollection.GetData(baseHandle);
+        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), ds.ShaderResourceViewHandle.GpuHandle);
+    }
+
+    void CommandStream::TransitionDepthStencilToTexture(const DepthStencilHandle handle)
+    {
+        DepthStencil& ds = s_depthStencilCollection.GetData(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ds.pResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    }
+
+    void CommandStream::TransitionDepthStencilToDepthWrite(const DepthStencilHandle handle)
+    {
+        DepthStencil& ds = s_depthStencilCollection.GetData(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ds.pResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE));
     }
 
     void CommandStream::DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount /*= 1*/, const u32 startIndex /*= 0*/, const i32 baseVertexLocation /*= 0*/, const u32 startInstanceLocation /*= 0*/)

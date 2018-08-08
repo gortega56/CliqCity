@@ -126,6 +126,8 @@ namespace Graphics
         ID3D12Resource* pResource;
         DescriptorHandle DepthStencilViewHandle;
         DescriptorHandle ShaderResourceViewHandle;
+        D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+        D3D12_DEPTH_STENCIL_VIEW_DESC DsvDesc;
     };
 
     struct VertexBuffer

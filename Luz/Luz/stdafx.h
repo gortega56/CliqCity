@@ -47,8 +47,8 @@
 #include <fstream>
 #include <sstream>
 
-#ifndef GMATH_H
-#include "gmath.h"
+#ifndef LINA_H
+#include "lina.h"
 #endif
 
 #ifndef LZASSERT_H

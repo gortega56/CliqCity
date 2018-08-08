@@ -14,6 +14,10 @@
 
 class Window;
 
+/* TODO: 
+    1. Integrate shadow maps in pixel shader.
+    2. Remove the hacks for finding a descriptor by a handle. 
+*/
 namespace Graphics
 {
     class CommandStream;
@@ -114,6 +118,12 @@ namespace Graphics
         void SetTexture(const u32 param, const TextureHandle handle);
 
         void SetDescriptorTable(const u32 param, const ConstantBufferHandle baseHandle);
+
+        void SetDescriptorTable_FixLater(const u32 param, const ConstantBufferHandle cb, const DepthStencilHandle baseHandle);
+
+        void TransitionDepthStencilToDepthWrite(const DepthStencilHandle handle);
+
+        void TransitionDepthStencilToTexture(const DepthStencilHandle handle);
 
         void DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount = 1, const u32 startIndex = 0, const i32 baseVertexLocation = 0, const u32 startInstanceLocation = 0);
 

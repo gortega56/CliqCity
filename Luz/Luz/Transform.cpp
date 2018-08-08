@@ -1,11 +1,11 @@
 #include "stdafx.h"
 #include "Transform.h"
 
-using namespace gmath;
+using namespace lina;
 
 Transform::Transform()
-    : m_world(1.0f)
-    , m_local(1.0f)
+    : m_world(float4x3::identity())
+    , m_local(float4x3::identity())
     , m_rotation(0.0f, 0.0f, 0.0f, 1.0f)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_scale(1.0f, 1.0f, 1.0f)
@@ -27,10 +27,7 @@ float4x3 Transform::GetWorld()
 {
     if (IsDirty())
     {
-        float4x3 orientation;
-        m_rotation.to_matrix(orientation);
-
-        m_local = float4x3::scale(m_scale) * orientation * float4x3::translate(m_position);
+        m_local = float4x3::scale(m_scale) * m_rotation.matrix4x3() * float4x3::translate(m_position);
         m_world = (m_parent == nullptr) ? m_local : m_local * m_parent->GetWorld();
         m_isDirty = false;
     }
@@ -44,13 +41,13 @@ void Transform::SetPosition(const float3& position)
     m_isDirty = true;
 }
 
-void Transform::SetRotation(const euler& euler)
+void Transform::SetRotation(const float3& euler)
 {
-    m_rotation = quaternion(euler);
+    m_rotation = quaternion::create(euler.x, euler.y, euler.z);
     m_isDirty = true;
 }
 
-void Transform::SetRotation(const quaternion& quat)
+void Transform::SetRotation(const quat& quat)
 {
     m_rotation = quat;
     m_isDirty = true;
@@ -64,8 +61,7 @@ void Transform::SetScale(const float3& scale)
 
 void Transform::SetRotation(const float& pitch, const float& yaw, const float& roll)
 {
-    euler rollPitchYaw = euler(pitch, yaw, roll);
-    m_rotation = quaternion(rollPitchYaw);
+    m_rotation = quaternion::create(pitch, yaw, roll);
     m_isDirty = true;
 }
 
@@ -116,23 +112,43 @@ void Transform::MoveForward(const float& distance)
 
 void Transform::RotatePitch(const float& radians)
 {
-    euler e = euler(radians, 0.0f, 0.0f);
-    m_rotation *= quaternion(e);
+    m_rotation *= quaternion::create(radians, 0.0f, 0.0f);
     m_isDirty = true;
 }
 
 void Transform::RotateYaw(const float& radians)
 {
-    euler e = euler(0.0f, radians, 0.0f);
-    m_rotation *= quaternion(e);
+    m_rotation *= quaternion::create(0.0f, radians, 0.0f);
     m_isDirty = true;
 }
 
 void Transform::RotateRoll(const float& radians)
 {
-    euler e = euler(0.0f, 0.0f, radians);
-    m_rotation *= quaternion(e);
+    m_rotation *= quaternion::create(0.0f, 0.0f, radians);
     m_isDirty = true;
+}
+
+void Transform::LookAt(const float3& target)
+{
+    /*float3 f = normalize(float3(target - m_position, 0.0f));
+    float3 s = normalize(cross(m_up, f));
+    float3 u = cross(f, s);
+*/
+}
+
+void Transform::LookAt(const float x, const float y, const float z)
+{
+
+}
+
+void Transform::LookTo(const float3& direction)
+{
+
+}
+
+void Transform::LookTo(const float x, const float y, const float z)
+{
+
 }
 
 bool Transform::IsDirty()

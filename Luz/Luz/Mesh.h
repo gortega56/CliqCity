@@ -6,8 +6,8 @@
 #include "LuzExport.h"
 #endif
 
-#ifndef GMATH_H
-#include "gmath.h"
+#ifndef LINA_H
+#include "lina.h"
 #endif
 
 #include <vector>
@@ -193,9 +193,6 @@ namespace Graphics
         //static_assert(Geometry::VertexTraits<VertexType>::Normal);
         //static_assert(Geometry::VertexTraits<VertexType>::UV);
 
-        typedef gmath::float4 float4;
-        typedef gmath::float3 float3;
-
         std::vector<float3> tangents(static_cast<size_t>(numVertices));
         std::vector<float3> bitangents(static_cast<size_t>(numVertices));
         memset(tangents.data(), 0, sizeof(float3) * tangents.size());
@@ -223,10 +220,27 @@ namespace Graphics
             float t1 = v1.UV.y - v0.UV.y;
             float t2 = v2.UV.y - v0.UV.y;
 
-            float r = 1.0f / ((s1 * t2) - (s2 * t1));
+            //float r = 1.0f / ((s1 * t2) - (s2 * t1));
 
-            float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
-            float3 bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
+            //float3 tangent = { (((t2 * x1) - (t1 * x2)) * r), (((t2 * y1) - (t1 * y2)) * r), (((t2 * z1) - (t1 * z2)) * r) };
+            //float3 bitangent = { (((s2 * x1) - (s1 * x2)) * r), (((s2 * y1) - (s1 * y2)) * r), (((s2 * z1) - (s1 * z2)) * r) };
+
+            float3 tangent = 
+            { 
+                t2 * x1 - t1 * x2, 
+                t2 * y1 - t1 * y2, 
+                t2 * z1 - t1 * z2 
+            };
+
+            float3 bitangent = 
+            { 
+                -s2 * x1 + s1 * x2,
+                -s2 * y1 + s1 * y2,
+                -s2 * z1 + s1 * z2
+            };
+
+            tangent.normalize();
+            bitangent.normalize();
 
             tangents[i0] += tangent;
             tangents[i1] += tangent;
@@ -241,12 +255,13 @@ namespace Graphics
         {
             IndexType index = pIndices[i];
             VertexType& vertex = pVertices[index];
-            float3& tangent = tangents[index];
-            float3& bitangent = bitangents[index];
-            float3& normal = vertex.Normal;
+            float3 tangent = tangents[index];
+            float3 bitangent = bitangents[index];
+            float3 normal = vertex.Normal;
 
-            vertex.Tangent = gmath::normalize((tangent - normal * gmath::dot(normal, tangent)));
-            vertex.Tangent.w = (gmath::dot(gmath::cross(normal, tangent), bitangent) > 0.0f) ? 1.0f : -1.0f;
+            tangent -= normal * lina::dot(tangent, normal);
+            float w = (lina::dot(lina::cross(normal, tangent), bitangent) > 0.0f) ? 1.0f : -1.0f;
+            vertex.Tangent = float4(lina::normalize((tangent - normal * lina::dot(normal, tangent))), w);
         }
     }
 }

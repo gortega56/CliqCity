@@ -1,11 +1,11 @@
 #include "stdafx.h"
 #include "Camera.h"
 
-using namespace gmath;
+using namespace lina;
 
 Camera::Camera()
-    : m_projection(1.0f)
-    , m_view(1.0f)
+    : m_projection(float4x4::identity())
+    , m_view(float4x4::identity())
 {
 
 }
@@ -32,7 +32,7 @@ OrthographicCamera::OrthographicCamera()
 
 }
 
-gmath::float4x4 OrthographicCamera::GetProjection()
+float4x4 OrthographicCamera::GetProjection()
 {
     if (m_projectionDirty)
     {
@@ -48,12 +48,12 @@ gmath::float4x4 OrthographicCamera::GetProjection()
 
         m_projection.p_data[ 8] = 0.0f;
         m_projection.p_data[ 9] = 0.0f;
-        m_projection.p_data[10] = -2.0f / (m_far - m_near);
+        m_projection.p_data[10] = 1.0f / (m_far - m_near);
         m_projection.p_data[11] = 0.0f;
 
         m_projection.p_data[12] = 0.0f;
         m_projection.p_data[13] = 0.0f;
-        m_projection.p_data[14] = 0.0f;
+        m_projection.p_data[14] = m_near / (m_near - m_far);
         m_projection.p_data[15] = 1.0f;
 
         m_projectionDirty = false;
@@ -108,7 +108,7 @@ PerspectiveCamera::PerspectiveCamera()
 
 }
 
-inline gmath::float4x4 PerspectiveCamera::GetProjection()
+inline float4x4 PerspectiveCamera::GetProjection()
 {
     if (m_projectionDirty)
     {
