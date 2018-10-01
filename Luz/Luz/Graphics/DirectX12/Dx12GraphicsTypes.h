@@ -90,7 +90,8 @@ namespace Graphics
         D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilViewHandle;
 
         DXGI_SWAP_EFFECT SwapEffect;
-        DXGI_FORMAT Format;
+        DXGI_FORMAT BufferFormat;
+        DXGI_FORMAT RenderTargetFormat;
         DXGI_USAGE Usage;
         HWND Handle;
 

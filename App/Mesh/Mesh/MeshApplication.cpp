@@ -391,7 +391,6 @@ void MeshApplication::Update(double dt)
 
         Graphics::CommandStream cs;
         Graphics::CreateCommandStream(csd, &cs);
-        cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
         cs.SetPipeline(m_shadowPipeline);
         cs.SetRenderTargets(0, nullptr, m_shadowTexture);
         cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
@@ -420,6 +419,8 @@ void MeshApplication::Update(double dt)
                 cs.DrawInstanceIndexed(surface.ib);
             }
         }
+        cs.TransitionDepthStencilToTexture(m_shadowTexture);
+
 
         Graphics::SubmitCommandStream(&cs, false);
     }
@@ -461,7 +462,6 @@ void MeshApplication::Update(double dt)
         Graphics::CommandStream cs;
         Graphics::CreateCommandStream(csd, &cs);
 
-        cs.TransitionDepthStencilToTexture(m_shadowTexture);
         cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
@@ -494,6 +494,8 @@ void MeshApplication::Update(double dt)
                 cs.DrawInstanceIndexed(surface.ib);
             }
         }
+
+        cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
 
         Graphics::SubmitCommandStream(&cs, false);
     }

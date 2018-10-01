@@ -11,6 +11,7 @@
 
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
+#include <tchar.h>
 
 #define DX_DEBUG
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
@@ -24,6 +25,24 @@
 #define CONSTANT_BUFFER_MAX 1024
 #define TEXTURE_MAX 1024
 #define COMMAND_LIST_MAX 32
+
+void ErrorDescription(HRESULT hr)
+{
+    if (FACILITY_WINDOWS == HRESULT_FACILITY(hr))
+        hr = HRESULT_CODE(hr);
+    TCHAR* szErrMsg;
+
+    if (FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+        NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR)&szErrMsg, 0, NULL) != 0)
+    {
+        _tprintf(TEXT("%s"), szErrMsg);
+        LocalFree(szErrMsg);
+    }
+    else
+        _tprintf(TEXT("[Could not find a description for error # %#x.]\n"), hr);
+}
 
 namespace Internal
 {
@@ -357,7 +376,8 @@ namespace Graphics
 
         // Create swap chain
         s_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        s_swapChain.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        s_swapChain.BufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        s_swapChain.RenderTargetFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
         s_swapChain.Usage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         s_swapChain.Width = width;
         s_swapChain.Height = height;
@@ -370,7 +390,7 @@ namespace Graphics
         ZeroMemory(&backBufferDesc, sizeof(DXGI_MODE_DESC));
         backBufferDesc.Width = width;
         backBufferDesc.Height = height;
-        backBufferDesc.Format = s_swapChain.Format;
+        backBufferDesc.Format = s_swapChain.BufferFormat;
 
         DXGI_SAMPLE_DESC sampleDesc;
         ZeroMemory(&sampleDesc, sizeof(DXGI_SAMPLE_DESC));
@@ -389,7 +409,8 @@ namespace Graphics
         IDXGISwapChain* pTempSwapChain;
         hr = s_device.pFactory4->CreateSwapChain(s_pGraphicsQueue, &swapChainDesc, &pTempSwapChain);
         if (FAILED(hr))
-        {
+        {   
+            ErrorDescription(hr);
             return false;
         }
 
@@ -415,7 +436,12 @@ namespace Graphics
             ID3D12Resource* pSwapChainBuffer = nullptr;
             s_swapChain.pSwapChain3->GetBuffer(i, IID_PPV_ARGS(&pSwapChainBuffer));
             s_swapChain.RenderTargetViewHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHandle, static_cast<INT>(i), descriptorHandleSize);
-            s_device.pDevice->CreateRenderTargetView(pSwapChainBuffer, nullptr, s_swapChain.RenderTargetViewHandles[i]);
+
+            D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+            ZeroMemory(&rtvDesc, sizeof(D3D12_RENDER_TARGET_VIEW_DESC));
+            rtvDesc.Format = s_swapChain.RenderTargetFormat;
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            s_device.pDevice->CreateRenderTargetView(pSwapChainBuffer, &rtvDesc, s_swapChain.RenderTargetViewHandles[i]);
         }
 
         // Create Depth Stencil View
@@ -761,12 +787,8 @@ namespace Graphics
             // RenderTargets and DepthStencil
             if (desc.UseSwapChain)
             {
-                DXGI_SWAP_CHAIN_DESC scd;
-                hr = s_swapChain.pSwapChain3->GetDesc(&scd);
-                LUZASSERT(SUCCEEDED(hr));
-
                 pso.NumRenderTargets = 1;
-                pso.RTVFormats[0] = scd.BufferDesc.Format;
+                pso.RTVFormats[0] = s_swapChain.RenderTargetFormat;
                 pso.DSVFormat = s_swapChain.pDepthStencilResource->GetDesc().Format;
             }
             else
