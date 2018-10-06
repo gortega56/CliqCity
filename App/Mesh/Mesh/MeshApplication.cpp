@@ -14,24 +14,18 @@
 #include <iostream>
 #include <sstream>
 
-#define DIFF_PATH0 L".\\Assets\\BrickDiff.dds"
-#define DIFF_PATH1 L".\\Assets\\RockPileDiff.dds"
+#define CRYTEK_SPONZA_DIRECTORY ".\\Assets\\crytek_sponza\\"
+#define CRYTEK_SPONZA_OBJ_PATH  ".\\Assets\\crytek_sponza\\sponza.obj"
+#define CRYTEK_SPONZA_TEXTURE_DIRECTORY ".\\Assets\\crytek_sponza\\textures"
 
-#define NORM_PATH0 L".\\Assets\\BrickNorm.dds"
-#define NORM_PATH1 L".\\Assets\\RockPileNorm.dds"
-
-#define FBX_PATH0 ".\\Assets\\/*Prof_Animated*/.fbx"
-#define FBX_PATH1 ".\\Assets\\cube.FBX"
-
-#define SPONZA_OBJ_PATH ".\\Assets\\sponza_obj\\sponza.obj"
-#define SPONZA_MTL_PATH ".\\Assets\\sponza_obj\\sponza.mtl"
-#define SPONZA_TEX_PATH ".\\Assets\\sponza_textures\\"
+#define DABROVIC_SPONZA_DIRECTORY ".\\Assets\\dabrovic_sponza\\"
+#define DABROVIC_SPONZA_OBJ_PATH  ".\\Assets\\dabrovic_sponza\\sponza.obj"
+#define DABROVIC_SPONZA_TEXTURE_DIRECTORY DABROVIC_SPONZA_DIRECTORY
 
 using namespace Luz;
 using namespace lina;
 static float g_scale = 5.0f;
 Console g_console;
-
 
 static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f, 3000.0f);
 static Light s_light = Light(float3(0.8f, 0.8f, 0.8f), float3(0.0f, -0.5f, 0.0f));
@@ -76,9 +70,9 @@ bool MeshApplication::Initialize()
     }
 
     Resource::Obj::Desc desc;
-    desc.Filename = SPONZA_OBJ_PATH;
-    desc.Directory = ".\\Assets\\sponza_obj\\";
-    desc.TextureDirectory = ".\\Assets\\sponza_textures\\";
+    desc.Filename = CRYTEK_SPONZA_OBJ_PATH;
+    desc.Directory = CRYTEK_SPONZA_DIRECTORY;
+    desc.TextureDirectory = CRYTEK_SPONZA_DIRECTORY;
     desc.InvertUVs = true;
     auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
 
@@ -129,8 +123,8 @@ bool MeshApplication::Initialize()
         .AppendConstantView(1)
         .AppendConstantView(2)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
-        .AppendDescriptorTableRange(3, 26, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
-        .AppendDescriptorTableRange(3, 52, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
+        .AppendDescriptorTableRange(3, 25, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
+        .AppendDescriptorTableRange(3, 38, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
         .AppendAnisotropicWrapSampler(0)
         .AppendComparisonPointBorderSampler(1);
@@ -246,7 +240,7 @@ bool MeshApplication::Initialize()
             mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
 
             if (strlen(md.DiffuseTextureName)) mc.TextureIndices[0] = FindOrPushBackTextureName(textureNames, md.DiffuseTextureName);
-            if (strlen(md.NormalTextureName)) mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, md.NormalTextureName);
+            if (strlen(md.BumpTextureName)) mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, md.BumpTextureName);
             if (strlen(md.DissolveTextureName)) mc.TextureIndices[2] = FindOrPushBackTextureName(textureNames, md.DissolveTextureName);
             if (strlen(md.SpecularTextureName)) mc.TextureIndices[3] = FindOrPushBackTextureName(textureNames, md.SpecularTextureName);
         }

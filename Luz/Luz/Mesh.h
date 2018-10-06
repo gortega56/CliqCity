@@ -260,8 +260,10 @@ namespace Graphics
             float3 normal = vertex.Normal;
 
             tangent -= normal * lina::dot(tangent, normal);
+            tangent.normalize();
+
             float w = (lina::dot(lina::cross(normal, tangent), bitangent) > 0.0f) ? 1.0f : -1.0f;
-            vertex.Tangent = float4(lina::normalize((tangent - normal * lina::dot(normal, tangent))), w);
+            vertex.Tangent = float4(tangent, w);
         }
     }
 }

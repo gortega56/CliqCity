@@ -42,3 +42,56 @@ float Shadow_Factor(Texture2D shadow_texture, SamplerComparisonState shadow_samp
 
     return percent_lit / 9.0f;
 }
+
+float3 Linear_to_Gamma(float3 color)
+{
+    return pow(color, 1.0f / 2.2f);
+}
+
+float3 Gamma_to_Linear(float3 color)
+{
+    return pow(color, 2.2f);
+}
+
+float3 Linear_to_SRGB(float3 color)
+{
+    float3 lo = color * 12.92f;
+    float3 hi = 1.055f * pow(saturate(color), 1.0f / 2.4f) - 0.055f;
+    color.x = (color.x < 0.0031308f) ? lo.x : hi.x;
+    color.y = (color.x < 0.0031308f) ? lo.y : hi.y;
+    color.z = (color.x < 0.0031308f) ? lo.z : hi.z;
+    return color;
+}
+
+float3 SRGB_to_Linear(float3 color)
+{
+    float3 lo = color / 12.92f;
+    float3 hi = pow(max((color + 0.055f) / 1.055f,  0.0f), 2.4f);
+    color.x = (color.x < 0.04045f) ? lo.x : hi.x;
+    color.y = (color.x < 0.04045f) ? lo.y : hi.y;
+    color.z = (color.x < 0.04045f) ? lo.z : hi.z;
+    return color;
+}
+
+
+float3 Reinhard_Simple(float3 color, float exposure)
+{
+    return color * exposure / (1.0f + color / exposure);
+}
+
+float3 Reinhard_Luma(float3 color)
+{
+    float luma = dot(color, float3(0.2126f, 0.7152f, 0.0722f));
+    float toneMapped = luma / (1.0f + luma);
+    return color * toneMapped / luma;
+}
+
+float3 ACESFilm(float3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return saturate((x*(a*x + b)) / (x*(c*x + d) + e));
+}

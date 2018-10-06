@@ -239,5 +239,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Graphics\DirectX12\Shaders\Lighting.hlsli" />
+    <None Include="Graphics\DirectX12\Shaders\Sobel.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Graphics\DirectX12\Shaders\Monochrome_PS.hlsl" />
   </ItemGroup>
 </Project>

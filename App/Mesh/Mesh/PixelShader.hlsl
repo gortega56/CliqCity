@@ -1,4 +1,5 @@
 #include "Lighting.hlsli"
+#include "Sobel.hlsli"
 
 struct Material
 {
@@ -12,7 +13,7 @@ struct Material
     float dissolve;
     float3 emissive;
     float p0;
-    int4 textureIndices; // x - diffuse, y - normal z - dissolve
+    int4 textureIndices; // x - diffuse, y - bump z - dissolve w - spec
     float4 p2[10];
 };
 
@@ -74,32 +75,21 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float Sf = Shadow_Factor(shadow, shadow_sampler, Lp.xy, Lp.z);
 
     float3 N = normalize(input.norm);
-    float3 L = Direction.xyz;
+    float3 L = -Direction.xyz;
     float3 Lc = Color.xyz;
     float Ia = 0.1f;
-    float Id = 1.0f;
-    float Is = 1.0f;
+    float Id = 8.5f;
+    float Is = 25.0f;
 
-    int matIndex = input.mat;
-    if (matIndex != -1)
+    int iMaterial = input.mat;
+    if (iMaterial != -1)
     {
-        float3 ambient =  float3(0, 0, 0);
-        float3 diffuse =  float3(0, 0, 0);
+        float3 ambient = materials[iMaterial].ambient * Ia;
+        float3 diffuse = float3(0, 0, 0);
         float3 specular = float3(0, 0, 0);
 
-        ambient = materials[matIndex].ambient * Lc * Ia;
-
-        int diffIndex = materials[matIndex].textureIndices.x;
-        int normIndex = materials[matIndex].textureIndices.y;
-        int maskIndex = materials[matIndex].textureIndices.z;
-        int specIndex = materials[matIndex].textureIndices.w;
-
-        if (diffIndex != -1)
-        {
-           diffuse = materials[matIndex].diffuse * textures[diffIndex].Sample(default_sampler, input.uv).xyz;
-        }
-
-        if (normIndex != -1)
+        int iBump = materials[iMaterial].textureIndices.y;
+        if (iBump != -1)
         {
             float3 t = normalize(input.tangent);
             float3 b = normalize(input.bitangent);
@@ -112,30 +102,56 @@ float4 main(VS_OUTPUT input) : SV_TARGET
                 n.x, n.y, n.z
             };
 
-            N = textures[normIndex].Sample(default_sampler, input.uv).xyz;
-            N = N * 2.0f - 1.0f;
+            N = SobelFilter(textures[iBump], default_sampler, input.uv, 1.0f);
             N = normalize(mul(N, tbn));
         }
-
-        if (maskIndex != -1)
+        
+        int iDiffuse = materials[iMaterial].textureIndices.x;
+        if (iDiffuse != -1)
         {
-            float4 m = textures[maskIndex].Sample(default_sampler, input.uv);
+            diffuse = textures[iDiffuse].Sample(default_sampler, input.uv).xyz;
+            diffuse = SRGB_to_Linear(diffuse);
+            diffuse = diffuse * materials[iMaterial].diffuse;
+            diffuse = Blinn_Phong_Diffuse(diffuse, N, L, Lc, Id);
+        }
+
+        int iMask = materials[iMaterial].textureIndices.z;
+        if (iMask != -1)
+        {
+            float4 m = textures[iMask].Sample(default_sampler, input.uv);
             if ((m.x + m.y + m.z) == 0) clip(-1);
         }
 
-        if (specIndex != -1)
+        int iSpec = materials[iMaterial].textureIndices.w;
+        if (iSpec != -1)
         {
-            specular = textures[specIndex].Sample(default_sampler, input.uv).xyz;
-            float specExp = materials[matIndex].specularExponent;
             float3 eye = float3(inverseView[3][0], inverseView[3][1], inverseView[3][2]);
             float3 V = normalize(eye - input.worldPos);
-            float3 H = normalize(-L + V);
+            float3 H = normalize(L + V);
+            float specExp = materials[iMaterial].specularExponent;
+
+            specular = materials[iMaterial].specular * textures[iSpec].Sample(default_sampler, input.uv).xyz;
             specular = Blinn_Phong_Spec(specular, N, H, Lc, specExp, Is);
         }
 
-        diffuse = Blinn_Phong_Diffuse(diffuse, N, -L, Lc, Id);
 
-        output.xyz = (ambient + diffuse + specular) * (Sf + 0.5f);
+
+        if (saturate(dot(N, L)) == 0.0f)
+        {
+            output.xyz = ambient + diffuse;// *Sf;
+        }
+        else
+        {
+            output.xyz = ambient + (diffuse + specular);// *Sf;
+        }
+
+
+        //output.xyz = Reinhard_Simple(output.xyz, 1.5f);
+        output.xyz *= 0.9f;
+        output.xyz = Reinhard_Luma(output.xyz);
+        //output.xyz = ACESFilm(output.xyz);
+
+        output.xyz = Linear_to_SRGB(output.xyz);
     }
 
     return output;

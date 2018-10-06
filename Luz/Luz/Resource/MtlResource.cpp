@@ -34,7 +34,7 @@ namespace Resource
             desc.SpecularTextureName = pMaterial->SpecularTextureName.c_str();
             desc.EmissiveTextureName = pMaterial->EmissiveTextureName.c_str();
             desc.DissolveTextureName = pMaterial->DissolveTextureName.c_str();
-            desc.NormalTextureName = pMaterial->NormalTextureName.c_str();
+            desc.BumpTextureName = pMaterial->BumpTextureName.c_str();
             return true;
         }
 
@@ -149,7 +149,7 @@ namespace Resource
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->NormalTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->BumpTextureName = desc.TextureDirectory + textureName;
                 }
                 else if (statement.compare("map_d") == 0)
                 {
