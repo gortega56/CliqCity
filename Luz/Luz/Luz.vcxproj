@@ -199,7 +199,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraController.cpp" />
-    <ClCompile Include="Graphics\DirectX12\DX12GraphicsTypes.cpp" />
+    <ClCompile Include="Graphics\DirectX12\Dx12GraphicsTypes.cpp" />
     <ClCompile Include="Graphics\GraphicsTypes.cpp" />
     <ClCompile Include="Graphics\PipelineStates.cpp" />
     <ClCompile Include="Graphics\ResourceCollection.cpp" />
@@ -207,12 +207,6 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="LzAssert.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
-    <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
     <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp" />
     <ClCompile Include="Graphics\DirectX12\Fence.cpp" />
@@ -247,7 +241,6 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\CommandContext.h" />
     <ClInclude Include="Graphics\DirectX12\d3dx12.h" />
-    <ClInclude Include="Graphics\DirectX12\DescriptorHeap.h" />
     <ClInclude Include="Graphics\DirectX12\dx12_internal.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Graphics\DirectX12\Fence.h" />

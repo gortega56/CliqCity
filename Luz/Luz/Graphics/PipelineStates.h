@@ -147,14 +147,14 @@ namespace Graphics
         u32 GetSemanticIndex(std::string name);
     };
 
-    struct Constant
+    struct RootConstant
     {
         u32 Register;
         u32 RegisterSpace;
         u32 Num32BitValues;
     };
 
-    struct Descriptor
+    struct RootDescriptor
     {
         u32 Register;
         u32 RegisterSpace;
@@ -234,8 +234,8 @@ namespace Graphics
     private:
         union
         {
-            Constant m_constant;
-            Descriptor m_descriptor;
+            RootConstant m_constant;
+            RootDescriptor m_descriptor;
             DescriptorTable m_descriptorTable;
         };
 

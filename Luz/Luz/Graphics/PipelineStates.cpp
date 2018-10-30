@@ -364,7 +364,7 @@ namespace Graphics
     SignatureDesc& SignatureDesc::AppendPointClampSampler(const u32& shaderRegister)
     {
         return AppendStaticSampler(shaderRegister, 0,
-            FilterType::GFX_FILTER_MIN_MAG_MIP_LINEAR,
+            FilterType::GFX_FILTER_MIN_MAG_MIP_POINT,
             AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
             AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
             AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP);

@@ -285,6 +285,8 @@ namespace Graphics
 
     typedef GpuResourceHandle CommandStreamHandle;
 
+    typedef GpuResourceHandle DescriptorHandle;
+
     typedef uint8_t CommandQueueHandle;
 
     enum CommandQueueType : uint8_t

@@ -77,14 +77,14 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float3 N = normalize(input.norm);
     float3 L = -Direction.xyz;
     float3 Lc = Color.xyz;
-    float Ia = 0.1f;
+    float Ia = 0.5f;
     float Id = 8.5f;
     float Is = 25.0f;
-
+    float r = 0.0f;
     int iMaterial = input.mat;
     if (iMaterial != -1)
     {
-        float3 ambient = materials[iMaterial].ambient * Ia;
+        float3 ambient = float3(0, 0, 0);
         float3 diffuse = float3(0, 0, 0);
         float3 specular = float3(0, 0, 0);
 
@@ -103,15 +103,19 @@ float4 main(VS_OUTPUT input) : SV_TARGET
             };
 
             N = SobelFilter(textures[iBump], default_sampler, input.uv, 1.0f);
-            N = normalize(mul(N, tbn));
+           // N = normalize(mul(N, tbn));
         }
         
         int iDiffuse = materials[iMaterial].textureIndices.x;
         if (iDiffuse != -1)
         {
-            diffuse = textures[iDiffuse].Sample(default_sampler, input.uv).xyz;
-            diffuse = SRGB_to_Linear(diffuse);
-            diffuse = diffuse * materials[iMaterial].diffuse;
+            float3 color = textures[iDiffuse].Sample(default_sampler, input.uv).xyz;
+            color = SRGB_to_Linear(color);
+
+            // Unlit
+            ambient = color * materials[iMaterial].ambient * Ia;
+
+            diffuse = color * materials[iMaterial].diffuse;
             diffuse = Blinn_Phong_Diffuse(diffuse, N, L, Lc, Id);
         }
 
@@ -135,15 +139,10 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         }
 
 
+        float3 shadow = (ambient) * max(0.2f, Sf);
+        float3 color = (ambient + diffuse + specular) * Sf;
+        output.xyz = lerp(shadow, color, Sf);
 
-        if (saturate(dot(N, L)) == 0.0f)
-        {
-            output.xyz = ambient + diffuse;// *Sf;
-        }
-        else
-        {
-            output.xyz = ambient + (diffuse + specular);// *Sf;
-        }
 
 
         //output.xyz = Reinhard_Simple(output.xyz, 1.5f);
@@ -152,6 +151,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         //output.xyz = ACESFilm(output.xyz);
 
         output.xyz = Linear_to_SRGB(output.xyz);
+        output.xyz = N;
     }
 
     return output;

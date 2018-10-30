@@ -47,14 +47,6 @@
 
 namespace Graphics
 {
-    constexpr u8 s_maxSwapChainBuffers = 4;
-
-    struct DescriptorHandle
-    {
-        D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
-        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
-    };
-
     struct Device
     {
         IDXGIFactory* pFactory;
@@ -103,6 +95,19 @@ namespace Graphics
         bool FullScreen;
     };
 
+    struct DescriptorHeap
+    {
+        u16 Handle;
+        ID3D12DescriptorHeap* pHeap;
+    };
+
+    struct Descriptor
+    {
+        DescriptorHandle Handle;
+        D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
+    };
+
     struct Shader
     {
         ID3DBlob* pShader = nullptr;
@@ -119,16 +124,15 @@ namespace Graphics
     {
         ID3D12Resource* pResource;
         D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
-        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
     };
 
     struct DepthStencil
     {
         ID3D12Resource* pResource;
-        DescriptorHandle DepthStencilViewHandle;
-        DescriptorHandle ShaderResourceViewHandle;
         D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
         D3D12_DEPTH_STENCIL_VIEW_DESC DsvDesc;
+        Descriptor DsvHandle;
+        Descriptor SrvHandle;
     };
 
     struct VertexBuffer
@@ -147,18 +151,17 @@ namespace Graphics
     struct ConstantBuffer
     {
         ID3D12Resource* pResource;
-        D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
-        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
         D3D12_GPU_VIRTUAL_ADDRESS GpuVirtualAddress;
+        Descriptor CbvHandle;
     };
 
     struct Texture
     {
         ID3D12Resource* pResource;
         D3D12_GPU_VIRTUAL_ADDRESS GpuVirtualAddress;
-        DescriptorHandle SrvHandle;
-        DescriptorHandle RtvHandle;
-        DescriptorHandle UavHandle;
+        Descriptor SrvHandle;
+        Descriptor RtvHandle;
+        Descriptor UavHandle;
     };
 
     struct CommandList
@@ -172,6 +175,8 @@ namespace Graphics
         ID3D12CommandQueue* pCommandQueue;
         void* pAlloc;
     };
+
+    
 
     DXGI_FORMAT GetDxgiFormat(const Format format);
     D3D12_INPUT_CLASSIFICATION GetD3D12InputClassification(const InputLayoutDesc::Element::Type elementType);

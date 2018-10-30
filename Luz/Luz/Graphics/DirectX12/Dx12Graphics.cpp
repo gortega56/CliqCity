@@ -25,6 +25,7 @@
 #define CONSTANT_BUFFER_MAX 1024
 #define TEXTURE_MAX 1024
 #define COMMAND_LIST_MAX 32
+#define DESCRIPTOR_HEAP_MAX 1024
 
 void ErrorDescription(HRESULT hr)
 {
@@ -74,7 +75,7 @@ namespace Internal
         ifs.read(buffer, fileSize);
         ifs.close();
         *ppData = buffer;
-        *pBytes = fileSize;
+        *pBytes = static_cast<UINT>(fileSize);
 
         return S_OK;
     }
@@ -276,6 +277,40 @@ namespace Internal
 
 namespace Graphics
 {
+    struct DescriptorAllocator
+    {
+        static const u32 sm_maxDescriptorHeaps = 256;
+
+        static const u32 sm_maxDescriptors = 256;
+
+        D3D12_DESCRIPTOR_HEAP_TYPE m_type;
+
+        D3D12_DESCRIPTOR_HEAP_FLAGS m_flags;
+
+        u32 m_descriptorHandleIncrementSize;
+
+        u32 m_remainingHandles;
+
+        DescriptorHeap* m_pCurrentDescriptorHeap;
+
+        std::vector<DescriptorHeap> m_descriptorHeaps;
+
+        std::mutex m_descriptorHeapMutex;
+
+        Descriptor Allocate(const u32 numDescriptors);
+
+        inline ID3D12DescriptorHeap* GetHeap(const u16 handle)
+        {
+            std::lock_guard<std::mutex> lock(m_descriptorHeapMutex);
+            return m_descriptorHeaps[GetHeapHandle(handle)].pHeap;
+        }
+
+        inline u16 GetHeapHandle(const u16 handle) { return (handle >> 8) & 0x00FF; }
+
+        inline u16 GetDescriptorHandle(const u16 handle) { return handle & 0x00FF; }
+    };
+
+
     static Device s_device;
     static SwapChainContext s_swapChain;
 
@@ -313,6 +348,13 @@ namespace Graphics
     static TextureCollection s_textureCollection;
 
     static CommandListCollection s_commandListCollection;
+
+    static DescriptorAllocator s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+    static Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
+    {
+        return s_descriptorAllocatorCollection[eType].Allocate(nDescriptors);
+    }
 
     ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target);
 
@@ -372,7 +414,27 @@ namespace Graphics
         if (FAILED(hr)) return false;
 
         // Initialize Descriptor heaps
-        Dx12::DescriptorHeapAllocator::Initialize(s_device.pDevice);
+        DescriptorAllocator* pHeapAllocator = nullptr;
+        pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
+        pHeapAllocator->m_type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        pHeapAllocator->m_descriptorHandleIncrementSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER];
+        pHeapAllocator->m_type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        pHeapAllocator->m_descriptorHandleIncrementSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+        pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_RTV];
+        pHeapAllocator->m_type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        pHeapAllocator->m_descriptorHandleIncrementSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_DSV];
+        pHeapAllocator->m_type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        pHeapAllocator->m_descriptorHandleIncrementSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+        //Dx12::DescriptorHeapAllocator::Initialize(s_device.pDevice);
 
         // Create swap chain
         s_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -479,7 +541,16 @@ namespace Graphics
     {
         // wait for the gpu to finish all frames
         Dx12::CommandAllocatorPool::Destroy();
-        Dx12::DescriptorHeapAllocator::Destroy();
+ 
+        for (u32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+        {
+            for (auto& heap : s_descriptorAllocatorCollection[i].m_descriptorHeaps)
+            {
+                SAFE_RELEASE(heap.pHeap);
+            }
+
+            s_descriptorAllocatorCollection[i].m_descriptorHeaps.clear();
+        }
 
         for (u32 i = 0; i < PIPELINE_MAX; ++i)
         {
@@ -848,9 +919,7 @@ namespace Graphics
                 IID_PPV_ARGS(&rt.pResource));
             LUZASSERT(SUCCEEDED(hr));
 
-            Dx12::DescriptorHandle heap = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1);
-            rt.CpuHandle = heap.CpuHandle();
-            rt.GpuHandle = heap.GpuHandle();
+            rt.CpuHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1).CpuHandle;
         }
 
         return handle;
@@ -882,16 +951,14 @@ namespace Graphics
                 IID_PPV_ARGS(&ds.pResource));
             LUZASSERT(SUCCEEDED(hr));
 
-            Dx12::DescriptorHandle heap = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1);
-            ds.DepthStencilViewHandle.CpuHandle = heap.CpuHandle();
-            ds.DepthStencilViewHandle.GpuHandle = heap.GpuHandle();
+            ds.DsvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1);
 
             ds.DsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
             ds.DsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
             ds.DsvDesc.Texture2D.MipSlice = 0;
             ds.DsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-            s_device.pDevice->CreateDepthStencilView(ds.pResource, &ds.DsvDesc, ds.DepthStencilViewHandle.CpuHandle);
+            s_device.pDevice->CreateDepthStencilView(ds.pResource, &ds.DsvDesc, ds.DsvHandle.CpuHandle);
 
             // Handle SRV creation
             if (createSrv)
@@ -904,11 +971,9 @@ namespace Graphics
                 ds.SrvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
                 ds.SrvDesc.Texture2D.PlaneSlice = 0;
 
-                Dx12::DescriptorHandle srvHandle = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
-                ds.ShaderResourceViewHandle.CpuHandle = srvHandle.CpuHandle();
-                ds.ShaderResourceViewHandle.GpuHandle = srvHandle.GpuHandle();
+                ds.SrvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
 
-                s_device.pDevice->CreateShaderResourceView(ds.pResource, &ds.SrvDesc, ds.ShaderResourceViewHandle.CpuHandle);
+                s_device.pDevice->CreateShaderResourceView(ds.pResource, &ds.SrvDesc, ds.SrvHandle.CpuHandle);
             }
         }
 
@@ -1097,15 +1162,13 @@ namespace Graphics
 
                 if (desc.AllocHeap)
                 {
-                    Dx12::DescriptorHandle dh = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
-                    cb.CpuHandle = dh.CpuHandle();
-                    cb.GpuHandle = dh.GpuHandle();
+                    cb.CbvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
 
                     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
                     ZeroMemory(&cbvDesc, sizeof(D3D12_CONSTANT_BUFFER_VIEW_DESC));
                     cbvDesc.BufferLocation = cb.GpuVirtualAddress;
                     cbvDesc.SizeInBytes = static_cast<UINT>(desc.SizeInBytes);
-                    s_device.pDevice->CreateConstantBufferView(&cbvDesc, cb.CpuHandle);
+                    s_device.pDevice->CreateConstantBufferView(&cbvDesc, cb.CbvHandle.CpuHandle);
                 }
             }
         }
@@ -1285,9 +1348,7 @@ namespace Graphics
             LUZASSERT(SUCCEEDED(hr));
             fence.Wait();
 
-            Dx12::DescriptorHandle heap = Dx12::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
-            tex.SrvHandle.CpuHandle = heap.CpuHandle();
-            tex.SrvHandle.GpuHandle = heap.GpuHandle();
+            tex.SrvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
 
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
             ZeroMemory(&srvDesc, sizeof(D3D12_SHADER_RESOURCE_VIEW_DESC));
@@ -1327,7 +1388,6 @@ namespace Graphics
     {
         RenderTarget rt = s_renderTargetCollection.GetData(handle);
         rt.CpuHandle.ptr = 0;
-        rt.GpuHandle.ptr = 0;
         SAFE_RELEASE(rt.pResource);
         s_renderTargetCollection.FreeHandle(handle);
     }
@@ -1335,10 +1395,10 @@ namespace Graphics
     void ReleaseDepthStencil(const DepthStencilHandle handle)
     {
         DepthStencil ds = s_depthStencilCollection.GetData(handle);
-        ds.DepthStencilViewHandle.CpuHandle.ptr = 0;
-        ds.DepthStencilViewHandle.GpuHandle.ptr = 0;
-        ds.ShaderResourceViewHandle.CpuHandle.ptr = 0;
-        ds.ShaderResourceViewHandle.GpuHandle.ptr = 0;
+        ds.DsvHandle.CpuHandle.ptr = 0;
+        ds.DsvHandle.GpuHandle.ptr = 0;
+        ds.SrvHandle.CpuHandle.ptr = 0;
+        ds.SrvHandle.GpuHandle.ptr = 0;
         SAFE_RELEASE(ds.pResource);
         s_depthStencilCollection.FreeHandle(handle);
     }
@@ -1366,8 +1426,8 @@ namespace Graphics
     void ReleaseConstantBuffer(const ConstantBufferHandle handle)
     {
         ConstantBuffer cb = s_constantBufferCollection.GetData(handle);
-        cb.CpuHandle.ptr = 0;
-        cb.GpuHandle.ptr = 0;
+        cb.CbvHandle.CpuHandle.ptr = 0;
+        cb.CbvHandle.GpuHandle.ptr = 0;
         SAFE_RELEASE(cb.pResource);
         s_constantBufferCollection.FreeHandle(handle);
     }
@@ -1555,7 +1615,7 @@ namespace Graphics
 
         DepthStencil& ds = s_depthStencilCollection.GetData(dsHandle);
 
-        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, &ds.DepthStencilViewHandle.CpuHandle);
+        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, &ds.DsvHandle.CpuHandle);
     }
 
     void CommandStream::SetRenderTargets()
@@ -1619,7 +1679,7 @@ namespace Graphics
         CommandList& cl = s_commandListCollection.GetData(m_handle);
         DepthStencil& ds = s_depthStencilCollection.GetData(handle);
 
-        cl.pGraphicsCommandList->ClearDepthStencilView(ds.DepthStencilViewHandle.CpuHandle, D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
+        cl.pGraphicsCommandList->ClearDepthStencilView(ds.DsvHandle.CpuHandle, D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
     }
 
     void CommandStream::ClearDepthStencil(const float depth, const u8 stencil)
@@ -1673,26 +1733,28 @@ namespace Graphics
     {
         ConstantBuffer& cb = s_constantBufferCollection.GetData(baseHandle);
 
-        ID3D12DescriptorHeap* pHeap = Dx12::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cb.CpuHandle, cb.GpuHandle);
+        ID3D12DescriptorHeap* pHeap = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetHeap(cb.CbvHandle.Handle);
 
         CommandList& cl = s_commandListCollection.GetData(m_handle);
 
         cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
-        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), cb.GpuHandle);
+        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), cb.CbvHandle.GpuHandle);
+       
     }
 
     void CommandStream::SetDescriptorTable_FixLater(const u32 param, const ConstantBufferHandle hCb, const DepthStencilHandle baseHandle)
     {
+        // Hack: I need the constant buffer handle for the heap and the dsv handle for the actual table
         ConstantBuffer& cb = s_constantBufferCollection.GetData(hCb);
 
-        ID3D12DescriptorHeap* pHeap = Dx12::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cb.CpuHandle, cb.GpuHandle);
+        ID3D12DescriptorHeap* pHeap = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetHeap(cb.CbvHandle.Handle);
 
         CommandList& cl = s_commandListCollection.GetData(m_handle);
         cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
 
 
         DepthStencil& ds = s_depthStencilCollection.GetData(baseHandle);
-        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), ds.ShaderResourceViewHandle.GpuHandle);
+        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), ds.SrvHandle.GpuHandle);
     }
 
     void CommandStream::TransitionDepthStencilToTexture(const DepthStencilHandle handle)
@@ -1716,6 +1778,48 @@ namespace Graphics
 
         cl.pGraphicsCommandList->DrawIndexedInstanced(ib.NumIndices, instanceCount, startIndex, baseVertexLocation, startInstanceLocation);
     }
+
+    Descriptor DescriptorAllocator::Allocate(const u32 numDescriptors)
+    {
+        if (m_pCurrentDescriptorHeap == nullptr || m_remainingHandles < numDescriptors)
+        {
+            u16 nHeaps;
+            {
+                std::lock_guard<std::mutex> guard(m_descriptorHeapMutex);
+                m_pCurrentDescriptorHeap = &m_descriptorHeaps.emplace_back();
+                nHeaps = static_cast<u16>(m_descriptorHeaps.size());
+            }
+
+            D3D12_DESCRIPTOR_HEAP_DESC desc;
+            ZeroMemory(&desc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+            desc.Type = m_type;
+            desc.Flags = m_flags;
+            desc.NumDescriptors = static_cast<UINT>(sm_maxDescriptors);
+
+            HRESULT hr = s_device.pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pCurrentDescriptorHeap->pHeap));
+            LUZASSERT(SUCCEEDED(hr));
+
+            std::wostringstream ss;
+            ss << m_type << " Descriptor Heap " << (nHeaps - 1);
+
+            m_pCurrentDescriptorHeap->pHeap->SetName(ss.str().c_str());
+            m_pCurrentDescriptorHeap->Handle = nHeaps - 1;
+
+            m_remainingHandles = sm_maxDescriptors;
+        }
+
+        u16 descriptorOffset = sm_maxDescriptors - m_remainingHandles;
+
+        m_remainingHandles -= numDescriptors;
+
+        Descriptor descriptor;
+        descriptor.Handle = static_cast<DescriptorHandle>((m_pCurrentDescriptorHeap->Handle << 8) & descriptorOffset);
+        descriptor.CpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pCurrentDescriptorHeap->pHeap->GetCPUDescriptorHandleForHeapStart(), descriptorOffset, m_descriptorHandleIncrementSize);
+        descriptor.GpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pCurrentDescriptorHeap->pHeap->GetGPUDescriptorHandleForHeapStart(), descriptorOffset, m_descriptorHandleIncrementSize);
+        return descriptor;
+    }
+
+
 }
 
 #endif

@@ -126,7 +126,7 @@ bool MeshApplication::Initialize()
         .AppendDescriptorTableRange(3, 25, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
         .AppendDescriptorTableRange(3, 38, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendAnisotropicWrapSampler(0)
+        .AppendLinearWrapSampler(0)
         .AppendComparisonPointBorderSampler(1);
     pd.InputLayout.AppendFloat4("TANGENT")
         .AppendPosition3F()

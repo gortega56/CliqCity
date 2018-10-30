@@ -39,9 +39,6 @@
     <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp">
       <Filter>Graphics\DirectX12</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\DescriptorHeap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\DirectX12\CommandContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -108,13 +105,13 @@
     <ClCompile Include="Graphics\GraphicsTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\DX12GraphicsTypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\ResourceCollection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\PipelineStates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\Dx12GraphicsTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -148,9 +145,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\dx12_internal.h">
       <Filter>Graphics\DirectX12</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\DescriptorHeap.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Luz.h">
       <Filter>Header Files</Filter>
