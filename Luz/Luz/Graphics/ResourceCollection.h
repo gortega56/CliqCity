@@ -16,6 +16,7 @@ namespace Graphics
         static const size_t sm_proxy_bit_size = sizeof(proxy_t) * 8;
         static const size_t sm_proxy_count = N / sm_proxy_bit_size;
         static_assert(N % sm_proxy_count == 0, "TCollection requires N be a multiple of sm_proxy_bit_size");
+        //static_assert(N <= sizeof(HandleType) * 8, "TCollection requires HandleType be at least the same number of bits as size of the collection");
     public:
         TCollection();
         ~TCollection();
@@ -25,7 +26,8 @@ namespace Graphics
 
         inline DataType& GetData(const HandleType handle)
         {
-            return m_data[static_cast<std::underlying_type<HandleType>::type>(handle)];
+            auto i = static_cast<std::underlying_type<HandleType>::type>(handle) & (N - 1);
+            return m_data[i];   // Mask out the bits of that handle that collection will never set
         }
 
     private:

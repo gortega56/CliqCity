@@ -22,14 +22,14 @@ float3 SobelFilter(Texture2D height_texture, SamplerState height_sampler, float2
         float2(-dx, +dy), float2(0.0f, +dy), float2(+dx, +dy)
     };
 
-    float h00 = height_texture.SampleLevel(height_sampler, uv + offsets[0],0).r;
-    float h10 = height_texture.SampleLevel(height_sampler, uv + offsets[1],0).r;
-    float h20 = height_texture.SampleLevel(height_sampler, uv + offsets[2],0).r;
-    float h01 = height_texture.SampleLevel(height_sampler, uv + offsets[3],0).r;
-    float h21 = height_texture.SampleLevel(height_sampler, uv + offsets[5],0).r;
-    float h02 = height_texture.SampleLevel(height_sampler, uv + offsets[6],0).r;
-    float h12 = height_texture.SampleLevel(height_sampler, uv + offsets[7],0).r;
-    float h22 = height_texture.SampleLevel(height_sampler, uv + offsets[8],0).r;
+    float h00 = height_texture.Sample(height_sampler, uv + offsets[0]).r;
+    float h10 = height_texture.Sample(height_sampler, uv + offsets[1]).r;
+    float h20 = height_texture.Sample(height_sampler, uv + offsets[2]).r;
+    float h01 = height_texture.Sample(height_sampler, uv + offsets[3]).r;
+    float h21 = height_texture.Sample(height_sampler, uv + offsets[5]).r;
+    float h02 = height_texture.Sample(height_sampler, uv + offsets[6]).r;
+    float h12 = height_texture.Sample(height_sampler, uv + offsets[7]).r;
+    float h22 = height_texture.Sample(height_sampler, uv + offsets[8]).r;
 
     //		+1  0 -1		     +1 +2 +1		
     // Gx = +2  0 -2		Gy =  0  0  0

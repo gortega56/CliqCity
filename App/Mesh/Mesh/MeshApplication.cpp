@@ -434,7 +434,7 @@ void MeshApplication::Update(double dt)
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        cs.SetDescriptorTable_FixLater(0, m_baseDescriptorHandle, m_shadowTexture);
+        cs.SetDescriptorTable(0, m_shadowTexture);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         cs.SetVertexBuffer(Graphics::GPU_RESOURCE_HANDLE_INVALID);

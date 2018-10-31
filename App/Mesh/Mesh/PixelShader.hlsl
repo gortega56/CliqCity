@@ -103,7 +103,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
             };
 
             N = SobelFilter(textures[iBump], default_sampler, input.uv, 1.0f);
-           // N = normalize(mul(N, tbn));
+            //N = normalize(mul(N, tbn));
         }
         
         int iDiffuse = materials[iMaterial].textureIndices.x;
