@@ -117,9 +117,7 @@ namespace Graphics
 
         void SetTexture(const u32 param, const TextureHandle handle);
 
-        void SetDescriptorTable(const u32 param, const ConstantBufferHandle baseHandle);
-
-        void SetDescriptorTable_FixLater(const u32 param, const ConstantBufferHandle cb, const DepthStencilHandle baseHandle);
+        void SetDescriptorTable(const u32 param, const GpuResourceHandle baseHandle);
 
         void TransitionDepthStencilToDepthWrite(const DepthStencilHandle handle);
 

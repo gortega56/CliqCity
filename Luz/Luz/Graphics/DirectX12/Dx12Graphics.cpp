@@ -1783,23 +1783,6 @@ namespace Graphics
         cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), descriptor.GpuHandle);
     }
 
-    void CommandStream::SetDescriptorTable_FixLater(const u32 param, const ConstantBufferHandle hCb, const DepthStencilHandle baseHandle)
-    {
-        // Hack: I need the constant buffer handle for the heap and the dsv handle for the actual table
-        //ConstantBuffer& cb = s_constantBufferCollection.GetData(hCb);
-
-        //ID3D12DescriptorHeap* pHeap = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetHeap(cb.CbvHandle.Handle);
-        DepthStencil& ds = s_depthStencilCollection.GetData(baseHandle);
-        ID3D12DescriptorHeap* pHeap = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetHeap(ds.SrvHandle.Handle);
-
-        CommandList& cl = s_commandListCollection.GetData(m_handle);
-        cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
-
-
-        
-        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), ds.SrvHandle.GpuHandle);
-    }
-
     void CommandStream::TransitionDepthStencilToTexture(const DepthStencilHandle handle)
     {
         DepthStencil& ds = s_depthStencilCollection.GetData(handle);
