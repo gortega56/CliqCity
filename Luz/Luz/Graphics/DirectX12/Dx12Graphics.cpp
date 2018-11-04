@@ -14,18 +14,30 @@
 #include <tchar.h>
 
 #define DX_DEBUG
+
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
 #define PIPELINE_MAX 32
+
 #define SHADER_MAX 32
+
 #define RENDER_TARGET_MAX 32
+
 #define DEPTH_STENCIL_MAX 1024
+
 #define VERTEX_BUFFER_MAX 1024
+
 #define INDEX_BUFFER_MAX 1024
+
 #define CONSTANT_BUFFER_MAX 1024
+
 #define TEXTURE_MAX 1024
+
 #define COMMAND_LIST_MAX 32
+
 #define DESCRIPTOR_HEAP_MAX 1024
+
+static const Graphics::GpuResourceHandle GPU_RESOURCE_HANDLE_INVALID = 0;
 
 void ErrorDescription(HRESULT hr)
 {
@@ -310,26 +322,33 @@ namespace Graphics
         inline u16 GetDescriptorHandle(const u16 handle) { return handle & 0x00FF; }
     };
 
-
     static Device s_device;
+    
     static SwapChainContext s_swapChain;
 
     static ID3D12CommandQueue* s_pGraphicsQueue = nullptr;
+    
     static ID3D12Debug* s_pDebug = nullptr;
+    
     static ID3D12DebugDevice* s_pDebugDevice = nullptr;
 
-    typedef TCollection<PipelineStateHandle, Pipeline, PIPELINE_MAX> PipelineCollection;
-    typedef TCollection<ShaderHandle, Shader, SHADER_MAX> ShaderCollection;
+    typedef ResourceCollection<PipelineStateHandle, Pipeline, PIPELINE_MAX> PipelineCollection;
+    
+    typedef ResourceCollection<ShaderHandle, Shader, SHADER_MAX> ShaderCollection;
 
-    typedef TCollection<RenderTargetHandle, RenderTarget, RENDER_TARGET_MAX> RenderTargetCollection;
-    typedef TCollection<DepthStencilHandle, DepthStencil, DEPTH_STENCIL_MAX> DepthStencilCollection;
+    typedef ResourceCollection<RenderTargetHandle, RenderTarget, RENDER_TARGET_MAX> RenderTargetCollection;
     
-    typedef TCollection<VertexBufferHandle, VertexBuffer, VERTEX_BUFFER_MAX> VertexBufferCollection;
-    typedef TCollection<IndexBufferHandle, IndexBuffer, INDEX_BUFFER_MAX> IndexBufferCollection;
-    typedef TCollection<ConstantBufferHandle, ConstantBuffer, CONSTANT_BUFFER_MAX> ConstantBufferCollection;
-    typedef TCollection<TextureHandle, Texture, TEXTURE_MAX> TextureCollection;
+    typedef ResourceCollection<DepthStencilHandle, DepthStencil, DEPTH_STENCIL_MAX> DepthStencilCollection;
     
-    typedef TCollection<CommandStreamHandle, CommandList, COMMAND_LIST_MAX> CommandListCollection;
+    typedef ResourceCollection<VertexBufferHandle, VertexBuffer, VERTEX_BUFFER_MAX> VertexBufferCollection;
+    
+    typedef ResourceCollection<IndexBufferHandle, IndexBuffer, INDEX_BUFFER_MAX> IndexBufferCollection;
+    
+    typedef ResourceCollection<ConstantBufferHandle, ConstantBuffer, CONSTANT_BUFFER_MAX> ConstantBufferCollection;
+    
+    typedef ResourceCollection<TextureHandle, Texture, TEXTURE_MAX> TextureCollection;
+    
+    typedef ResourceCollection<CommandStreamHandle, CommandList, COMMAND_LIST_MAX> CommandListCollection;
 
     static ShaderCollection s_shaderCollection;
     
@@ -366,20 +385,7 @@ namespace Graphics
         GFX_DESCRIPTOR_HANDLE_TYPE_NUM_TYPES
     };
 
-    static GpuResourceHandle CreateHandle(const std::underlying_type<GpuResourceHandle>::type handle, const DescriptorHandleType eDescriptorType)
-    {
-        using handle_t = std::underlying_type<GpuResourceHandle>::type;
-        auto f = handle | (static_cast<handle_t>(eDescriptorType) << ((sizeof(handle_t) * 8) - 3));
-        return GpuResourceHandle(f);
-    }
-
-    static DescriptorHandleType ExtractDescriptorHandleType(const GpuResourceHandle handle)
-    {
-        using handle_t = std::underlying_type<GpuResourceHandle>::type;
-        handle_t mask = ~((std::numeric_limits<handle_t>::max)() << (sizeof(handle_t) * 4));
-        handle_t shift = static_cast<handle_t>(handle) >> ((sizeof(handle_t) * 8) - 3);
-        return (DescriptorHandleType)(shift & mask);
-    }
+    static const uint32_t s_nDescriptorTypeBits = 3;
 
     ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target);
 
@@ -951,10 +957,9 @@ namespace Graphics
 
     DepthStencilHandle CreateDepthStencil(const DepthStencilDesc& desc) 
     {
-        DepthStencilHandle handle = s_depthStencilCollection.AllocateHandle();
+        DepthStencilHandle handle = s_depthStencilCollection.AllocateHandle(GFX_DESCRIPTOR_HANDLE_TYPE_DSV, s_nDescriptorTypeBits);
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            handle = CreateHandle(handle, GFX_DESCRIPTOR_HANDLE_TYPE_DSV);
             DepthStencil& ds = s_depthStencilCollection.GetData(handle);
 
             bool createSrv = (desc.Flags & GFX_DEPTH_STENCIL_FLAG_SHADER_RESOURCE);
@@ -1161,11 +1166,9 @@ namespace Graphics
 
     ConstantBufferHandle CreateConstantBuffer(const ConstantBufferDesc& desc)
     {
-        ConstantBufferHandle handle = s_constantBufferCollection.AllocateHandle();
+        ConstantBufferHandle handle = s_constantBufferCollection.AllocateHandle(GFX_DESCRIPTOR_HANDLE_TYPE_CBV, s_nDescriptorTypeBits);
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            handle = CreateHandle(handle, GFX_DESCRIPTOR_HANDLE_TYPE_CBV);
-
             ConstantBuffer& cb = s_constantBufferCollection.GetData(handle);
 
             HRESULT hr = s_device.pDevice->CreateCommittedResource(
@@ -1205,10 +1208,9 @@ namespace Graphics
 
     TextureHandle CreateTexture(const TextureDesc& desc)
     {
-        TextureHandle handle = s_textureCollection.AllocateHandle();
+        TextureHandle handle = s_textureCollection.AllocateHandle(GFX_DESCRIPTOR_HANDLE_TYPE_SRV, s_nDescriptorTypeBits);
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            handle = CreateHandle(handle, GFX_DESCRIPTOR_HANDLE_TYPE_SRV);
             Texture& tex = s_textureCollection.GetData(handle);
 
             DXGI_FORMAT format = GetDxgiFormat(desc.Format);
@@ -1299,11 +1301,9 @@ namespace Graphics
 
     TextureHandle CreateTexture(const TextureFileDesc& desc) 
     {
-        TextureHandle handle = s_textureCollection.AllocateHandle();
+        TextureHandle handle = s_textureCollection.AllocateHandle(GFX_DESCRIPTOR_HANDLE_TYPE_SRV, s_nDescriptorTypeBits);
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            handle = CreateHandle(handle, GFX_DESCRIPTOR_HANDLE_TYPE_SRV);
-
             static std::atomic_bool s_coInitialized = false;
             if (!s_coInitialized)
             {
@@ -1761,10 +1761,9 @@ namespace Graphics
 
     void CommandStream::SetDescriptorTable(const u32 param, const GpuResourceHandle baseHandle)
     {
-        DescriptorHandleType eHandleType = ExtractDescriptorHandleType(baseHandle);
-        
         Descriptor descriptor;
 
+        auto eHandleType = static_cast<DescriptorHandleType>(HandleEncoder<GpuResourceHandle>::DecodeHandleValue(baseHandle, s_nDescriptorTypeBits));
         switch (eHandleType)
         {
         case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: descriptor = s_constantBufferCollection.GetData(baseHandle).CbvHandle; break;
@@ -1772,13 +1771,12 @@ namespace Graphics
         case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
         case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: descriptor = s_depthStencilCollection.GetData(baseHandle).SrvHandle; break;
         case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
-
+        default: LUZASSERT(false); break;
         }
         
         ID3D12DescriptorHeap* pHeap = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].GetHeap(descriptor.Handle);
 
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-
         cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pHeap);
         cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), descriptor.GpuHandle);
     }

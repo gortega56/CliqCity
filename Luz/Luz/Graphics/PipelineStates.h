@@ -497,11 +497,11 @@ namespace Graphics
         DepthStencilState DepthStencil;
         RasterizerState Rasterizer;
         BlendState Blend;
-        ShaderHandle VertexShaderHandle = GPU_RESOURCE_HANDLE_INVALID;
-        ShaderHandle HullShaderHandle = GPU_RESOURCE_HANDLE_INVALID;
-        ShaderHandle DomainShaderHandle = GPU_RESOURCE_HANDLE_INVALID;
-        ShaderHandle GeometryShaderHandle = GPU_RESOURCE_HANDLE_INVALID;
-        ShaderHandle PixelShaderHandle = GPU_RESOURCE_HANDLE_INVALID;
+        ShaderHandle VertexShaderHandle = 0;
+        ShaderHandle HullShaderHandle = 0;
+        ShaderHandle DomainShaderHandle = 0;
+        ShaderHandle GeometryShaderHandle = 0;
+        ShaderHandle PixelShaderHandle = 0;
         PrimitiveTopologyType Topology = GFX_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
         u32 SampleCount = 1;
         u32 SampleQuality = 0;
@@ -509,7 +509,7 @@ namespace Graphics
         u32 NodeMask = 0;
         u8 NumRenderTargets = 0;
         TextureHandle* pRenderTargets = nullptr;
-        DepthStencilHandle DsHandle = GPU_RESOURCE_HANDLE_INVALID;
+        DepthStencilHandle DsHandle = 0;
         bool UseSwapChain = false; // Ignores render target and depth stencil members and uses native swap chain
     };
 }

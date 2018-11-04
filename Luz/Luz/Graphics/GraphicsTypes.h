@@ -260,10 +260,7 @@ namespace Graphics
         DepthStencilFlags Flags;
     };
 
-    enum LUZ_API GpuResourceHandle : uint16_t
-    {
-        GPU_RESOURCE_HANDLE_INVALID = (GpuResourceHandle)-1
-    };
+    typedef uint16_t GpuResourceHandle;
 
     typedef GpuResourceHandle VertexBufferHandle;
     

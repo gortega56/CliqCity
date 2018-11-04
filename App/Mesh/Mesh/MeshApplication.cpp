@@ -328,7 +328,7 @@ bool MeshApplication::Initialize()
         .DenyGS()
         .AppendConstantView(0);
     pd.VertexShaderHandle = m_vs;
-    pd.PixelShaderHandle = Graphics::GPU_RESOURCE_HANDLE_INVALID;
+    pd.PixelShaderHandle = 0;
     pd.NumRenderTargets = 0;
     pd.pRenderTargets = nullptr;
     pd.DsHandle = m_shadowTexture;
@@ -437,7 +437,7 @@ void MeshApplication::Update(double dt)
         cs.SetDescriptorTable(0, m_shadowTexture);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        cs.SetVertexBuffer(Graphics::GPU_RESOURCE_HANDLE_INVALID);
+        cs.SetVertexBuffer(0);
         cs.SetIndexBuffer(m_fs_ib);
         cs.DrawInstanceIndexed(m_fs_ib);
 

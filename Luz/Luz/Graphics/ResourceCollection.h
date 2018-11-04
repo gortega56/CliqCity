@@ -8,47 +8,80 @@
 
 namespace Graphics
 {
+    template<typename HandleType>
+    struct HandleEncoder
+    {
+        static inline HandleType EncodeHandleValue(const HandleType handle, const uint32_t val, const uint32_t nBitSize, const uint32_t nCollectionSize)
+        {
+            LUZASSERT(nBitSize < (sizeof(HandleType) << 3));
+            LUZASSERT((1 << ((sizeof(HandleType) << 3) - nBitSize)) > nCollectionSize);
+            return handle | (val << ((sizeof(HandleType) << 3) - nBitSize));
+        }
+
+        static inline uint32_t DecodeHandleValue(const HandleType handle, uint32_t nBitSize)
+        {
+            LUZASSERT(sizeof(HandleType) <= sizeof(uint32_t));
+            uint32_t mask = ~((std::numeric_limits<HandleType>::max)() << (sizeof(HandleType) << 2));
+            uint32_t shift = static_cast<uint32_t>(handle) >> ((sizeof(HandleType) << 3) - nBitSize);
+            return shift & mask;
+        }
+
+        static inline uint32_t DecodeHandleIndex(const HandleType handle, const uint32_t nCollectionSize)
+        {
+            // Mask out any previously encoded values
+            return static_cast<uint32_t>(handle) & (nCollectionSize - 1);
+        }
+    };
+
     template<typename HandleType, typename DataType, size_t N>
-    class TCollection
+    class ResourceCollection
     {
         typedef uint32_t proxy_t;
         typedef std::atomic_uint32_t atomic_proxy_t;
         static const size_t sm_proxy_bit_size = sizeof(proxy_t) * 8;
         static const size_t sm_proxy_count = N / sm_proxy_bit_size;
-        static_assert(N % sm_proxy_count == 0, "TCollection requires N be a multiple of sm_proxy_bit_size");
-        //static_assert(N <= sizeof(HandleType) * 8, "TCollection requires HandleType be at least the same number of bits as size of the collection");
+        static_assert(N % sm_proxy_count == 0, "ResourceCollection requires N be a multiple of sm_proxy_bit_size");
+        static_assert(N <= (std::numeric_limits<HandleType>::max)(), "ResourceCollection requires N be within the range of HandleType");
+    
     public:
-        TCollection();
-        ~TCollection();
+
+        ResourceCollection();
+
+        ~ResourceCollection();
 
         HandleType AllocateHandle();
+
+        HandleType AllocateHandle(const uint32_t code, const uint32_t bitPos);
+
         void FreeHandle(const HandleType handle);
 
         inline DataType& GetData(const HandleType handle)
         {
-            auto i = static_cast<std::underlying_type<HandleType>::type>(handle) & (N - 1);
-            return m_data[i];   // Mask out the bits of that handle that collection will never set
+            LUZASSERT(HandleEncoder<HandleType>::DecodeHandleIndex(handle, N));
+            return m_data[HandleEncoder<HandleType>::DecodeHandleIndex(handle, N)];   
         }
 
     private:
+
         DataType m_data[N];
         atomic_proxy_t m_proxy[sm_proxy_count];
     };
 
     template<typename HandleType, typename DataType, size_t N>
-    TCollection<HandleType, DataType, N>::TCollection()
+    ResourceCollection<HandleType, DataType, N>::ResourceCollection()
     {
-
+        // First Handle is designated invalid value
+        m_proxy[0].store(1);
     }
 
     template<typename HandleType, typename DataType, size_t N>
-    TCollection<HandleType, DataType, N>::~TCollection()
+    ResourceCollection<HandleType, DataType, N>::~ResourceCollection()
     {
         // Application is responsible for freeing any resources prior to dtor
     }
 
     template<typename HandleType, typename DataType, size_t N>
-    HandleType TCollection<HandleType, DataType, N>::AllocateHandle()
+    HandleType ResourceCollection<HandleType, DataType, N>::AllocateHandle()
     {
         uint32_t i, j;
         proxy_t current, updated;
@@ -79,13 +112,20 @@ namespace Graphics
             if (success) break;
         }
 
-        return (success) ? HandleType(i * 32 + j) : HandleType(-1);
+        return (success) ? HandleType(i * 32 + j) : HandleType(0);
     }
 
     template<typename HandleType, typename DataType, size_t N>
-    void TCollection<HandleType, DataType, N>::FreeHandle(const HandleType handle)
+    HandleType ResourceCollection<HandleType, DataType, N>::AllocateHandle(const uint32_t nCode, const uint32_t nBits)
     {
-        auto h = static_cast<uint32_t>(handle);
+        HandleType handle = AllocateHandle();
+        return (handle) ? HandleEncoder<HandleType>::EncodeHandleValue(handle, nCode, nBits, N) : handle;
+    }
+
+    template<typename HandleType, typename DataType, size_t N>
+    void ResourceCollection<HandleType, DataType, N>::FreeHandle(const HandleType handle)
+    {
+        auto h = HandleEncoder<HandleType>::DecodeHandleIndex(handle, N);
         auto i = h / static_cast<uint32_t>(sm_proxy_bit_size);
         auto j = h % static_cast<uint32_t>(sm_proxy_bit_size);
 
