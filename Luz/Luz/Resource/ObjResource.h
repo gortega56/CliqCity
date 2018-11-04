@@ -18,6 +18,9 @@
 #include "MtlResource.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:4251)
+
 namespace Resource
 {
     class Obj
@@ -238,5 +241,7 @@ namespace Resource
         }
     }
 }
+
+#pragma warning(pop)
 
 #endif

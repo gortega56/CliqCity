@@ -6,6 +6,9 @@
 #include "GraphicsTypes.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:4251)
+
 namespace Graphics
 {
     enum LUZ_API FilterType : u32
@@ -513,5 +516,7 @@ namespace Graphics
         bool UseSwapChain = false; // Ignores render target and depth stencil members and uses native swap chain
     };
 }
+
+#pragma warning(pop)
 
 #endif

@@ -14,7 +14,7 @@ namespace Graphics
         static inline HandleType EncodeHandleValue(const HandleType handle, const uint32_t val, const uint32_t nBitSize, const uint32_t nCollectionSize)
         {
             LUZASSERT(nBitSize < (sizeof(HandleType) << 3));
-            LUZASSERT((1 << ((sizeof(HandleType) << 3) - nBitSize)) > nCollectionSize);
+            LUZASSERT((1U << ((sizeof(HandleType) << 3) - nBitSize)) > nCollectionSize);
             return handle | (val << ((sizeof(HandleType) << 3) - nBitSize));
         }
 

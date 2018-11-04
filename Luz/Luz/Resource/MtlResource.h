@@ -2,6 +2,9 @@
 #ifndef MTLRESOURCE_H
 #define MTLRESOURCE_H
 
+#pragma warning(push)
+#pragma warning(disable:4251)
+
 namespace Resource
 {
     class Mtl
@@ -70,5 +73,7 @@ namespace Resource
         Material* FindOrCreateMaterial(const std::string& name);
     };
 }
+
+#pragma warning(pop)
 
 #endif
