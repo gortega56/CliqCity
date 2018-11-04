@@ -199,6 +199,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraController.cpp" />
+    <ClCompile Include="Graphics\DirectX12\Dx12DescriptorAllocator.cpp" />
     <ClCompile Include="Graphics\DirectX12\Dx12GraphicsTypes.cpp" />
     <ClCompile Include="Graphics\GraphicsTypes.cpp" />
     <ClCompile Include="Graphics\PipelineStates.cpp" />
@@ -231,6 +232,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GeneralMacros.h" />
+    <ClInclude Include="Graphics\DirectX12\Dx12DescriptorAllocator.h" />
     <ClInclude Include="Graphics\DirectX12\Dx12GraphicsTypes.h" />
     <ClInclude Include="Graphics\Graphics.h" />
     <ClInclude Include="Graphics\GraphicsTypes.h" />

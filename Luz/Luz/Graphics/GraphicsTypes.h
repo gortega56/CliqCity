@@ -284,6 +284,8 @@ namespace Graphics
 
     typedef GpuResourceHandle DescriptorHandle;
 
+    extern const Graphics::GpuResourceHandle GPU_RESOURCE_HANDLE_INVALID;
+
     typedef uint8_t CommandQueueHandle;
 
     enum CommandQueueType : uint8_t

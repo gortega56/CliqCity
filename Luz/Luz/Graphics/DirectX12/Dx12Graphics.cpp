@@ -17,28 +17,6 @@
 
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
-#define PIPELINE_MAX 32
-
-#define SHADER_MAX 32
-
-#define RENDER_TARGET_MAX 32
-
-#define DEPTH_STENCIL_MAX 1024
-
-#define VERTEX_BUFFER_MAX 1024
-
-#define INDEX_BUFFER_MAX 1024
-
-#define CONSTANT_BUFFER_MAX 1024
-
-#define TEXTURE_MAX 1024
-
-#define COMMAND_LIST_MAX 32
-
-#define DESCRIPTOR_HEAP_MAX 1024
-
-static const Graphics::GpuResourceHandle GPU_RESOURCE_HANDLE_INVALID = 0;
-
 void ErrorDescription(HRESULT hr)
 {
     if (FACILITY_WINDOWS == HRESULT_FACILITY(hr))
@@ -289,86 +267,33 @@ namespace Internal
 
 namespace Graphics
 {
-    struct DescriptorAllocator
-    {
-        static const u32 sm_maxDescriptorHeaps = 256;
-
-        static const u32 sm_maxDescriptors = 256;
-
-        D3D12_DESCRIPTOR_HEAP_TYPE m_type;
-
-        D3D12_DESCRIPTOR_HEAP_FLAGS m_flags;
-
-        u32 m_descriptorHandleIncrementSize;
-
-        u32 m_remainingHandles;
-
-        DescriptorHeap* m_pCurrentDescriptorHeap;
-
-        std::vector<DescriptorHeap> m_descriptorHeaps;
-
-        std::mutex m_descriptorHeapMutex;
-
-        Descriptor Allocate(const u32 numDescriptors);
-
-        inline ID3D12DescriptorHeap* GetHeap(const u16 handle)
-        {
-            std::lock_guard<std::mutex> lock(m_descriptorHeapMutex);
-            return m_descriptorHeaps[GetHeapHandle(handle)].pHeap;
-        }
-
-        inline u16 GetHeapHandle(const u16 handle) { return (handle >> 8) & 0x00FF; }
-
-        inline u16 GetDescriptorHandle(const u16 handle) { return handle & 0x00FF; }
-    };
-
-    static Device s_device;
+    Device s_device;
     
-    static SwapChainContext s_swapChain;
+    SwapChainContext s_swapChain;
 
-    static ID3D12CommandQueue* s_pGraphicsQueue = nullptr;
+    ID3D12CommandQueue* s_pGraphicsQueue = nullptr;
     
-    static ID3D12Debug* s_pDebug = nullptr;
+    ID3D12Debug* s_pDebug = nullptr;
     
-    static ID3D12DebugDevice* s_pDebugDevice = nullptr;
+    ID3D12DebugDevice* s_pDebugDevice = nullptr;
 
-    typedef ResourceCollection<PipelineStateHandle, Pipeline, PIPELINE_MAX> PipelineCollection;
+    ShaderCollection s_shaderCollection;
     
-    typedef ResourceCollection<ShaderHandle, Shader, SHADER_MAX> ShaderCollection;
+    PipelineCollection s_pipelineCollection;
 
-    typedef ResourceCollection<RenderTargetHandle, RenderTarget, RENDER_TARGET_MAX> RenderTargetCollection;
-    
-    typedef ResourceCollection<DepthStencilHandle, DepthStencil, DEPTH_STENCIL_MAX> DepthStencilCollection;
-    
-    typedef ResourceCollection<VertexBufferHandle, VertexBuffer, VERTEX_BUFFER_MAX> VertexBufferCollection;
-    
-    typedef ResourceCollection<IndexBufferHandle, IndexBuffer, INDEX_BUFFER_MAX> IndexBufferCollection;
-    
-    typedef ResourceCollection<ConstantBufferHandle, ConstantBuffer, CONSTANT_BUFFER_MAX> ConstantBufferCollection;
-    
-    typedef ResourceCollection<TextureHandle, Texture, TEXTURE_MAX> TextureCollection;
-    
-    typedef ResourceCollection<CommandStreamHandle, CommandList, COMMAND_LIST_MAX> CommandListCollection;
+    RenderTargetCollection s_renderTargetCollection;
 
-    static ShaderCollection s_shaderCollection;
+    DepthStencilCollection s_depthStencilCollection;
+
+    VertexBufferCollection s_vertexBufferCollection;
     
-    static PipelineCollection s_pipelineCollection;
-
-    static RenderTargetCollection s_renderTargetCollection;
-
-    static DepthStencilCollection s_depthStencilCollection;
-
-    static VertexBufferCollection s_vertexBufferCollection;
+    IndexBufferCollection s_indexBufferCollection;
     
-    static IndexBufferCollection s_indexBufferCollection;
+    ConstantBufferCollection s_constantBufferCollection;
     
-    static ConstantBufferCollection s_constantBufferCollection;
-    
-    static TextureCollection s_textureCollection;
+    TextureCollection s_textureCollection;
 
-    static CommandListCollection s_commandListCollection;
-
-    static DescriptorAllocator s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+    CommandListCollection s_commandListCollection;
 
     static Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
     {
@@ -1802,48 +1727,6 @@ namespace Graphics
 
         cl.pGraphicsCommandList->DrawIndexedInstanced(ib.NumIndices, instanceCount, startIndex, baseVertexLocation, startInstanceLocation);
     }
-
-    Descriptor DescriptorAllocator::Allocate(const u32 numDescriptors)
-    {
-        if (m_pCurrentDescriptorHeap == nullptr || m_remainingHandles < numDescriptors)
-        {
-            u16 nHeaps;
-            {
-                std::lock_guard<std::mutex> guard(m_descriptorHeapMutex);
-                m_pCurrentDescriptorHeap = &m_descriptorHeaps.emplace_back();
-                nHeaps = static_cast<u16>(m_descriptorHeaps.size());
-            }
-
-            D3D12_DESCRIPTOR_HEAP_DESC desc;
-            ZeroMemory(&desc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-            desc.Type = m_type;
-            desc.Flags = m_flags;
-            desc.NumDescriptors = static_cast<UINT>(sm_maxDescriptors);
-
-            HRESULT hr = s_device.pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pCurrentDescriptorHeap->pHeap));
-            LUZASSERT(SUCCEEDED(hr));
-
-            std::wostringstream ss;
-            ss << m_type << " Descriptor Heap " << (nHeaps - 1);
-
-            m_pCurrentDescriptorHeap->pHeap->SetName(ss.str().c_str());
-            m_pCurrentDescriptorHeap->Handle = nHeaps - 1;
-
-            m_remainingHandles = sm_maxDescriptors;
-        }
-
-        u16 descriptorOffset = sm_maxDescriptors - m_remainingHandles;
-
-        m_remainingHandles -= numDescriptors;
-
-        Descriptor descriptor;
-        descriptor.Handle = static_cast<DescriptorHandle>((m_pCurrentDescriptorHeap->Handle << 8) & descriptorOffset);
-        descriptor.CpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_pCurrentDescriptorHeap->pHeap->GetCPUDescriptorHandleForHeapStart(), descriptorOffset, m_descriptorHandleIncrementSize);
-        descriptor.GpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pCurrentDescriptorHeap->pHeap->GetGPUDescriptorHandleForHeapStart(), descriptorOffset, m_descriptorHandleIncrementSize);
-        return descriptor;
-    }
-
-
 }
 
 #endif

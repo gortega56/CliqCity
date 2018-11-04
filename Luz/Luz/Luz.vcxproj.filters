@@ -114,6 +114,9 @@
     <ClCompile Include="Graphics\DirectX12\Dx12GraphicsTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\Dx12DescriptorAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IApplication.h">
@@ -228,6 +231,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\PipelineStates.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX12\Dx12DescriptorAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

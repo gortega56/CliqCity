@@ -45,6 +45,34 @@
 #include "PipelineStates.h"
 #endif
 
+#ifndef RESOURCECOLLECTION_H
+#include "ResourceCollection.h"
+#endif
+
+#ifndef DX12DESCRIPTORALLOCATOR_H
+#include "Dx12DescriptorAllocator.h"
+#endif
+
+#define PIPELINE_MAX 32
+
+#define SHADER_MAX 32
+
+#define RENDER_TARGET_MAX 32
+
+#define DEPTH_STENCIL_MAX 1024
+
+#define VERTEX_BUFFER_MAX 1024
+
+#define INDEX_BUFFER_MAX 1024
+
+#define CONSTANT_BUFFER_MAX 1024
+
+#define TEXTURE_MAX 1024
+
+#define COMMAND_LIST_MAX 32
+
+#define DESCRIPTOR_HEAP_MAX 1024
+
 namespace Graphics
 {
     struct Device
@@ -93,19 +121,6 @@ namespace Graphics
         u32 FrameIndex;
 
         bool FullScreen;
-    };
-
-    struct DescriptorHeap
-    {
-        u16 Handle;
-        ID3D12DescriptorHeap* pHeap;
-    };
-
-    struct Descriptor
-    {
-        DescriptorHandle Handle;
-        D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
-        D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle;
     };
 
     struct Shader
@@ -176,30 +191,88 @@ namespace Graphics
         void* pAlloc;
     };
 
-    
+    extern Device s_device;
+
+    extern SwapChainContext s_swapChain;
+
+    extern ID3D12CommandQueue* s_pGraphicsQueue;
+
+    extern ID3D12Debug* s_pDebug;
+
+    extern ID3D12DebugDevice* s_pDebugDevice;
+
+    typedef ResourceCollection<PipelineStateHandle, Pipeline, PIPELINE_MAX> PipelineCollection;
+
+    typedef ResourceCollection<ShaderHandle, Shader, SHADER_MAX> ShaderCollection;
+
+    typedef ResourceCollection<RenderTargetHandle, RenderTarget, RENDER_TARGET_MAX> RenderTargetCollection;
+
+    typedef ResourceCollection<DepthStencilHandle, DepthStencil, DEPTH_STENCIL_MAX> DepthStencilCollection;
+
+    typedef ResourceCollection<VertexBufferHandle, VertexBuffer, VERTEX_BUFFER_MAX> VertexBufferCollection;
+
+    typedef ResourceCollection<IndexBufferHandle, IndexBuffer, INDEX_BUFFER_MAX> IndexBufferCollection;
+
+    typedef ResourceCollection<ConstantBufferHandle, ConstantBuffer, CONSTANT_BUFFER_MAX> ConstantBufferCollection;
+
+    typedef ResourceCollection<TextureHandle, Texture, TEXTURE_MAX> TextureCollection;
+
+    typedef ResourceCollection<CommandStreamHandle, CommandList, COMMAND_LIST_MAX> CommandListCollection;
+
+    extern ShaderCollection s_shaderCollection;
+
+    extern PipelineCollection s_pipelineCollection;
+
+    extern RenderTargetCollection s_renderTargetCollection;
+
+    extern DepthStencilCollection s_depthStencilCollection;
+
+    extern VertexBufferCollection s_vertexBufferCollection;
+
+    extern IndexBufferCollection s_indexBufferCollection;
+
+    extern ConstantBufferCollection s_constantBufferCollection;
+
+    extern TextureCollection s_textureCollection;
+
+    extern CommandListCollection s_commandListCollection;
 
     DXGI_FORMAT GetDxgiFormat(const Format format);
+    
     D3D12_INPUT_CLASSIFICATION GetD3D12InputClassification(const InputLayoutDesc::Element::Type elementType);
+    
     D3D12_PRIMITIVE_TOPOLOGY_TYPE GetD3D12PrimitiveTopoglogyType(const PrimitiveTopologyType topology);
 
     D3D12_SHADER_VISIBILITY GetVisibility(const ShaderVisibility& visibility);
+    
     D3D12_ROOT_DESCRIPTOR_FLAGS GetDescriptorFlags(const Parameter::DataFlags& dataFlags);
+    
     D3D12_FILTER GetFilterType(const FilterType& filter);
+    
     D3D12_TEXTURE_ADDRESS_MODE GetAddressType(const AddressType& address);
+    
     D3D12_COMPARISON_FUNC GetComparisonType(const ComparisonType& comparison);
+    
     D3D12_STATIC_BORDER_COLOR GetBorderColorType(const BorderColorType& borderColor);
+    
     D3D12_ROOT_SIGNATURE_FLAGS GetSignatureFlags(const SignatureDesc::Flags& signatureFlags);
 
     D3D12_BLEND GetD3D12Blend(const BlendType blend);
+    
     D3D12_BLEND_OP GetD3D12BlendOp(const BlendOpType op);
+    
     D3D12_LOGIC_OP GetD3D12LogicOp(const LogicOpType op);
+    
     D3D12_COLOR_WRITE_ENABLE GetD3D12ColorWriteEnable(const ColorWriteEnable colorWrite);
 
     D3D12_FILL_MODE GetD3D12FillMode(const FillMode fill);
+    
     D3D12_CULL_MODE GetD3D12CullMode(const CullMode cull);
+    
     D3D12_CONSERVATIVE_RASTERIZATION_MODE GetD3D12RasterizationMode(const ConservativeRasterizationMode mode);
 
     D3D12_DEPTH_WRITE_MASK GetD3D12DepthWriteMask(const DepthWriteMask mask);
+    
     D3D12_STENCIL_OP GetD3D12StencilOp(const StencilOp op);
 
     D3D12_PRIMITIVE_TOPOLOGY GetD3D12PrimitiveTogopology(const PrimitiveSubtopology topology);
