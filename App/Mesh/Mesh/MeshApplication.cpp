@@ -8,6 +8,7 @@
 #include "Resource\ObjResource.h"
 #include "Platform\Window.h"
 #include "Graphics.h"
+#include "CommandStream.h"
 #include "Console.h"
 #include "Platform\Input.h"
 #include <codecvt>

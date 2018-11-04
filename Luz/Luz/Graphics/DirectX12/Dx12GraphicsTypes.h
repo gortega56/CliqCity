@@ -191,6 +191,16 @@ namespace Graphics
         void* pAlloc;
     };
 
+    enum DescriptorHandleType
+    {
+        GFX_DESCRIPTOR_HANDLE_TYPE_CBV,
+        GFX_DESCRIPTOR_HANDLE_TYPE_SRV,
+        GFX_DESCRIPTOR_HANDLE_TYPE_UAV,
+        GFX_DESCRIPTOR_HANDLE_TYPE_DSV,
+        GFX_DESCRIPTOR_HANDLE_TYPE_RTV,
+        GFX_DESCRIPTOR_HANDLE_TYPE_NUM_TYPES
+    };
+
     extern Device s_device;
 
     extern SwapChainContext s_swapChain;
@@ -236,6 +246,8 @@ namespace Graphics
     extern TextureCollection s_textureCollection;
 
     extern CommandListCollection s_commandListCollection;
+
+    extern const uint32_t s_nDescriptorTypeBits;
 
     DXGI_FORMAT GetDxgiFormat(const Format format);
     
