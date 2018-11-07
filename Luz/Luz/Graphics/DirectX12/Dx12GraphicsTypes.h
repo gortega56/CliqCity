@@ -69,7 +69,7 @@
 
 #define TEXTURE_MAX 1024
 
-#define COMMAND_LIST_MAX 32
+#define COMMAND_LIST_MAX 64
 
 #define DESCRIPTOR_HEAP_MAX 1024
 
@@ -105,6 +105,8 @@ namespace Graphics
         ID3D12DescriptorHeap* pDepthStencilDescriptorHeap;
         
         ID3D12Resource* pDepthStencilResource;
+
+        ID3D12GraphicsCommandList* pGraphicsCommandList;
 
         D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetViewHandles[MaxBuffers];
         D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilViewHandle;
@@ -186,9 +188,21 @@ namespace Graphics
             ID3D12CommandList* pCommandList;
             ID3D12GraphicsCommandList* pGraphicsCommandList;
         };
+    };
 
+    struct CommandQueue
+    {
         ID3D12CommandQueue* pCommandQueue;
-        void* pAlloc;
+        ID3D12Fence1* pFence;
+        UINT64 ExecutionsCompleted;
+    };
+
+    struct CommandAllocatorPool
+    {
+        static const uint8_t nAllocators = 64;
+        ID3D12CommandAllocator* ppCommandAllocators[nAllocators];
+        uint64_t pCommandAllocatorFrames[nAllocators];
+        std::atomic_uint8_t NextAllocator = 0;
     };
 
     enum DescriptorHandleType
@@ -205,7 +219,7 @@ namespace Graphics
 
     extern SwapChainContext s_swapChain;
 
-    extern ID3D12CommandQueue* s_pGraphicsQueue;
+    extern CommandAllocatorPool s_commandAllocatorPools[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
 
     extern ID3D12Debug* s_pDebug;
 

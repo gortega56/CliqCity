@@ -76,6 +76,8 @@ namespace Graphics
 
     LUZ_API void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream);
 
+    LUZ_API void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle);
+
     LUZ_API void ReleaseCommandStream(CommandStream* pCommandStream);
 }
 

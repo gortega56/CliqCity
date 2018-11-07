@@ -355,6 +355,10 @@ bool MeshApplication::Initialize()
     pd.UseSwapChain = true;
     m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
+    Graphics::CommandStreamDesc csd;
+    csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
+    Graphics::CreateCommandStream(csd, &m_commandStream);
+
     return true;
 }
 
@@ -380,13 +384,8 @@ void MeshApplication::Update(double dt)
 
         Graphics::UpdateConstantBuffer(&m_shadowCbvData, sizeof(m_shadowCbvData), m_lightViewProjHandle);
 
-        Graphics::CommandStreamDesc csd;
-        csd.PipelineHandle = m_shadowPipeline;
-        csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_MAIN;
-
-        Graphics::CommandStream cs;
-        Graphics::CreateCommandStream(csd, &cs);
-        cs.SetPipeline(m_shadowPipeline);
+        auto& cs = m_commandStream;
+        cs.Reset(m_shadowPipeline);
         cs.SetRenderTargets(0, nullptr, m_shadowTexture);
         cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
         cs.SetViewport(s_shadow_vp);
@@ -422,14 +421,9 @@ void MeshApplication::Update(double dt)
     
     if (s_shadowFullScreen)
     {
-        Graphics::CommandStreamDesc csd;
-        csd.PipelineHandle = m_fullScreenPipeline;
-        csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_MAIN;
-
-        Graphics::CommandStream cs;
-        Graphics::CreateCommandStream(csd, &cs);
+        auto& cs = m_commandStream;
         cs.TransitionDepthStencilToTexture(m_shadowTexture);
-        cs.SetPipeline(m_fullScreenPipeline);
+        cs.Reset(m_fullScreenPipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);
@@ -450,14 +444,8 @@ void MeshApplication::Update(double dt)
         Graphics::UpdateConstantBuffer(&m_cbvData, sizeof(m_cbvData), m_viewProjectionHandle);
         Graphics::UpdateConstantBuffer(&s_light, sizeof(s_light), m_lightHandle);
 
-        Graphics::CommandStreamDesc csd;
-        csd.PipelineHandle = m_opaquePipeline;
-        csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_MAIN;
-
-        Graphics::CommandStream cs;
-        Graphics::CreateCommandStream(csd, &cs);
-
-        cs.SetPipeline(m_opaquePipeline);
+        auto& cs = m_commandStream;
+        cs.Reset(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);

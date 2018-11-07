@@ -290,8 +290,10 @@ namespace Graphics
 
     enum CommandQueueType : uint8_t
     {
-        GFX_COMMAND_QUEUE_TYPE_MAIN,
-        GFX_COMMAND_QUEUE_TYPE_HANDLE // Must be paired with handle
+        GFX_COMMAND_QUEUE_TYPE_DRAW,
+        GFX_COMMAND_QUEUE_TYPE_COPY,
+        GFX_COMMAND_QUEUE_TYPE_COMPUTE,
+        GFX_COMMAND_QUEUE_TYPE_NUM_TYPES
     };
 
     struct LUZ_API CommandStreamDesc

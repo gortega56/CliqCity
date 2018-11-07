@@ -6,7 +6,6 @@
 #include "Dx12GraphicsTypes.h"
 
 #include "ResourceCollection.h"
-#include "CommandContext.h"
 #include "MSPlatformWindow.h"
 
 #include <Shlwapi.h>
@@ -271,8 +270,10 @@ namespace Graphics
     
     SwapChainContext s_swapChain;
 
-    ID3D12CommandQueue* s_pGraphicsQueue = nullptr;
-    
+    CommandQueue s_commandQueues[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
+
+    CommandAllocatorPool s_commandAllocatorPools[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
+
     ID3D12Debug* s_pDebug = nullptr;
     
     ID3D12DebugDevice* s_pDebugDevice = nullptr;
@@ -297,12 +298,15 @@ namespace Graphics
 
     const uint32_t s_nDescriptorTypeBits = 3;
 
-    static Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
-    {
-        return s_descriptorAllocatorCollection[eType].Allocate(nDescriptors);
-    }
+    static const uint32_t s_nCommandQueueTypeBits = 2;
 
-    ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target);
+    static Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors);
+
+    static ID3D12CommandAllocator* AllocateCommandAllocator(const CommandQueueType eQueueType);
+
+    static void WaitOnFence(ID3D12Fence* pFence, UINT64 signal);
+
+    static ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target);
 
     bool Initialize(Window* pWindow, u32 numBackBuffers)
     {
@@ -349,15 +353,30 @@ namespace Graphics
             return false;
         }
 
-        // Create main graphics queue
-        D3D12_COMMAND_QUEUE_DESC commandQueueDesc;
-        ZeroMemory(&commandQueueDesc, sizeof(D3D12_COMMAND_QUEUE_DESC));
-        commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        commandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        // Create Command Queues
+        D3D12_COMMAND_LIST_TYPE pCommandListTypes[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES] =
+        {
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            D3D12_COMMAND_LIST_TYPE_COPY,
+            D3D12_COMMAND_LIST_TYPE_COMPUTE
+        };
 
-        s_device.pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&s_pGraphicsQueue));
-        if (FAILED(hr)) return false;
+        for (uint32_t i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
+        {
+            D3D12_COMMAND_QUEUE_DESC commandQueueDesc;
+            ZeroMemory(&commandQueueDesc, sizeof(D3D12_COMMAND_QUEUE_DESC));
+            commandQueueDesc.Type = pCommandListTypes[i];
+            commandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+            commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+
+            s_device.pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&s_commandQueues[i].pCommandQueue));
+            if (FAILED(hr)) return false;
+
+            hr = s_device.pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&s_commandQueues[i].pFence));
+            if (FAILED(hr)) return false;
+        }
+
+        CommandQueue& mainQueue = s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW];
 
         // Initialize Descriptor heaps
         DescriptorAllocator* pHeapAllocator = nullptr;
@@ -414,7 +433,7 @@ namespace Graphics
         swapChainDesc.Windowed = !s_swapChain.FullScreen;
 
         IDXGISwapChain* pTempSwapChain;
-        hr = s_device.pFactory4->CreateSwapChain(s_pGraphicsQueue, &swapChainDesc, &pTempSwapChain);
+        hr = s_device.pFactory4->CreateSwapChain(mainQueue.pCommandQueue, &swapChainDesc, &pTempSwapChain);
         if (FAILED(hr))
         {   
             ErrorDescription(hr);
@@ -477,7 +496,20 @@ namespace Graphics
         s_swapChain.DepthStencilViewHandle = s_swapChain.pDepthStencilDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         s_device.pDevice->CreateDepthStencilView(s_swapChain.pDepthStencilResource, nullptr, s_swapChain.DepthStencilViewHandle);
 
-        Dx12::CommandAllocatorPool::Initialize(s_device.pDevice);
+        // Initialize CommandAllocatorPool
+        for (uint32_t i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
+        {
+            CommandAllocatorPool& pool = s_commandAllocatorPools[i];
+            pool.NextAllocator = 0;
+
+            for (uint32_t j = 0; j < CommandAllocatorPool::nAllocators; ++j)
+            {
+                HRESULT hr = s_device.pDevice->CreateCommandAllocator(pCommandListTypes[i], IID_PPV_ARGS(&pool.ppCommandAllocators[j]));
+                LUZASSERT(SUCCEEDED(hr));
+
+                pool.pCommandAllocatorFrames[j] = 0;
+            }
+        }
 
         return true;
     }
@@ -485,8 +517,11 @@ namespace Graphics
     void Shutdown()
     {
         // wait for the gpu to finish all frames
-        Dx12::CommandAllocatorPool::Destroy();
- 
+        for (uint32_t i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
+        {
+            WaitOnFence(s_commandQueues[i].pFence, s_commandQueues[i].ExecutionsCompleted);
+        }
+
         for (u32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
         {
             for (auto& heap : s_descriptorAllocatorCollection[i].m_descriptorHeaps)
@@ -543,8 +578,18 @@ namespace Graphics
             SAFE_RELEASE(s_commandListCollection.GetData(static_cast<CommandStreamHandle>(i)).pCommandList);
         }
 
-        SAFE_RELEASE(s_pGraphicsQueue);
+        for (u32 i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
+        {
+            SAFE_RELEASE(s_commandQueues[i].pCommandQueue);
+            SAFE_RELEASE(s_commandQueues[i].pFence);
 
+            for (u32 j = 0; j < CommandAllocatorPool::nAllocators; ++j)
+            {
+                SAFE_RELEASE(s_commandAllocatorPools[i].ppCommandAllocators[j]);
+            }
+        }
+
+        SAFE_RELEASE(s_swapChain.pGraphicsCommandList);
         SAFE_RELEASE(s_swapChain.pRenderTargetDescriptorHeap);
         SAFE_RELEASE(s_swapChain.pDepthStencilDescriptorHeap);
         SAFE_RELEASE(s_swapChain.pDepthStencilResource);
@@ -563,6 +608,65 @@ namespace Graphics
 #endif
 
         SAFE_RELEASE(s_device.pDevice);
+    }
+
+    Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
+    {
+        return s_descriptorAllocatorCollection[eType].Allocate(nDescriptors);
+    }
+
+    ID3D12CommandAllocator* AllocateCommandAllocator(const CommandQueueType eQueueType)
+    {
+        CommandQueue& commandQueue = s_commandQueues[eQueueType];
+        CommandAllocatorPool& commandAllocatorPool = s_commandAllocatorPools[eQueueType];
+        uint8_t current = commandAllocatorPool.NextAllocator.load();
+        uint8_t updated;
+
+        do
+        {
+            while (true)
+            {
+                uint64_t allocatorFrame = commandAllocatorPool.pCommandAllocatorFrames[current];
+                if (allocatorFrame < commandQueue.ExecutionsCompleted ||
+                   (allocatorFrame == 0 && commandQueue.ExecutionsCompleted == 0))
+                {
+                    break;
+                }
+
+                current += 1;
+            }
+
+            updated = (current + 1) % CommandAllocatorPool::nAllocators;
+
+        } while (!commandAllocatorPool.NextAllocator.compare_exchange_strong(current, updated));
+
+        commandAllocatorPool.pCommandAllocatorFrames[current] = commandQueue.ExecutionsCompleted;
+        commandAllocatorPool.ppCommandAllocators[current]->Reset();
+        return commandAllocatorPool.ppCommandAllocators[current];
+    }
+
+    void WaitOnFence(ID3D12Fence* pFence, UINT64 signal)
+    {
+        // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
+        // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
+        UINT64 fenceValue = pFence->GetCompletedValue();
+        LUZASSERT(fenceValue <= signal);
+
+        if (fenceValue < signal)
+        {
+            HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            LUZASSERT(eventHandle);
+
+            HRESULT hr = pFence->SetEventOnCompletion(signal, eventHandle);
+            if (SUCCEEDED(hr))
+            {
+                // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
+                // has reached "fenceValue", we know the command queue has finished executing
+                WaitForSingleObject(eventHandle, INFINITE);
+            }
+        
+            CloseHandle(eventHandle);
+        }
     }
 
     ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target)
@@ -966,8 +1070,8 @@ namespace Graphics
                     ID3D12GraphicsCommandList* pGraphicsCommandList;
                 };
 
-                Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
-                hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
+                ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
+                hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
                 LUZASSERT(SUCCEEDED(hr));
 
                 UpdateSubresources(pGraphicsCommandList, vb.pResource, pUploadBuffer, 0, 0, 1, &subresource);
@@ -976,15 +1080,15 @@ namespace Graphics
                 LUZASSERT(SUCCEEDED(hr));
 
                 // TODO: Use main queue?
-                ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
+                CommandQueue& commandQueue = s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW];
+                ID3D12CommandQueue* pCommandQueue = commandQueue.pCommandQueue;
                 pCommandQueue->ExecuteCommandLists(1, &pCommandList);
 
                 // TODO: Use existing alloc to wait but make better
-                auto& fence = pAlloc->GetFence();
-                fence.IncrementSignal();
-                hr = pCommandQueue->Signal(fence.Ptr(), fence.Signal());
+                commandQueue.ExecutionsCompleted += 1;
+                hr = pCommandQueue->Signal(commandQueue.pFence, commandQueue.ExecutionsCompleted);
                 LUZASSERT(SUCCEEDED(hr));
-                fence.Wait();
+                WaitOnFence(commandQueue.pFence, commandQueue.ExecutionsCompleted);
 
                 vb.View.BufferLocation = vb.pResource->GetGPUVirtualAddress();
                 vb.View.SizeInBytes = static_cast<UINT>(desc.SizeInBytes);
@@ -1038,8 +1142,8 @@ namespace Graphics
                     ID3D12GraphicsCommandList* pGraphicsCommandList;
                 };
 
-                Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
-                hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
+                ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
+                hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
                 LUZASSERT(SUCCEEDED(hr));
 
                 UpdateSubresources(pGraphicsCommandList, ib.pResource, pUploadBuffer, 0, 0, 1, &subresource);
@@ -1047,16 +1151,16 @@ namespace Graphics
                 hr = pGraphicsCommandList->Close();
                 LUZASSERT(SUCCEEDED(hr));
 
-                // TODO: COmmand queue
-                ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
+                // TODO: Use main queue?
+                CommandQueue& commandQueue = s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW];
+                ID3D12CommandQueue* pCommandQueue = commandQueue.pCommandQueue;
                 pCommandQueue->ExecuteCommandLists(1, &pCommandList);
 
                 // TODO: Use existing alloc to wait but make better
-                auto& fence = pAlloc->GetFence();
-                fence.IncrementSignal();
-                hr = pCommandQueue->Signal(fence.Ptr(), fence.Signal());
+                commandQueue.ExecutionsCompleted += 1;
+                hr = pCommandQueue->Signal(commandQueue.pFence, commandQueue.ExecutionsCompleted);
                 LUZASSERT(SUCCEEDED(hr));
-                fence.Wait();
+                WaitOnFence(commandQueue.pFence, commandQueue.ExecutionsCompleted);
 
                 DXGI_FORMAT format;
                 switch (desc.StrideInBytes)
@@ -1273,9 +1377,9 @@ namespace Graphics
                 ID3D12CommandList* pCommandList;
                 ID3D12GraphicsCommandList* pGraphicsCommandList;
             };
-
-            Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
-            hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
+            
+            ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
+            hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
             LUZASSERT(SUCCEEDED(hr));
 
             UpdateSubresources(pGraphicsCommandList, tex.pResource, pUploadBuffer, 0, 0, subresourceSize, subresources.data());
@@ -1283,15 +1387,15 @@ namespace Graphics
             hr = pGraphicsCommandList->Close();
             LUZASSERT(SUCCEEDED(hr));
             
-            ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
+            // TODO: Use main queue?
+            CommandQueue& commandQueue = s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW];
+            ID3D12CommandQueue* pCommandQueue = commandQueue.pCommandQueue;
             pCommandQueue->ExecuteCommandLists(1, &pCommandList);
 
-            // TODO: Use existing alloc to wait but make better
-            auto& fence = pAlloc->GetFence();
-            fence.IncrementSignal();
-            hr = pCommandQueue->Signal(fence.Ptr(), fence.Signal());
+            commandQueue.ExecutionsCompleted += 1;
+            hr = pCommandQueue->Signal(commandQueue.pFence, commandQueue.ExecutionsCompleted);
             LUZASSERT(SUCCEEDED(hr));
-            fence.Wait();
+            WaitOnFence(commandQueue.pFence, commandQueue.ExecutionsCompleted);
 
             tex.SrvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
 
@@ -1401,56 +1505,58 @@ namespace Graphics
 
     void SubmitCommandStream(const CommandStream* pCommandStream, bool wait)
     {
-        CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
+        CommandStreamHandle handle = pCommandStream->GetHandle();
+        CommandList& cl = s_commandListCollection.GetData(handle);
         
         HRESULT hr = cl.pGraphicsCommandList->Close();
         LUZASSERT(SUCCEEDED(hr));
 
-        cl.pCommandQueue->ExecuteCommandLists(1, &cl.pCommandList);
-
-        Dx12::CommandAllocator* pAlloc = reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc);
-        LUZASSERT(pAlloc);
-
-        auto& fence = pAlloc->GetFence();
-        fence.IncrementSignal();
-        hr = cl.pCommandQueue->Signal(fence.Ptr(), fence.Signal());
+        CommandQueueType eQueueType = (CommandQueueType)HandleEncoder<CommandStreamHandle>::DecodeHandleValue(handle, s_nCommandQueueTypeBits);
+        CommandQueue& cq = s_commandQueues[eQueueType];
+        cq.pCommandQueue->ExecuteCommandLists(1, &cl.pCommandList);
+        cq.ExecutionsCompleted += 1;
+        hr = cq.pCommandQueue->Signal(cq.pFence, cq.ExecutionsCompleted);
         LUZASSERT(SUCCEEDED(hr));
+
+        ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(eQueueType);
+        cl.pGraphicsCommandList->Reset(pCommandAllocator, nullptr);
 
         if (wait)
         {
-            fence.Wait();
+            WaitOnFence(cq.pFence, cq.ExecutionsCompleted);
         }
     }
 
     void Present()
     {
-        union
+        ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
+        if (!s_swapChain.pGraphicsCommandList)
         {
-            ID3D12CommandList* pCommandList;
-            ID3D12GraphicsCommandList* pGraphicsCommandList;
-        };
-
-        Dx12::CommandAllocator* pAlloc = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
-        HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pAlloc->Allocator(), nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
-        LUZASSERT(SUCCEEDED(hr));
+            HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr, IID_PPV_ARGS(&s_swapChain.pGraphicsCommandList));
+            LUZASSERT(SUCCEEDED(hr));
+        }
+        else
+        {
+            HRESULT hr = s_swapChain.pGraphicsCommandList->Reset(pCommandAllocator, nullptr);
+            LUZASSERT(SUCCEEDED(hr));
+        }
+        
 
         ID3D12Resource* pResource = nullptr;
-        hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
+        HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
         LUZASSERT(SUCCEEDED(hr));
 
-        pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-        hr = pGraphicsCommandList->Close();
+        s_swapChain.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+        hr = s_swapChain.pGraphicsCommandList->Close();
         LUZASSERT(SUCCEEDED(hr));
 
-        ID3D12CommandQueue* pCommandQueue = s_pGraphicsQueue;
-        pCommandQueue->ExecuteCommandLists(1, &pCommandList);
+        CommandQueue& cq = s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW];
+        ID3D12CommandList* ppCommandLists[] = { s_swapChain.pGraphicsCommandList };
+        cq.pCommandQueue->ExecuteCommandLists(1, ppCommandLists);
 
-        // TODO: Use existing alloc to wait but make better
-        auto& fence = pAlloc->GetFence();
-        fence.IncrementSignal();
-        hr = pCommandQueue->Signal(fence.Ptr(), fence.Signal());
+        cq.ExecutionsCompleted += 1;
+        cq.pCommandQueue->Signal(cq.pFence, cq.ExecutionsCompleted);
         LUZASSERT(SUCCEEDED(hr));
-        fence.Wait();
 
         hr = s_swapChain.pSwapChain3->Present(0, 0);
         if (FAILED(hr))
@@ -1462,39 +1568,89 @@ namespace Graphics
         s_swapChain.FrameIndex = s_swapChain.pSwapChain3->GetCurrentBackBufferIndex();
     }
 
-    void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream)
+
+    static CommandStreamHandle CreateGraphicsCommandList(const PipelineStateHandle pipelineHandle)
     {
-        if (desc.QueueType == GFX_COMMAND_QUEUE_TYPE_MAIN)
+        CommandStreamHandle handle = s_commandListCollection.AllocateHandle(GFX_COMMAND_QUEUE_TYPE_DRAW, s_nCommandQueueTypeBits);
+        LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
+
+        ID3D12PipelineState* pPipelineState = nullptr;
+        if (pipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            CommandStreamHandle handle = s_commandListCollection.AllocateHandle();
-            LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
+            pPipelineState = s_pipelineCollection.GetData(pipelineHandle).pPipelineState;
+        }
 
-            Dx12::CommandAllocator* pAllocator = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
+        ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
+        LUZASSERT(pCommandAllocator);
 
-            CommandList& cl = s_commandListCollection.GetData(handle);
-            cl.pCommandQueue = s_pGraphicsQueue;
-            cl.pAlloc = reinterpret_cast<void*>(pAllocator);
-            
-            ID3D12PipelineState* pPipelineState = nullptr;
-            if (desc.PipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
-            {
-                pPipelineState = s_pipelineCollection.GetData(desc.PipelineHandle).pPipelineState;
-            }
-            HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc)->Allocator(), pPipelineState, IID_PPV_ARGS(&cl.pGraphicsCommandList));
+        CommandList& cl = s_commandListCollection.GetData(handle);
+        if (!cl.pGraphicsCommandList)
+        {
+            HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, pPipelineState, IID_PPV_ARGS(&cl.pGraphicsCommandList));
             LUZASSERT(SUCCEEDED(hr));
-
-            pCommandStream = new(reinterpret_cast<void*>(pCommandStream)) CommandStream(handle);
         }
         else
         {
-            LUZASSERT(false);
+            HRESULT hr = cl.pGraphicsCommandList->Reset(pCommandAllocator, pPipelineState);
+            LUZASSERT(SUCCEEDED(hr));
         }
+
+        return handle;
+    }
+
+    void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream)
+    {
+        CommandStreamHandle handle = GPU_RESOURCE_HANDLE_INVALID;
+        switch (desc.QueueType)
+        {
+        case GFX_COMMAND_QUEUE_TYPE_DRAW: handle = CreateGraphicsCommandList(desc.PipelineHandle); break;
+        case GFX_COMMAND_QUEUE_TYPE_COPY: LUZASSERT(false); break;
+        case GFX_COMMAND_QUEUE_TYPE_COMPUTE: LUZASSERT(false); break;
+        default: LUZASSERT(false); break;
+        }
+
+        LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
+        pCommandStream = new(reinterpret_cast<void*>(pCommandStream)) CommandStream(handle);
+    }
+
+    void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle)
+    {
+        LUZASSERT(pipelineHandle != GPU_RESOURCE_HANDLE_INVALID);
+
+        CommandStreamHandle handle = pCommandStream->GetHandle();
+        CommandList& cl = s_commandListCollection.GetData(handle);
+        LUZASSERT(cl.pGraphicsCommandList);
+
+        CommandQueueType eQueueType = (CommandQueueType)HandleEncoder<CommandStreamHandle>::DecodeHandleValue(handle, s_nCommandQueueTypeBits);
+        CommandQueue& cq = s_commandQueues[eQueueType];
+
+        ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(eQueueType);
+        LUZASSERT(pCommandAllocator);
+        
+        ID3D12PipelineState* pPipelineState = nullptr;
+        ID3D12RootSignature* pRootSignature = nullptr;
+        if (pipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
+        {
+            Pipeline& pso = s_pipelineCollection.GetData(pipelineHandle);
+            pPipelineState = pso.pPipelineState;
+            pRootSignature = pso.pSignature;
+
+        }
+
+        //HRESULT hr = cl.pGraphicsCommandList->Close();
+        //LUZASSERT(SUCCEEDED(hr));
+
+        //hr = cl.pGraphicsCommandList->Reset(pCommandAllocator, pPipelineState);
+        //LUZASSERT(SUCCEEDED(hr));
+        cl.pGraphicsCommandList->SetPipelineState(pPipelineState);
+        cl.pGraphicsCommandList->SetGraphicsRootSignature(pRootSignature);
     }
 
     void ReleaseCommandStream(CommandStream* pCommandStream)
     {
         CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
         ZeroMemory(&cl, sizeof(CommandList));
+
         s_commandListCollection.FreeHandle(pCommandStream->GetHandle());
     }
 }

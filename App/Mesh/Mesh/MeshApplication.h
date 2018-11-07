@@ -29,6 +29,10 @@
 #include "CameraController.h"
 #endif
 
+#ifndef COMMANDSTREAM_H
+#include "CommandStream.h"
+#endif
+
 class Window;
 
 struct Vertex
@@ -105,6 +109,8 @@ public:
     using IApplication::IApplication;
 
     std::shared_ptr<Window> m_window;
+
+    Graphics::CommandStream m_commandStream;
 
     Graphics::ShaderHandle m_vs;
     Graphics::ShaderHandle m_ps;

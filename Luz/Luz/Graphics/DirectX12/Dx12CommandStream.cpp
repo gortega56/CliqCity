@@ -27,26 +27,7 @@ namespace Graphics
 
     void CommandStream::Reset(const PipelineStateHandle handle)
     {
-        Pipeline& pso = s_pipelineCollection.GetData(handle);
-        CommandList& cl = s_commandListCollection.GetData(m_handle);
-        LUZASSERT(cl.pCommandQueue);
-        LUZASSERT(cl.pGraphicsCommandList);
-        LUZASSERT(cl.pAlloc);
-
-        Dx12::CommandAllocator* pAllocator = Dx12::CommandAllocatorPool::Allocate(D3D12_COMMAND_LIST_TYPE_DIRECT);
-        LUZASSERT(pAllocator->GetFence().InUse());
-        cl.pAlloc = reinterpret_cast<void*>(pAllocator);
-
-        ID3D12PipelineState* pPipelineState = nullptr;
-        if (handle != GPU_RESOURCE_HANDLE_INVALID)
-        {
-            pPipelineState = s_pipelineCollection.GetData(handle).pPipelineState;
-        }
-
-        HRESULT hr = cl.pGraphicsCommandList->Reset(reinterpret_cast<Dx12::CommandAllocator*>(cl.pAlloc)->Allocator(), pPipelineState);
-        LUZASSERT(SUCCEEDED(hr));
-
-        cl.pGraphicsCommandList->SetGraphicsRootSignature(pso.pSignature);
+        ResetCommandStream(this, handle);
     }
 
     void CommandStream::SetPipeline(const PipelineStateHandle handle)
