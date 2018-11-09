@@ -57,7 +57,7 @@ namespace Graphics
 
         inline DataType& GetData(const HandleType handle)
         {
-            LUZASSERT(HandleEncoder<HandleType>::DecodeHandleIndex(handle, N));
+            LUZASSERT(HandleEncoder<HandleType>::DecodeHandleIndex(handle, N) < N);
             return m_data[HandleEncoder<HandleType>::DecodeHandleIndex(handle, N)];   
         }
 

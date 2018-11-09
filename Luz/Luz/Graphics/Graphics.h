@@ -10,7 +10,12 @@
 #include "PipelineStates.h"
 #endif
 
+#if _WIN64
 #define DX12
+#elif _WIN32
+#define DX12
+#else
+#endif
 
 class Window;
 
@@ -76,7 +81,7 @@ namespace Graphics
 
     LUZ_API void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream);
 
-    LUZ_API void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle);
+    //LUZ_API void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle);
 
     LUZ_API void ReleaseCommandStream(CommandStream* pCommandStream);
 }

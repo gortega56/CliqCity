@@ -364,6 +364,7 @@ bool MeshApplication::Initialize()
 
 int MeshApplication::Shutdown()
 {
+    Graphics::ReleaseCommandStream(&m_commandStream);
     Graphics::Shutdown();
 
     return 0;
@@ -385,7 +386,7 @@ void MeshApplication::Update(double dt)
         Graphics::UpdateConstantBuffer(&m_shadowCbvData, sizeof(m_shadowCbvData), m_lightViewProjHandle);
 
         auto& cs = m_commandStream;
-        cs.Reset(m_shadowPipeline);
+        cs.SetPipeline(m_shadowPipeline);
         cs.SetRenderTargets(0, nullptr, m_shadowTexture);
         cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
         cs.SetViewport(s_shadow_vp);
@@ -423,7 +424,7 @@ void MeshApplication::Update(double dt)
     {
         auto& cs = m_commandStream;
         cs.TransitionDepthStencilToTexture(m_shadowTexture);
-        cs.Reset(m_fullScreenPipeline);
+        cs.SetPipeline(m_fullScreenPipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);
@@ -445,7 +446,7 @@ void MeshApplication::Update(double dt)
         Graphics::UpdateConstantBuffer(&s_light, sizeof(s_light), m_lightHandle);
 
         auto& cs = m_commandStream;
-        cs.Reset(m_opaquePipeline);
+        cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);

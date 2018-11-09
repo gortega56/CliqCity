@@ -3,7 +3,6 @@
 
 #ifdef DX12
 #include "Dx12GraphicsTypes.h"
-#include "CommandContext.h"
 #include "Dx12DescriptorAllocator.h"
 
 namespace Graphics
@@ -25,10 +24,10 @@ namespace Graphics
         ReleaseCommandStream(this);
     }
 
-    void CommandStream::Reset(const PipelineStateHandle handle)
-    {
-        ResetCommandStream(this, handle);
-    }
+    //void CommandStream::Reset(const PipelineStateHandle handle)
+    //{
+    //    ResetCommandStream(this, handle);
+    //}
 
     void CommandStream::SetPipeline(const PipelineStateHandle handle)
     {

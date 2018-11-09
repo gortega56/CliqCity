@@ -102,7 +102,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
                 n.x, n.y, n.z
             };
 
-            N = SobelFilter(textures[iBump], default_sampler, input.uv, 1.0f);
+            //N = SobelFilter(textures[iBump], default_sampler, input.uv, 1.0f);
             //N = normalize(mul(N, tbn));
         }
         
@@ -151,7 +151,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         //output.xyz = ACESFilm(output.xyz);
 
         output.xyz = Linear_to_SRGB(output.xyz);
-        output.xyz = N;
+        //output.xyz = N;
     }
 
     return output;

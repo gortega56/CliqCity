@@ -208,10 +208,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="IApplication.cpp" />
     <ClCompile Include="LzAssert.cpp" />
     <ClCompile Include="Console.cpp" />
-    <ClCompile Include="Graphics\DirectX12\CommandContext.cpp" />
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
-    <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Fence.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\MSPlatformWindow.cpp" />
@@ -243,11 +240,8 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="LuzExport.h" />
     <ClInclude Include="LzAssert.h" />
     <ClInclude Include="Console.h" />
-    <ClInclude Include="Graphics\DirectX12\CommandContext.h" />
     <ClInclude Include="Graphics\DirectX12\d3dx12.h" />
-    <ClInclude Include="Graphics\DirectX12\dx12_internal.h" />
     <ClInclude Include="Engine.h" />
-    <ClInclude Include="Graphics\DirectX12\Fence.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Platform\Input.h" />

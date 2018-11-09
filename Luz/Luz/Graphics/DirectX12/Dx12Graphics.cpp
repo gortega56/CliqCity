@@ -600,7 +600,7 @@ namespace Graphics
         s_device.pDevice->QueryInterface(IID_PPV_ARGS(&s_pDebugDevice));
         if (s_pDebugDevice)
         {
-           // s_pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+           s_pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
         }
 
         SAFE_RELEASE(s_pDebug);
@@ -1095,6 +1095,7 @@ namespace Graphics
                 vb.View.StrideInBytes =static_cast<UINT>(desc.StrideInBytes);
 
                 SAFE_RELEASE(pUploadBuffer);
+                SAFE_RELEASE(pGraphicsCommandList);
             }
         }
 
@@ -1177,6 +1178,7 @@ namespace Graphics
                 ib.NumIndices = static_cast<u32>(desc.SizeInBytes / desc.StrideInBytes);
 
                 SAFE_RELEASE(pUploadBuffer);
+                SAFE_RELEASE(pGraphicsCommandList);
             }
         }
 
@@ -1377,7 +1379,7 @@ namespace Graphics
                 ID3D12CommandList* pCommandList;
                 ID3D12GraphicsCommandList* pGraphicsCommandList;
             };
-            
+
             ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
             hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr, IID_PPV_ARGS(&pGraphicsCommandList));
             LUZASSERT(SUCCEEDED(hr));
@@ -1411,6 +1413,7 @@ namespace Graphics
 
             // TODO: need to wait here
             SAFE_RELEASE(pUploadBuffer);
+            SAFE_RELEASE(pGraphicsCommandList);
         }
 
         return handle;
@@ -1613,43 +1616,43 @@ namespace Graphics
         pCommandStream = new(reinterpret_cast<void*>(pCommandStream)) CommandStream(handle);
     }
 
-    void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle)
-    {
-        LUZASSERT(pipelineHandle != GPU_RESOURCE_HANDLE_INVALID);
+    //void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle)
+    //{
+    //    LUZASSERT(pipelineHandle != GPU_RESOURCE_HANDLE_INVALID);
 
-        CommandStreamHandle handle = pCommandStream->GetHandle();
-        CommandList& cl = s_commandListCollection.GetData(handle);
-        LUZASSERT(cl.pGraphicsCommandList);
+    //    CommandStreamHandle handle = pCommandStream->GetHandle();
+    //    CommandList& cl = s_commandListCollection.GetData(handle);
+    //    LUZASSERT(cl.pGraphicsCommandList);
 
-        CommandQueueType eQueueType = (CommandQueueType)HandleEncoder<CommandStreamHandle>::DecodeHandleValue(handle, s_nCommandQueueTypeBits);
-        CommandQueue& cq = s_commandQueues[eQueueType];
+    //    CommandQueueType eQueueType = (CommandQueueType)HandleEncoder<CommandStreamHandle>::DecodeHandleValue(handle, s_nCommandQueueTypeBits);
+    //    CommandQueue& cq = s_commandQueues[eQueueType];
 
-        ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(eQueueType);
-        LUZASSERT(pCommandAllocator);
-        
-        ID3D12PipelineState* pPipelineState = nullptr;
-        ID3D12RootSignature* pRootSignature = nullptr;
-        if (pipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
-        {
-            Pipeline& pso = s_pipelineCollection.GetData(pipelineHandle);
-            pPipelineState = pso.pPipelineState;
-            pRootSignature = pso.pSignature;
+    //    ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(eQueueType);
+    //    LUZASSERT(pCommandAllocator);
+    //    
+    //    ID3D12PipelineState* pPipelineState = nullptr;
+    //    ID3D12RootSignature* pRootSignature = nullptr;
+    //    if (pipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
+    //    {
+    //        Pipeline& pso = s_pipelineCollection.GetData(pipelineHandle);
+    //        pPipelineState = pso.pPipelineState;
+    //        pRootSignature = pso.pSignature;
 
-        }
+    //    }
 
-        //HRESULT hr = cl.pGraphicsCommandList->Close();
-        //LUZASSERT(SUCCEEDED(hr));
+    //    //HRESULT hr = cl.pGraphicsCommandList->Close();
+    //    //LUZASSERT(SUCCEEDED(hr));
 
-        //hr = cl.pGraphicsCommandList->Reset(pCommandAllocator, pPipelineState);
-        //LUZASSERT(SUCCEEDED(hr));
-        cl.pGraphicsCommandList->SetPipelineState(pPipelineState);
-        cl.pGraphicsCommandList->SetGraphicsRootSignature(pRootSignature);
-    }
+    //    //hr = cl.pGraphicsCommandList->Reset(pCommandAllocator, pPipelineState);
+    //    //LUZASSERT(SUCCEEDED(hr));
+    //    cl.pGraphicsCommandList->SetPipelineState(pPipelineState);
+    //    cl.pGraphicsCommandList->SetGraphicsRootSignature(pRootSignature);
+    //}
 
     void ReleaseCommandStream(CommandStream* pCommandStream)
     {
         CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
-        ZeroMemory(&cl, sizeof(CommandList));
+        SAFE_RELEASE(cl.pCommandList);
 
         s_commandListCollection.FreeHandle(pCommandStream->GetHandle());
     }

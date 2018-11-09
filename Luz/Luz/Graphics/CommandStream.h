@@ -17,7 +17,7 @@ namespace Graphics
 
         ~CommandStream();
 
-        void Reset(const PipelineStateHandle handle);
+       //void Reset(const PipelineStateHandle handle);
 
         void SetPipeline(const PipelineStateHandle handle);
 

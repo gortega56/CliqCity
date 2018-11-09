@@ -36,15 +36,6 @@
     <ClCompile Include="Scene.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\dx12_internal.cpp">
-      <Filter>Graphics\DirectX12</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\CommandContext.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\Fence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Resource\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -149,16 +140,7 @@
     <ClInclude Include="Graphics\DirectX12\d3dx12.h">
       <Filter>Graphics\DirectX12</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\dx12_internal.h">
-      <Filter>Graphics\DirectX12</Filter>
-    </ClInclude>
     <ClInclude Include="Luz.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\CommandContext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\Fence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Resource\ResourceManager.h">
