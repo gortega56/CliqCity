@@ -617,18 +617,23 @@ namespace Graphics
 
     ID3D12CommandAllocator* AllocateCommandAllocator(const CommandQueueType eQueueType)
     {
+        // TODO: This should work if we only have one allocator.
+        // Right now only works because the amount of allocators is much greater than frame buffers
+
         CommandQueue& commandQueue = s_commandQueues[eQueueType];
         CommandAllocatorPool& commandAllocatorPool = s_commandAllocatorPools[eQueueType];
         uint8_t current = commandAllocatorPool.NextAllocator.load();
         uint8_t updated;
 
+        UINT64 completed = commandQueue.ExecutionsCompleted;
+        int attempts = 0;
         do
         {
             while (true)
             {
                 uint64_t allocatorFrame = commandAllocatorPool.pCommandAllocatorFrames[current];
-                if (allocatorFrame < commandQueue.ExecutionsCompleted ||
-                   (allocatorFrame == 0 && commandQueue.ExecutionsCompleted == 0))
+                if (allocatorFrame < completed ||
+                   (allocatorFrame == 0 && completed == 0))
                 {
                     break;
                 }
@@ -640,8 +645,9 @@ namespace Graphics
 
         } while (!commandAllocatorPool.NextAllocator.compare_exchange_strong(current, updated));
 
-        commandAllocatorPool.pCommandAllocatorFrames[current] = commandQueue.ExecutionsCompleted;
-        commandAllocatorPool.ppCommandAllocators[current]->Reset();
+        commandAllocatorPool.pCommandAllocatorFrames[current] = completed;
+        HRESULT hr = commandAllocatorPool.ppCommandAllocators[current]->Reset();
+        LUZASSERT(SUCCEEDED(hr));
         return commandAllocatorPool.ppCommandAllocators[current];
     }
 

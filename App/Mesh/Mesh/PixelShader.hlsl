@@ -42,9 +42,13 @@ cbuffer Light : register(b2)
 ConstantBuffer<Material> materials[] : register(b3);
 
 Texture2D textures[] : register(t0, space0);
+
 Texture2D shadow : register(t0, space1);
 
 SamplerState default_sampler : register(s0);
+
+SamplerState bump_sampler : register(s2);
+
 SamplerComparisonState shadow_sampler : register(s1);
 
 struct VS_OUTPUT
@@ -77,10 +81,11 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float3 N = normalize(input.norm);
     float3 L = -Direction.xyz;
     float3 Lc = Color.xyz;
-    float Ia = 0.5f;
-    float Id = 8.5f;
-    float Is = 25.0f;
+    float Ia = 10.5f;
+    float Id = 100.5f;
+    float Is = 500.0f;
     float r = 0.0f;
+    
     int iMaterial = input.mat;
     if (iMaterial != -1)
     {
@@ -102,8 +107,8 @@ float4 main(VS_OUTPUT input) : SV_TARGET
                 n.x, n.y, n.z
             };
 
-            //N = SobelFilter(textures[iBump], default_sampler, input.uv, 1.0f);
-            //N = normalize(mul(N, tbn));
+            N = SobelFilter(textures[iBump], bump_sampler, input.uv, 1.0f);
+            N = normalize(mul(N, tbn));
         }
         
         int iDiffuse = materials[iMaterial].textureIndices.x;
@@ -134,7 +139,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
             float3 H = normalize(L + V);
             float specExp = materials[iMaterial].specularExponent;
 
-            specular = materials[iMaterial].specular * textures[iSpec].Sample(default_sampler, input.uv).xyz;
+            specular = materials[iMaterial].specular * textures[iSpec].Sample(default_sampler, input.uv).r;
             specular = Blinn_Phong_Spec(specular, N, H, Lc, specExp, Is);
         }
 
@@ -144,14 +149,14 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         output.xyz = lerp(shadow, color, Sf);
 
 
-
         //output.xyz = Reinhard_Simple(output.xyz, 1.5f);
         output.xyz *= 0.9f;
         output.xyz = Reinhard_Luma(output.xyz);
         //output.xyz = ACESFilm(output.xyz);
 
         output.xyz = Linear_to_SRGB(output.xyz);
-        //output.xyz = N;
+        //output.xyz = specular;
+
     }
 
     return output;

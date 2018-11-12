@@ -32,7 +32,7 @@ VS_OUTPUT main(VS_INPUT input)
     output.screenPos = mul(float4(input.pos, 1.0f), wvp);
     output.worldPos = input.pos;
     output.tangent = input.tangent.xyz;
-    output.bitangent = cross(input.norm, input.tangent.xyz) * input.tangent.w;
+    output.bitangent = cross(input.norm, input.tangent.xyz);// *input.tangent.w;
     output.norm = input.norm;
     output.uv = input.uv.xy;
     output.mat = (int)input.uv.z;

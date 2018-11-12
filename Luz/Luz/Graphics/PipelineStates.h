@@ -308,6 +308,9 @@ namespace Graphics
         LUZ_API SignatureDesc& AppendLinearWrapSampler(const u32& shaderRegister);
         LUZ_API SignatureDesc& AppendLinearClampSampler(const u32& shaderRegister);
         LUZ_API SignatureDesc& AppendComparisonPointBorderSampler(const u32& shaderRegister);
+        LUZ_API SignatureDesc& AppendWrapSampler(const u32& shaderRegister, const FilterType eFilter);
+        LUZ_API SignatureDesc& AppendClampSampler(const u32& shaderRegister, const FilterType eFilter);
+        LUZ_API SignatureDesc& AppendMirrorSampler(const u32& shaderRegister, const FilterType eFilter);
         LUZ_API SignatureDesc& AppendStaticSampler(const u32& shaderRegister,
             const u32 registerSpace = 0U,
             const FilterType filter = GFX_FILTER_ANISOTROPIC,

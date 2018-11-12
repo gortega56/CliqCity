@@ -401,6 +401,33 @@ namespace Graphics
             Graphics::BORDER_COLOR_TYPE_OPAQUE_BLACK);
     }
 
+    LUZ_API SignatureDesc& SignatureDesc::AppendWrapSampler(const u32& shaderRegister, const FilterType eFilter)
+    {
+        return AppendStaticSampler(shaderRegister, 0,
+            eFilter,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_WRAP);
+    }
+
+    LUZ_API SignatureDesc& SignatureDesc::AppendClampSampler(const u32& shaderRegister, const FilterType eFilter)
+    {
+        return AppendStaticSampler(shaderRegister, 0,
+            eFilter,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_CLAMP);
+    }
+
+    LUZ_API SignatureDesc& SignatureDesc::AppendMirrorSampler(const u32& shaderRegister, const FilterType eFilter)
+    {
+        return AppendStaticSampler(shaderRegister, 0,
+            eFilter,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_MIRROR,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_MIRROR,
+            AddressType::GFX_TEXTURE_ADDRESS_MODE_MIRROR);
+    }
+
     SignatureDesc& SignatureDesc::AppendStaticSampler(const u32& shaderRegister,
         const u32 registerSpace /*= 0U*/,
         const FilterType filter /*= GFX_FILTER_TYPE_ANISOTROPIC*/,

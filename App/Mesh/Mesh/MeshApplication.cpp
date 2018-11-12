@@ -127,8 +127,9 @@ bool MeshApplication::Initialize()
         .AppendDescriptorTableRange(3, 25, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
         .AppendDescriptorTableRange(3, 38, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendLinearWrapSampler(0)
-        .AppendComparisonPointBorderSampler(1);
+        .AppendAnisotropicWrapSampler(0)
+        .AppendComparisonPointBorderSampler(1)
+        .AppendWrapSampler(2, Graphics::GFX_FILTER_MIN_MAG_LINEAR_MIP_POINT);
     pd.InputLayout.AppendFloat4("TANGENT")
         .AppendPosition3F()
         .AppendNormal3F()
@@ -392,8 +393,6 @@ void MeshApplication::Update(double dt)
         cs.SetViewport(s_shadow_vp);
         cs.SetScissorRect(s_shadow_scissor);
         cs.SetConstantBuffer(0, m_lightViewProjHandle);
-        // TODO: Descriptor heaps
-        // TODO: Descriptor handles
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         if (m_renderableIndex != -1)
@@ -456,8 +455,6 @@ void MeshApplication::Update(double dt)
         cs.SetConstantBuffer(1, m_lightViewProjHandle);
         cs.SetConstantBuffer(2, m_lightHandle);
         cs.SetDescriptorTable(3, m_baseDescriptorHandle);
-        // TODO: Descriptor heaps
-        // TODO: Descriptor handles
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         if (m_renderableIndex != -1)

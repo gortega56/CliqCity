@@ -9,8 +9,10 @@ float3 SobelFilter(Texture2D height_texture, SamplerState height_sampler, float2
         0,2 | 1,2 | 2,2
     */
 
+    float lod = height_texture.CalculateLevelOfDetail(height_sampler, uv);
+
     uint width, height, mips;
-    height_texture.GetDimensions(0, width, height, mips);
+    height_texture.GetDimensions(lod, width, height, mips);
 
     float dx = 1.0f / (float)width;
     float dy = 1.0f / (float)height;
@@ -22,14 +24,14 @@ float3 SobelFilter(Texture2D height_texture, SamplerState height_sampler, float2
         float2(-dx, +dy), float2(0.0f, +dy), float2(+dx, +dy)
     };
 
-    float h00 = height_texture.Sample(height_sampler, uv + offsets[0]).r;
-    float h10 = height_texture.Sample(height_sampler, uv + offsets[1]).r;
-    float h20 = height_texture.Sample(height_sampler, uv + offsets[2]).r;
-    float h01 = height_texture.Sample(height_sampler, uv + offsets[3]).r;
-    float h21 = height_texture.Sample(height_sampler, uv + offsets[5]).r;
-    float h02 = height_texture.Sample(height_sampler, uv + offsets[6]).r;
-    float h12 = height_texture.Sample(height_sampler, uv + offsets[7]).r;
-    float h22 = height_texture.Sample(height_sampler, uv + offsets[8]).r;
+    float h00 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[0], lod).r;
+    float h10 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[1], lod).r;
+    float h20 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[2], lod).r;
+    float h01 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[3], lod).r;
+    float h21 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[5], lod).r;
+    float h02 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[6], lod).r;
+    float h12 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[7], lod).r;
+    float h22 = 1.0f - height_texture.SampleLevel(height_sampler, uv + offsets[8], lod).r;
 
     //		+1  0 -1		     +1 +2 +1		
     // Gx = +2  0 -2		Gy =  0  0  0
@@ -46,8 +48,7 @@ float3 SobelFilter(Texture2D height_texture, SamplerState height_sampler, float2
 
     float3 partialX = float3(2.0f, 0.0f, Gx * 2.0f);
     float3 partialY = float3(0.0f, 2.0f, Gy * 2.0f);
-    
     float3 normal = cross(partialX, partialY);
-    
+
     return normalize(normal);
 }
