@@ -51,7 +51,7 @@ SamplerState bump_sampler : register(s2);
 
 SamplerComparisonState shadow_sampler : register(s1);
 
-struct VS_OUTPUT
+struct PS_Input
 {
     float4 pos: SV_POSITION;
     float3 worldPos : POSITIONT;
@@ -62,7 +62,7 @@ struct VS_OUTPUT
     int mat : BLENDINDICES;
 };
 
-float4 main(VS_OUTPUT input) : SV_TARGET
+float4 main(PS_Input input) : SV_TARGET
 {
     float4 output = float4(1, 0, 1, 1); // magenta
 
@@ -81,10 +81,9 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float3 N = normalize(input.norm);
     float3 L = -Direction.xyz;
     float3 Lc = Color.xyz;
-    float Ia = 10.5f;
-    float Id = 100.5f;
-    float Is = 500.0f;
-    float r = 0.0f;
+    float Ia = 1.5f;
+    float Id = 5.5f;
+    float Is = 10.0f;
     
     int iMaterial = input.mat;
     if (iMaterial != -1)
@@ -148,14 +147,9 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         float3 color = (ambient + diffuse + specular) * Sf;
         output.xyz = lerp(shadow, color, Sf);
 
-
-        //output.xyz = Reinhard_Simple(output.xyz, 1.5f);
-        output.xyz *= 0.9f;
+        output.xyz *= 10.0f;
         output.xyz = Reinhard_Luma(output.xyz);
-        //output.xyz = ACESFilm(output.xyz);
-
         output.xyz = Linear_to_SRGB(output.xyz);
-        //output.xyz = specular;
 
     }
 

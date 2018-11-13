@@ -1,3 +1,5 @@
+static const float PI = 3.14159265359f;
+
 // Kd - Diffuse Color
 // N - Normal
 // L - Light Direction
@@ -86,7 +88,7 @@ float3 Reinhard_Luma(float3 color)
     return color * toneMapped / luma;
 }
 
-float3 ACESFilm(float3 x)
+float3 ACES_Film(float3 x)
 {
     float a = 2.51f;
     float b = 0.03f;
@@ -94,4 +96,93 @@ float3 ACESFilm(float3 x)
     float d = 0.59f;
     float e = 0.14f;
     return saturate((x*(a*x + b)) / (x*(c*x + d) + e));
+}
+
+// NoV should be clamped to zero
+float F_Schlick(float F0, float F90, float NoV)
+{
+    return F0 + (F90 - F0) * pow(1.0f - NoV, 5.0f);
+}
+
+// NoV should be clamped to zero
+float3 F_Schlick(float3 F0, float3 F90, float NoV)
+{
+    return F0 + (F90 - F0) * pow(1.0f - NoV, 5.0f);
+}
+
+float Fd_Burley(float NoV, float NoL, float LoH, float roughness) 
+{
+    float F90 = 0.5 + 2.0 * roughness * LoH * LoH;
+    float lightScatter = F_Schlick(1.0, F90, NoL);
+    float viewScatter = F_Schlick(1.0, F90, NoV);
+    return lightScatter * viewScatter * (1.0 / PI);
+}
+// NoH should be clamped to zero
+float D_Beckmann(float NoH, float roughness)
+{
+    float rough_sq = roughness * roughness;
+    return  (ceil(NoH) / (PI * rough_sq * NoH * NoH * NoH * NoH)) * exp((NoH * NoH - 1.0f) / (rough_sq * NoH * NoH));
+}
+
+// NoH should be clamped to zero
+float D_Trowbridge_Reitz(float NoH, float roughness)
+{
+    float a = NoH * roughness;
+    float k = roughness / (1.0 - NoH * NoH + a * a);
+    return k * k * (1.0 / PI);
+}
+
+// NoS clamped to zero
+float G1_Smith_Beckmann(float NoS, float roughness)
+{
+    // Karis http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
+    const float a = 3.535f;
+    const float b = 2.181f;
+    const float d = 2.276f;
+    const float e = 2.577f;
+
+    float c = NoS / (roughness * sqrt(1.0f - NoS * NoS));
+    if (c < 1.6f)
+    {
+        c = (a * c + b * c * c) / (1.0f + d * c + e * c * c);
+    }
+    else
+    {
+        c = 1.0f;
+    }
+
+    // Real-Time Rendering 
+    //const float a = 1.259f;
+    //const float b = 0.396f;
+    //const float d = 3.535f;
+    //const float e = 2.181f;
+
+    //float c = NoS / (roughness * sqrt(1.0f - NoS * NoS));
+    //if (c < 1.6f)
+    //{
+    //    c = (1.0f - a * c + b * c * c) / (d * c + e * c * c);
+    //}
+    //else
+    //{
+    //    c = 0.0f;
+    //}
+
+    return c;
+}
+
+// NoV clamped to zero
+// NoL clamped to zero
+float G_Smith_Beckmann(float NoV, float NoL, float roughness)
+{
+    return G1_Smith_Beckmann(NoV, roughness) * G1_Smith_Beckmann(NoL, roughness);
+}
+
+// NoV clamped to zero
+// NoL clamped to zero
+float G_Smith_Trowbridge_Reitz(float NoV, float NoL, float roughness)
+{
+    float a = roughness * roughness;
+    float ggxv = NoL * sqrt(NoV * NoV * (1.0f - a) + a);
+    float ggxl = NoV * sqrt(NoL * NoL * (1.0f - a) + a);
+    return 0.5f / (ggxv + ggxl);
 }
