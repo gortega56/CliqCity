@@ -81,9 +81,9 @@ float4 main(PS_Input input) : SV_TARGET
     float3 N = normalize(input.norm);
     float3 L = -Direction.xyz;
     float3 Lc = Color.xyz;
-    float Ia = 1.5f;
-    float Id = 5.5f;
-    float Is = 10.0f;
+    float Ia = 0.5f;
+    float Id = 2.5f;
+    float Is = 5.0f;
     
     int iMaterial = input.mat;
     if (iMaterial != -1)
