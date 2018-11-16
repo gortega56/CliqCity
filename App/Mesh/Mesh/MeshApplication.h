@@ -51,21 +51,29 @@ struct Vertex
     Vertex() {}
 };
 
-struct ConstantBufferData
+struct CameraConstants
 {
-    float4x4 view;
-    float4x4 proj;
-    float4x4 inverseView;
-    float4x4 inverseProj;
+    float4x4 View;
+    float4x4 Proj;
+    float4x4 InverseView;
+    float4x4 InverseProj;
 };
 
-struct MaterialIndex
+struct LightingConstants
 {
-    u32 Index;
-    float3 _padding;
+    float3 Color;
+    float _padding0;
+    float3 Direction;
+    float _padding1;
+    float4 Intensity; // ambient, diffuse, spec
+    u32 EnableAmbient;
+    u32 EnableDiffuse;
+    u32 EnableSpec;
+    u32 EnableBump;
+    u32 EnableShadow;
 };
 
-struct PhongMaterial
+struct MaterialConstants
 {
     float3 Specular;   
     float SpecularExponent;       
@@ -85,21 +93,6 @@ struct Surface
 {
     Graphics::VertexBufferHandle vb;
     Graphics::IndexBufferHandle ib;
-};
-
-struct Light
-{
-    float3 Color;
-    float _p0;
-    float3 Direction;
-    float _p1;
-
-    Light(float3 C, float3 D)
-        : Color(C)
-        , Direction(D)
-    {
-
-    }
 };
 
 class MeshApplication :
@@ -122,24 +115,22 @@ public:
     Graphics::PipelineStateHandle m_fullScreenPipeline;
 
     Graphics::IndexBufferHandle m_fs_ib;
-    std::vector<Surface> m_surfaces;
 
-    Graphics::ConstantBufferHandle m_viewProjectionHandle;
     Graphics::ConstantBufferHandle m_baseDescriptorHandle;
+    Graphics::ConstantBufferHandle m_cameraHandle;
     Graphics::ConstantBufferHandle m_lightHandle;
-    Graphics::ConstantBufferHandle m_lightViewProjHandle;
+    Graphics::ConstantBufferHandle m_shadowHandle;
     Graphics::DepthStencilHandle m_shadowTexture;
 
-    MaterialIndex m_materialIndex;
-    ConstantBufferData m_cbvData;
-    ConstantBufferData m_shadowCbvData;
-    std::vector<PhongMaterial> m_materialConstants;
+    CameraConstants m_cameraConsts;
+    CameraConstants m_shadowConsts;
+    LightingConstants m_lightingConsts;
+    std::vector<MaterialConstants> m_materialConstants;
 
     Luz::CameraController m_cameraController;
 
     std::vector<i32> m_materialIndices;
-
-    i32 m_renderableIndex = -1;
+    std::vector<Surface> m_surfaces;
 
     range3 m_sceneBounds;
 

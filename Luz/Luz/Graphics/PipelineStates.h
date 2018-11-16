@@ -343,13 +343,13 @@ namespace Graphics
         SignatureDesc& SetFlags(const Flags& flags);
     };
 
-    enum DepthWriteMask : u8
+    enum LUZ_API DepthWriteMask : u8
     {
         GFX_DEPTH_WRITE_MASK_ZERO = 0,
         GFX_DEPTH_WRITE_MASK_ALL = 1
     };
 
-    enum StencilOp : u8
+    enum LUZ_API StencilOp : u8
     {
         GFX_STENCIL_OP_KEEP = 1,
         GFX_STENCIL_OP_ZERO = 2,
@@ -361,15 +361,17 @@ namespace Graphics
         GFX_STENCIL_OP_DECR = 8
     };
 
-    struct StencilState
+    struct LUZ_API StencilState
     {
         StencilOp StencilFailOp = GFX_STENCIL_OP_KEEP;
         StencilOp StencilDepthFailOp = GFX_STENCIL_OP_KEEP;
         StencilOp StencilPassOp = GFX_STENCIL_OP_KEEP;
         ComparisonType Comparison = COMPARISON_TYPE_ALWAYS;
+
+        static StencilState KeepAlways;
     };
 
-    struct DepthStencilState
+    struct LUZ_API DepthStencilState
     {
         DepthWriteMask WriteMask = GFX_DEPTH_WRITE_MASK_ALL;
         ComparisonType Comparison = COMPARISON_TYPE_LESS;
@@ -379,29 +381,31 @@ namespace Graphics
         StencilState FrontFace;
         StencilState BackFace;
         bool StencilEnable = true;
+
+        static DepthStencilState DepthCompareLessWriteAll_StencilOff;
     };
 
-    enum FillMode : u8
+    enum LUZ_API FillMode : u8
     {
         GFX_FILL_MODE_WIREFRAME = 2,
         GFX_FILL_MODE_SOLID = 3
     };
 
-    enum CullMode : u8
+    enum LUZ_API CullMode : u8
     {
         GFX_CULL_MODE_NONE = 1,
         GFX_CULL_MODE_FRONT = 2,
         GFX_CULL_MODE_BACK = 3
     };
 
-    enum ConservativeRasterizationMode : u8
+    enum LUZ_API ConservativeRasterizationMode : u8
     {
         GFX_CONSERVATIVE_RASTERIZATION_MODE_UNAVAILABLE,
         GFX_CONSERVATIVE_RASTERIZATION_MODE_OFF,
         GFX_CONSERVATIVE_RASTERIZATION_MODE_ON,
     };
 
-    struct RasterizerState
+    struct LUZ_API RasterizerState
     {
         FillMode Fill = GFX_FILL_MODE_SOLID;
         CullMode Cull = GFX_CULL_MODE_BACK;
@@ -414,9 +418,12 @@ namespace Graphics
         bool AntialiasedLineEnable = false;
         u32 ForcedSampleCount = 0;
         ConservativeRasterizationMode RasterizationMode = GFX_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+        static RasterizerState FillSolidCullCCW;
+        static RasterizerState FillSolidCullCW;
     };
 
-    enum BlendType
+    enum LUZ_API BlendType
     {
         GFX_BLEND_ZERO = 1,
         GFX_BLEND_ONE = 2,
@@ -437,7 +444,7 @@ namespace Graphics
         GFX_BLEND_INV_SRC1_ALPHA = 19
     };
 
-    enum BlendOpType
+    enum LUZ_API BlendOpType
     {
         GFX_BLEND_OP_ADD = 1,
         GFX_BLEND_OP_SUBTRACT = 2,
@@ -446,7 +453,7 @@ namespace Graphics
         GFX_BLEND_OP_MAX = 5
     };
 
-    enum LogicOpType : u8
+    enum LUZ_API LogicOpType : u8
     {
         GFX_LOGIC_OP_CLEAR = 0,
         GFX_LOGIC_OP_SET = (GFX_LOGIC_OP_CLEAR + 1),
@@ -466,7 +473,7 @@ namespace Graphics
         GFX_LOGIC_OP_OR_INVERTED = (GFX_LOGIC_OP_OR_REVERSE + 1)
     };
 
-    enum ColorWriteEnable : u8
+    enum LUZ_API ColorWriteEnable : u8
     {
         GFX_COLOR_WRITE_ENABLE_RED = 1,
         GFX_COLOR_WRITE_ENABLE_GREEN = 2,
@@ -475,7 +482,7 @@ namespace Graphics
         GFX_COLOR_WRITE_ENABLE_ALL = (((GFX_COLOR_WRITE_ENABLE_RED | GFX_COLOR_WRITE_ENABLE_GREEN) | GFX_COLOR_WRITE_ENABLE_BLUE) | GFX_COLOR_WRITE_ENABLE_ALPHA)
     };
 
-    struct RenderTargetBlendState
+    struct LUZ_API RenderTargetBlendState
     {
         bool BlendEnable = false;
         bool LogicOpEnable = false;
@@ -487,9 +494,15 @@ namespace Graphics
         BlendOpType BlendOpAlpha = GFX_BLEND_OP_ADD;
         LogicOpType LogicOp = GFX_LOGIC_OP_NOOP;
         ColorWriteEnable RenderTargetWriteMask = GFX_COLOR_WRITE_ENABLE_ALL;
+
+        static RenderTargetBlendState Replace;
+        static RenderTargetBlendState Additive;
+        static RenderTargetBlendState Subtractive;
+        static RenderTargetBlendState Multiplicative;
+        static RenderTargetBlendState Alpha;
     };
 
-    struct BlendState
+    struct LUZ_API BlendState
     {
         RenderTargetBlendState BlendStates[8];
         bool AlphaToCoverageEnable;

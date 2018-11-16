@@ -1,6 +1,34 @@
 #include "Lighting.hlsli"
 #include "Sobel.hlsli"
 
+cbuffer CameraConstants : register(b0)
+{
+    float4x4 view;
+    float4x4 proj;
+    float4x4 inverseView;
+    float4x4 inverseProj;
+}
+
+cbuffer ShadowConstants : register(b1)
+{
+    float4x4 shadowView;
+    float4x4 shadowProj;
+    float4x4 shadowInverseView;
+    float4x4 shadowInverseProj;
+}
+
+cbuffer LightingConstants : register(b2)
+{
+    float4 Color;
+    float4 Direction;
+    float4 Intensity; // ambient, diffuse, spec
+    uint EnableAmbient;
+    uint EnableDiffuse;
+    uint EnableSpec;
+    uint EnableBump;
+    uint EnableShadows;
+}
+
 struct Material
 {
     float3 specular;
@@ -16,28 +44,6 @@ struct Material
     int4 textureIndices; // x - diffuse, y - bump z - dissolve w - spec
     float4 p2[10];
 };
-
-cbuffer Constants : register(b0)
-{
-    float4x4 view;
-    float4x4 proj;
-    float4x4 inverseView;
-    float4x4 inverseProj;
-}
-
-cbuffer LightConstants : register(b1)
-{
-    float4x4 lightView;
-    float4x4 lightProj;
-    float4x4 lightInverseView;
-    float4x4 lightInverseProj;
-}
-
-cbuffer Light : register(b2)
-{
-    float4 Color;
-    float4 Direction;
-}
 
 ConstantBuffer<Material> materials[] : register(b3);
 
@@ -74,16 +80,16 @@ float4 main(PS_Input input) : SV_TARGET
         0.5f, 0.5f, 0.0f, 1.0f
     };
 
-    float4x4 VPT = mul(mul(lightView, lightProj), T);
+    float4x4 VPT = mul(mul(shadowView, shadowProj), T);
     float4 Lp = mul(float4(input.worldPos, 1), VPT);
     float Sf = Shadow_Factor(shadow, shadow_sampler, Lp.xy, Lp.z);
 
     float3 N = normalize(input.norm);
     float3 L = -Direction.xyz;
     float3 Lc = Color.xyz;
-    float Ia = 0.5f;
-    float Id = 2.5f;
-    float Is = 5.0f;
+    float Ia = Intensity.x;
+    float Id = Intensity.y;
+    float Is = Intensity.z;
     
     int iMaterial = input.mat;
     if (iMaterial != -1)

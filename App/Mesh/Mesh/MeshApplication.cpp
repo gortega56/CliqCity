@@ -29,7 +29,6 @@ static float g_scale = 5.0f;
 Console g_console;
 
 static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f, 3000.0f);
-static Light s_light = Light(float3(0.8f, 0.8f, 0.8f), float3(0.0f, -0.5f, 0.0f));
 
 static bool s_renderShadows = true;
 static bool s_shadowFullScreen = false;
@@ -51,7 +50,7 @@ int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::strin
 
 MeshApplication::MeshApplication()
 {
-    m_renderableIndex = -1;
+
 }
 
 MeshApplication::~MeshApplication()
@@ -86,6 +85,10 @@ bool MeshApplication::Initialize()
     pCamera->SetNear(0.1f);
     pCamera->SetFar(3000.0f);
 
+    m_lightingConsts.Color = float3(0.8f, 0.8f, 0.8f);
+    m_lightingConsts.Direction = float3(0.0f, -0.5f, 0.0f);
+    m_lightingConsts.Intensity = float4(0.5f, 2.5f, 5.0f);
+
     //rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
     //{
     //    if (!pFbx) return;
@@ -107,6 +110,14 @@ bool MeshApplication::Initialize()
     //        sharedRenderable->m_isRenderable.store(true);
     //    }
     //});
+
+    static u32 s_ib[] = { 0, 1, 2 };
+    Graphics::BufferDesc ib;
+    ib.Alignment = 0;
+    ib.SizeInBytes = 12;
+    ib.StrideInBytes = sizeof(u32);
+    ib.pData = s_ib;
+    m_fs_ib = Graphics::CreateIndexBuffer(ib);
 
     m_vs = Graphics::CreateVertexShader("VertexShader.hlsl");
     m_ps = Graphics::CreatePixelShader("PixelShader.hlsl");
@@ -141,48 +152,29 @@ bool MeshApplication::Initialize()
     pd.SampleQuality = 0;
     pd.SampleMask = 0xffffffff;
 
-    pd.DepthStencil.DepthEnable = true;
-    pd.DepthStencil.WriteMask = Graphics::GFX_DEPTH_WRITE_MASK_ALL;
-    pd.DepthStencil.Comparison = Graphics::COMPARISON_TYPE_LESS;
-    pd.DepthStencil.StencilReadMask = 0xff;
-    pd.DepthStencil.StencilWriteMask = 0xff;
-    pd.DepthStencil.StencilEnable = false;
-    pd.DepthStencil.FrontFace.StencilFailOp = Graphics::GFX_STENCIL_OP_KEEP;
-    pd.DepthStencil.FrontFace.StencilDepthFailOp = Graphics::GFX_STENCIL_OP_KEEP;
-    pd.DepthStencil.FrontFace.StencilPassOp = Graphics::GFX_STENCIL_OP_KEEP;
-    pd.DepthStencil.FrontFace.Comparison = Graphics::COMPARISON_TYPE_ALWAYS;
-    pd.DepthStencil.BackFace.StencilFailOp = Graphics::GFX_STENCIL_OP_KEEP;
-    pd.DepthStencil.BackFace.StencilDepthFailOp = Graphics::GFX_STENCIL_OP_KEEP;
-    pd.DepthStencil.BackFace.StencilPassOp = Graphics::GFX_STENCIL_OP_KEEP;
-    pd.DepthStencil.BackFace.Comparison = Graphics::COMPARISON_TYPE_ALWAYS;
-
-    pd.Rasterizer.Fill = Graphics::GFX_FILL_MODE_SOLID;
-    pd.Rasterizer.Cull = Graphics::GFX_CULL_MODE_BACK;
-    pd.Rasterizer.FrontCounterClockwise = false;
-    pd.Rasterizer.DepthBias = 0;
-    pd.Rasterizer.DepthBiasClamp = 0.0f;
-    pd.Rasterizer.SlopeScaledDepthBias = 0.0f;
-    pd.Rasterizer.DepthClipEnable = true;
-    pd.Rasterizer.MsaaEnable = false;
-    pd.Rasterizer.AntialiasedLineEnable = false;
-    pd.Rasterizer.RasterizationMode = Graphics::GFX_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
+    pd.DepthStencil = Graphics::DepthStencilState::DepthCompareLessWriteAll_StencilOff;
+    pd.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    pd.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
     pd.Blend.AlphaToCoverageEnable = false;
     pd.Blend.IndependentBlendEnable = false;
-    pd.Blend.BlendStates[0].BlendEnable = false;
-    pd.Blend.BlendStates[0].LogicOpEnable = false;
-    pd.Blend.BlendStates[0].SrcBlend = Graphics::GFX_BLEND_ONE;
-    pd.Blend.BlendStates[0].DestBlend = Graphics::GFX_BLEND_ZERO;
-    pd.Blend.BlendStates[0].BlendOp = Graphics::GFX_BLEND_OP_ADD;
-    pd.Blend.BlendStates[0].SrcBlendAlpha = Graphics::GFX_BLEND_ONE;
-    pd.Blend.BlendStates[0].DestBlendAlpha = Graphics::GFX_BLEND_ZERO;
-    pd.Blend.BlendStates[0].BlendOpAlpha = Graphics::GFX_BLEND_OP_ADD;
-    pd.Blend.BlendStates[0].LogicOp = Graphics::GFX_LOGIC_OP_NOOP;
-    pd.Blend.BlendStates[0].RenderTargetWriteMask = Graphics::GFX_COLOR_WRITE_ENABLE_ALL;
 
     pd.UseSwapChain = true;
 
     m_opaquePipeline = Graphics::CreateGraphicsPipelineState(pd);
+
+    memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
+    pd.Signature.SetName("fullscreen")
+        .AllowInputLayout()
+        .DenyHS()
+        .DenyDS()
+        .DenyGS()
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+        .AppendDescriptorTableRange(0, 1, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendAnisotropicWrapSampler(0);
+    pd.VertexShaderHandle = m_fs_vs;
+    pd.PixelShaderHandle = m_fs_ps;
+    pd.UseSwapChain = true;
+    m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
     std::vector<std::string> textureNames;
@@ -206,15 +198,15 @@ bool MeshApplication::Initialize()
         s_lighting.SetFar(3000.0f);
         s_lighting.SetNear(0.1f);
 
-        float3 lightPos = dim * -normalize(s_light.Direction);
-        float3x3 lightView = float3x3::orientation_lh(s_light.Direction, float3(0.0f, 0.0f, 1.0f));
+        float3 lightPos = dim * -normalize(m_lightingConsts.Direction);
+        float3x3 lightView = float3x3::orientation_lh(m_lightingConsts.Direction, float3(0.0f, 0.0f, 1.0f));
         s_lighting.GetTransform()->SetPosition(lightPos);
         s_lighting.GetTransform()->SetRotation(quaternion::create(lightView));
 
-        m_shadowCbvData.view = s_lighting.GetView();
-        m_shadowCbvData.proj = s_lighting.GetProjection();
-        m_shadowCbvData.inverseView = m_shadowCbvData.view.inverse().transpose();
-        m_shadowCbvData.inverseProj = m_shadowCbvData.proj.inverse().transpose();
+        m_shadowConsts.View = s_lighting.GetView();
+        m_shadowConsts.Proj = s_lighting.GetProjection();
+        m_shadowConsts.InverseView = m_shadowConsts.View.inverse().transpose();
+        m_shadowConsts.InverseProj = m_shadowConsts.Proj.inverse().transpose();
 
         // Create geo
         meshes.resize(static_cast<size_t>(pObj->GetNumSurfaces()));
@@ -273,22 +265,19 @@ bool MeshApplication::Initialize()
 
     Graphics::ConstantBufferDesc cbd;
     cbd.Alignment = 0;
-    cbd.SizeInBytes = sizeof(ConstantBufferData);
-    cbd.StrideInBytes = sizeof(ConstantBufferData);
+    cbd.SizeInBytes = sizeof(CameraConstants);
+    cbd.StrideInBytes = sizeof(CameraConstants);
     cbd.AllocHeap = false;
-    cbd.pData = &m_cbvData;
-    m_viewProjectionHandle = Graphics::CreateConstantBuffer(cbd);
+    cbd.pData = &m_cameraConsts;
+    m_cameraHandle = Graphics::CreateConstantBuffer(cbd);
+    m_shadowHandle = Graphics::CreateConstantBuffer(cbd);
 
-    m_lightViewProjHandle = Graphics::CreateConstantBuffer(cbd);
-
-    cbd.SizeInBytes = sizeof(Light);// (sizeof(Light) + 255) & ~255;
-    cbd.StrideInBytes = sizeof(Light);// (sizeof(Light) + 255) & ~255;
-    cbd.AllocHeap = false;
-    cbd.pData = &s_light;
+    cbd.SizeInBytes = sizeof(LightingConstants);
+    cbd.SizeInBytes = sizeof(LightingConstants);
     m_lightHandle = Graphics::CreateConstantBuffer(cbd);
 
-    cbd.SizeInBytes = sizeof(PhongMaterial);
-    cbd.StrideInBytes = sizeof(PhongMaterial);
+    cbd.SizeInBytes = sizeof(MaterialConstants);
+    cbd.StrideInBytes = sizeof(MaterialConstants);
     cbd.AllocHeap = true;
     for (u32 i = 0, count = static_cast<u32>(m_materialConstants.size()); i < count; ++i)
     {
@@ -305,14 +294,6 @@ bool MeshApplication::Initialize()
         Graphics::CreateTexture(td);
     }
     
-    static u32 s_ib[] = { 0, 1, 2 };
-    Graphics::BufferDesc ib;
-    ib.Alignment = 0;
-    ib.SizeInBytes = 12;
-    ib.StrideInBytes = sizeof(u32);
-    ib.pData = s_ib;
-    m_fs_ib = Graphics::CreateIndexBuffer(ib);
-
     Graphics::DepthStencilDesc ds;
     ds.ClearDepth = 1.0f;
     ds.ClearStencil = 0;
@@ -342,20 +323,6 @@ bool MeshApplication::Initialize()
 
     m_shadowPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
-    memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
-    pd.Signature.SetName("fullscreen")
-        .AllowInputLayout()
-        .DenyHS()
-        .DenyDS()
-        .DenyGS()
-        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-        .AppendDescriptorTableRange(0, 1, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendAnisotropicWrapSampler(0);
-    pd.VertexShaderHandle = m_fs_vs;
-    pd.PixelShaderHandle = m_fs_ps;
-    pd.UseSwapChain = true;
-    m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
-
     Graphics::CommandStreamDesc csd;
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
     Graphics::CreateCommandStream(csd, &m_commandStream);
@@ -384,7 +351,7 @@ void MeshApplication::Update(double dt)
         static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
         static const Graphics::Rect s_shadow_scissor = { 0, 0, 2048, 2048 };
 
-        Graphics::UpdateConstantBuffer(&m_shadowCbvData, sizeof(m_shadowCbvData), m_lightViewProjHandle);
+        Graphics::UpdateConstantBuffer(&m_shadowConsts, sizeof(m_shadowConsts), m_shadowHandle);
 
         auto& cs = m_commandStream;
         cs.SetPipeline(m_shadowPipeline);
@@ -392,26 +359,16 @@ void MeshApplication::Update(double dt)
         cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
         cs.SetViewport(s_shadow_vp);
         cs.SetScissorRect(s_shadow_scissor);
-        cs.SetConstantBuffer(0, m_lightViewProjHandle);
+        cs.SetConstantBuffer(0, m_shadowHandle);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        if (m_renderableIndex != -1)
+        for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
         {
-            auto& surface = m_surfaces[m_renderableIndex];
+            if (m_materialIndices[i] == -1) continue;
+            auto& surface = m_surfaces[i];
             cs.SetVertexBuffer(surface.vb);
             cs.SetIndexBuffer(surface.ib);
             cs.DrawInstanceIndexed(surface.ib);
-        }
-        else
-        {
-            for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
-            {
-                if (m_materialIndices[i] == -1) continue;
-                auto& surface = m_surfaces[i];
-                cs.SetVertexBuffer(surface.vb);
-                cs.SetIndexBuffer(surface.ib);
-                cs.DrawInstanceIndexed(surface.ib);
-            }
         }
         cs.TransitionDepthStencilToTexture(m_shadowTexture);
 
@@ -441,8 +398,8 @@ void MeshApplication::Update(double dt)
     else
     {
         // Main visual
-        Graphics::UpdateConstantBuffer(&m_cbvData, sizeof(m_cbvData), m_viewProjectionHandle);
-        Graphics::UpdateConstantBuffer(&s_light, sizeof(s_light), m_lightHandle);
+        Graphics::UpdateConstantBuffer(&m_cameraConsts, sizeof(m_cameraConsts), m_cameraHandle);
+        Graphics::UpdateConstantBuffer(&m_lightingConsts, sizeof(m_lightingConsts), m_lightHandle);
 
         auto& cs = m_commandStream;
         cs.SetPipeline(m_opaquePipeline);
@@ -451,29 +408,19 @@ void MeshApplication::Update(double dt)
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        cs.SetConstantBuffer(0, m_viewProjectionHandle);
-        cs.SetConstantBuffer(1, m_lightViewProjHandle);
+        cs.SetConstantBuffer(0, m_cameraHandle);
+        cs.SetConstantBuffer(1, m_shadowHandle);
         cs.SetConstantBuffer(2, m_lightHandle);
         cs.SetDescriptorTable(3, m_baseDescriptorHandle);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        if (m_renderableIndex != -1)
+        for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
         {
-            auto& surface = m_surfaces[m_renderableIndex];
+            if (m_materialIndices[i] == -1) continue;
+            auto& surface = m_surfaces[i];
             cs.SetVertexBuffer(surface.vb);
             cs.SetIndexBuffer(surface.ib);
             cs.DrawInstanceIndexed(surface.ib);
-        }
-        else
-        {
-            for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
-            {
-                if (m_materialIndices[i] == -1) continue;
-                auto& surface = m_surfaces[i];
-                cs.SetVertexBuffer(surface.vb);
-                cs.SetIndexBuffer(surface.ib);
-                cs.DrawInstanceIndexed(surface.ib);
-            }
         }
 
         cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
@@ -488,17 +435,6 @@ void MeshApplication::Update(double dt)
     auto pInput = m_engine->OS()->GetInput();
     if (pInput)
     {
-        if (pInput->GetKeyUp(KEYCODE_UP))
-        {
-            m_renderableIndex += 1;
-            if (m_renderableIndex >= (i32)m_surfaces.size())
-            {
-                m_renderableIndex = -1;
-            }
-
-            std::cout << "RenderableIndex: " << m_renderableIndex << std::endl;
-        }
-
         if (pInput->GetKey(KEYCODE_I)) s_lighting.GetTransform()->MoveForward(1);
         if (pInput->GetKey(KEYCODE_J)) s_lighting.GetTransform()->MoveRight(-1);
         if (pInput->GetKey(KEYCODE_K)) s_lighting.GetTransform()->MoveRight(1);
@@ -518,10 +454,10 @@ void MeshApplication::FixedUpdate(double dt)
     float4x4 view = m_cameraController.GetCamera()->GetView();
     float4x4 proj = m_cameraController.GetCamera()->GetProjection();
 
-    m_cbvData.view = view.transpose();
-    m_cbvData.proj = proj.transpose();
-    m_cbvData.inverseView = view.inverse().transpose();
-    m_cbvData.inverseProj = proj.inverse().transpose();
+    m_cameraConsts.View = view.transpose();
+    m_cameraConsts.Proj = proj.transpose();
+    m_cameraConsts.InverseView = view.inverse().transpose();
+    m_cameraConsts.InverseProj = proj.inverse().transpose();
 
     static double s_time = 0.0;
     static float s_pi = 3.14159265359f;
@@ -554,15 +490,15 @@ void MeshApplication::FixedUpdate(double dt)
     auto frame = float3x3::orientation_lh(direction, float3(0.0f, 0.0f, 1.0f));
     pTransform->SetRotation(quat::create(frame));
 
-    s_light.Direction = direction;
+    m_lightingConsts.Direction = direction;
 
     view = s_lighting.GetView();
     proj = s_lighting.GetProjection();
 
-    m_shadowCbvData.view = view.transpose();
-    m_shadowCbvData.proj = proj.transpose();
-    m_shadowCbvData.inverseView = view.inverse().transpose();
-    m_shadowCbvData.inverseProj = proj.inverse().transpose();
+    m_shadowConsts.View = view.transpose();
+    m_shadowConsts.Proj = proj.transpose();
+    m_shadowConsts.InverseView = view.inverse().transpose();
+    m_shadowConsts.InverseProj = proj.inverse().transpose();
 
     s_time += dt;
 }

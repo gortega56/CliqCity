@@ -3,6 +3,126 @@
 
 namespace Graphics
 {
+    StencilState StencilState::KeepAlways =
+    {
+        GFX_STENCIL_OP_KEEP,
+        GFX_STENCIL_OP_KEEP,
+        GFX_STENCIL_OP_KEEP,
+        COMPARISON_TYPE_ALWAYS
+    };
+
+    DepthStencilState DepthStencilState::DepthCompareLessWriteAll_StencilOff =
+    {
+        GFX_DEPTH_WRITE_MASK_ALL,
+        COMPARISON_TYPE_LESS,
+        true,
+        0xff,
+        0xff,
+        StencilState::KeepAlways,
+        StencilState::KeepAlways,
+        false
+    };
+
+    RasterizerState RasterizerState::FillSolidCullCCW =
+    {
+        GFX_FILL_MODE_SOLID,
+        GFX_CULL_MODE_BACK,
+        false,
+        0,
+        0.0f,
+        0.0f,
+        true,
+        false,
+        false,
+        0,
+        GFX_CONSERVATIVE_RASTERIZATION_MODE_OFF
+    };
+
+    RasterizerState RasterizerState::FillSolidCullCW =
+    {
+        GFX_FILL_MODE_SOLID,
+        GFX_CULL_MODE_BACK,
+        true,
+        0,
+        0.0f,
+        0.0f,
+        true,
+        false,
+        false,
+        0,
+        GFX_CONSERVATIVE_RASTERIZATION_MODE_OFF
+    };
+
+    RenderTargetBlendState RenderTargetBlendState::Replace =
+    {
+        false,
+        false,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_OP_ADD,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_OP_ADD,
+        GFX_LOGIC_OP_NOOP,
+        GFX_COLOR_WRITE_ENABLE_ALL
+    };
+
+    RenderTargetBlendState RenderTargetBlendState::Additive =
+    {
+        true,
+        false,
+        GFX_BLEND_ONE,
+        GFX_BLEND_ONE,
+        GFX_BLEND_OP_ADD,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_OP_ADD,
+        GFX_LOGIC_OP_NOOP,
+        GFX_COLOR_WRITE_ENABLE_ALL
+    };
+
+    RenderTargetBlendState RenderTargetBlendState::Subtractive =
+    {
+        true,
+        false,
+        GFX_BLEND_ONE,
+        GFX_BLEND_ONE,
+        GFX_BLEND_OP_SUBTRACT,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_OP_ADD,
+        GFX_LOGIC_OP_NOOP,
+        GFX_COLOR_WRITE_ENABLE_ALL
+    };
+
+    RenderTargetBlendState RenderTargetBlendState::Multiplicative =
+    {
+        true,
+        false,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_SRC_COLOR,
+        GFX_BLEND_OP_ADD,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_OP_ADD,
+        GFX_LOGIC_OP_NOOP,
+        GFX_COLOR_WRITE_ENABLE_ALL
+    };
+
+    RenderTargetBlendState RenderTargetBlendState::Alpha =
+    {
+        false,
+        false,
+        GFX_BLEND_SRC_ALPHA,
+        GFX_BLEND_INV_SRC_ALPHA,
+        GFX_BLEND_OP_ADD,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_ZERO,
+        GFX_BLEND_OP_ADD,
+        GFX_LOGIC_OP_NOOP,
+        GFX_COLOR_WRITE_ENABLE_ALL
+    };
+
     InputLayoutDesc::InputLayoutDesc() 
         : m_byteOffset(0)
     {
