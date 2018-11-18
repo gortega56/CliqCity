@@ -9,7 +9,6 @@
 #include "Platform\Window.h"
 #include "Graphics.h"
 #include "CommandStream.h"
-#include "Console.h"
 #include "Platform\Input.h"
 #include <codecvt>
 #include <iostream>
@@ -25,7 +24,6 @@
 
 using namespace Luz;
 using namespace lina;
-Console g_console;
 
 static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f, 3000.0f);
 static float3 s_lightColor = float3(0.8f, 0.8f, 0.8f);
@@ -54,6 +52,28 @@ int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::strin
     return (int)(iter - textureNames.begin());
 }
 
+static std::thread s_consoleThread;
+
+static void ConsoleThread()
+{
+    Platform::CreateConsole();
+
+    while (Platform::Running())
+    {
+        std::cout << ">: " << std::endl;
+        
+        std::string input;
+        getline(std::cin, input);
+
+        if (strcmp(input.c_str(), "exit") == 0)
+        {
+            break;
+        }
+    }
+
+    Platform::DestroyConsole();
+}
+
 MeshApplication::MeshApplication()
     : m_window(nullptr)
     , m_vs(0)
@@ -77,7 +97,7 @@ MeshApplication::~MeshApplication()
 
 bool MeshApplication::Initialize()
 {
-    Console::Initialize(&g_console);
+    s_consoleThread = std::thread(ConsoleThread);
 
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
@@ -95,7 +115,7 @@ bool MeshApplication::Initialize()
     desc.InvertUVs = true;
     auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
 
-    m_cameraController = CameraController(m_engine->OS()->GetInput());
+    m_cameraController = CameraController();
 
     PerspectiveCamera* pCamera = m_cameraController.GetCamera();
     pCamera->GetTransform()->SetPosition(0.0f, 0.0f, -15.0f);
@@ -348,6 +368,7 @@ bool MeshApplication::Initialize()
 
 int MeshApplication::Shutdown()
 {
+    s_consoleThread.join();
     Graphics::ReleaseCommandStream(&m_commandStream);
     Graphics::Shutdown();
 
@@ -477,19 +498,15 @@ void MeshApplication::Update(double dt)
 
     m_frameIndex = (m_frameIndex + 1) % s_nSwapChainTargets;
 
-    auto pInput = m_engine->OS()->GetInput();
-    if (pInput)
-    {
-        if (pInput->GetKey(KEYCODE_I)) s_lighting.GetTransform()->MoveForward(1);
-        if (pInput->GetKey(KEYCODE_J)) s_lighting.GetTransform()->MoveRight(-1);
-        if (pInput->GetKey(KEYCODE_K)) s_lighting.GetTransform()->MoveRight(1);
-        if (pInput->GetKey(KEYCODE_L)) s_lighting.GetTransform()->MoveForward(-1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_I)) s_lighting.GetTransform()->MoveForward(1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_J)) s_lighting.GetTransform()->MoveRight(-1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_K)) s_lighting.GetTransform()->MoveRight(1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_L)) s_lighting.GetTransform()->MoveForward(-1);
 
-        if (pInput->GetKey(KEYCODE_V)) s_lighting.SetWidth(s_lighting.GetWidth() + 1);
-        if (pInput->GetKey(KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
-        if (pInput->GetKey(KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
-        if (pInput->GetKey(KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
-    }
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_V)) s_lighting.SetWidth(s_lighting.GetWidth() + 1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
+    if (Platform::Input::GetKey(Platform::Input::KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
 }
 
 void MeshApplication::FixedUpdate(double dt)

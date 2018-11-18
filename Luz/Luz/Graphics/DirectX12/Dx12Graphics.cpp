@@ -6,7 +6,6 @@
 #include "Dx12GraphicsTypes.h"
 
 #include "ResourceCollection.h"
-#include "MSPlatformWindow.h"
 
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
@@ -314,7 +313,7 @@ namespace Graphics
         Internal::EnableDebugLayer(&s_pDebug);
 #endif
 
-        auto pPlatformWindow = dynamic_cast<MS::PlatformWindow*>(pWindow);
+        auto pPlatformWindow = dynamic_cast<Platform::Window*>(pWindow);
         auto handle = pPlatformWindow->Handle();
         auto width = pPlatformWindow->Width();
         auto height = pPlatformWindow->Height();

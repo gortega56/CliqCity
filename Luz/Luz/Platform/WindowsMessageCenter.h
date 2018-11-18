@@ -2,9 +2,8 @@
 #ifndef WINDOWSMESSAGECENTER_H
 #define WINDOWSMESSAGECENTER_H
 
-#ifndef PLATFORM_H
-#include "Platform.h"
-#endif
+#include <Windows.h>
+#include "Platform.h" // TODO: Extract Notification from Platform
 
 LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 

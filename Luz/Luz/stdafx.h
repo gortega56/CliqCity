@@ -1,28 +1,5 @@
 #pragma once
 
-#ifdef _WIN64
-
-#include <Windows.h>
-#include <wrl.h>
-
-#elif _WIN32
-
-#include <Windows.h>
-#include <wrl.h>
-
-#elif __APPLE__
-
-#endif
-
-#ifndef GENERALMACROS_H
-#include "GeneralMacros.h"
-#endif
-
-#ifndef TYPEDEFS_H
-#include "TypeDefs.h"
-#endif
-
-
 #include <stdint.h>
 #include <atomic>
 #include <mutex>
@@ -46,6 +23,15 @@
 #include <unordered_set>
 #include <fstream>
 #include <sstream>
+#include <cstdarg>
+
+#ifndef GENERALMACROS_H
+#include "GeneralMacros.h"
+#endif
+
+#ifndef TYPEDEFS_H
+#include "TypeDefs.h"
+#endif
 
 #ifndef LINA_H
 #include "lina.h"

@@ -8,12 +8,9 @@
 
 namespace Luz
 {
-    class Input;
-
     class CameraController
     {
     public:
-        LUZ_API CameraController(std::shared_ptr<Input> pInput);
         LUZ_API CameraController();
         LUZ_API ~CameraController() = default;
 
@@ -26,7 +23,6 @@ namespace Luz
 
     private:
         PerspectiveCamera m_camera;
-        std::shared_ptr<Input> m_input;
 
         float m_movementSpeed;
         float m_horizontalTurnSpeed;

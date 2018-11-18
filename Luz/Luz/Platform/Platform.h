@@ -2,19 +2,24 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#if _WIN64 || _WIN32
-#include <Windows.h>
-#elif __APPLE__
+#ifndef PLATFORMTYPES_H
+#include "PlatformTypes.h"
 #endif
 
 #ifndef LUZEXPORT_H
 #include "LuzExport.h"
 #endif
 
+#if _WIN64
+#define WINXX
+#elif _WIN32
+#define _WINXX
+#elif _APPLE_
+#define OSX
+#endif
+
 namespace Luz
 {
-    class Input;
-
     struct Notification
     {
         enum class Identifier : uint64_t
@@ -31,35 +36,63 @@ namespace Luz
         DEFAULT_COPY(Notification)
         DEFAULT_MOVE(Notification)
     };
+
+    enum KeyCode;
+    enum MouseButton;
+    enum GamepadButton;
+    enum GamepadAxis;
 }
 
-class Platform
+class Window;
+
+
+
+namespace Platform
 {
-public:
-    LUZ_API Platform();
-    virtual LUZ_API ~Platform();
+    LUZ_API int Initialize(int n, ...);
+    
+    LUZ_API void Shutdown();
 
-    virtual LUZ_API bool Initialize();
-    virtual LUZ_API void BeginUpdate(double delta);
-    virtual LUZ_API void EndUpdate(double delta);
-    virtual LUZ_API void Shutdown();
+    LUZ_API void BeginUpdate(double time, double delta);
+    
+    LUZ_API void EndUpdate(double time, double delta);
 
-    inline bool LUZ_API ShouldQuit() const { return m_shouldQuit; }
+    LUZ_API bool Running();
 
-#if _WIN64 || _WIN32
-    static std::shared_ptr<Platform> LUZ_API Create(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
-#elif __APPLE__
-    static std::shared_ptr<Platform> LUZ_API Create(int argc, char* argv[]);
-#endif
+    LUZ_API std::shared_ptr<::Window> CreateWindow0(std::string caption, i32 width, i32 height, bool fullscreen);
 
-    std::shared_ptr<Luz::Input> LUZ_API GetInput();
+    LUZ_API int CreateConsole();
 
-protected:
-    std::shared_ptr<Luz::Input> m_input;
-    bool m_shouldQuit;
+    LUZ_API void DestroyConsole();
 
-    NO_COPY(Platform)
-    NO_MOVE(Platform)
-};
+    namespace Input
+    {
+        LUZ_API ScreenPoint GetMousePosition();
+
+        LUZ_API bool IsMouseActive();
+        
+        LUZ_API void SetMouseActive(bool active);
+
+        LUZ_API bool GetKeyDown(KeyCode key);
+        
+        LUZ_API bool GetKeyUp(KeyCode key);
+        
+        LUZ_API bool GetKey(KeyCode key);
+        
+        LUZ_API bool GetMouseButtonDown(MouseButton button);
+        
+        LUZ_API bool GetMouseButtonUp(MouseButton button);
+        
+        LUZ_API bool GetMouseButton(MouseButton button);
+        
+        LUZ_API bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+        
+        LUZ_API bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+        
+        LUZ_API bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+        
+        LUZ_API float GetGamepadAxis(GamepadAxis axis, short id);
+    }
+}
 
 #endif

@@ -2,27 +2,14 @@
 #ifndef IAPPLICATION_H
 #define IAPPLICATION_H
 
-template<class OpSys>
-class TEngine;
-
-#if _WIN64 || _WIN32
-
-#ifndef WINDOWSPLATFORM_H
-#include "Platform\WindowsPlatform.h"
-#endif
-
-typedef TEngine<MS::Windows> Engine;
-
-#elif __APPLE__
+#ifndef LUZEXPORT_H
+#include "LuzExport.h"
 #endif
 
 class LUZ_API IApplication
 {
 public:
-    Engine* m_engine;
-
     IApplication();
-    IApplication(Engine* engine);
     virtual ~IApplication();
 
     virtual bool Initialize() = 0;

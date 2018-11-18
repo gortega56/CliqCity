@@ -2,9 +2,7 @@
 #include "Input.h"
 #include "stdio.h"
 #include "Platform.h"
-#include "WindowsPlatform.h"
 #include "WindowsMessageCenter.h"
-#include <Windowsx.h>
 
 using namespace Luz;
 
@@ -12,17 +10,22 @@ class PlatformInput
 {
 public:
 #if _WIN64 || _WIN32
-    static KeyCode KeyCodeFromWParam(WPARAM wParam);
+    static Platform::Input::KeyCode KeyCodeFromWParam(WPARAM wParam);
     static void OnKeyDown(Input* pInput, WPARAM wParam, LPARAM lParam);
     static void OnKeyUp(Input* pInput, WPARAM wParam, LPARAM lParam);
-    static void OnMouseDown(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam);
-    static void OnMouseUp(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam);
+    static void OnMouseDown(Input* pInput, Platform::Input::MouseButton button, WPARAM wParam, LPARAM lParam);
+    static void OnMouseUp(Input* pInput, Platform::Input::MouseButton button, WPARAM wParam, LPARAM lParam);
     static void OnMouseMove(Input* pInput, WPARAM wParam, LPARAM lParam);
 #endif
 };
 
 #if _WIN64 || _WIN32
-KeyCode PlatformInput::KeyCodeFromWParam(WPARAM wParam)
+
+#include "WindowsPlatformTypes.h"
+static XINPUT_STATE mCurrGamepadState[XUSER_MAX_COUNT];
+static XINPUT_STATE mPrevGamepadState[XUSER_MAX_COUNT];
+
+Platform::Input::KeyCode PlatformInput::KeyCodeFromWParam(WPARAM wParam)
 {
     // any exception from wParam value to keyCode value
     // must be done here
@@ -32,7 +35,7 @@ KeyCode PlatformInput::KeyCodeFromWParam(WPARAM wParam)
     //	return static_cast<KeyCode>(wParam);
     //}
 
-    return static_cast<KeyCode>(wParam);
+    return static_cast<Platform::Input::KeyCode>(wParam);
 }
 
 void PlatformInput::OnKeyDown(Input* pInput, WPARAM wParam, LPARAM lParam)
@@ -43,16 +46,14 @@ void PlatformInput::OnKeyDown(Input* pInput, WPARAM wParam, LPARAM lParam)
     if (lParam & PREV_KEY_STATE_BIT)
         return;
 
-    KeyCode code = KeyCodeFromWParam(wParam);
+    Platform::Input::KeyCode code = KeyCodeFromWParam(wParam);
 
     pInput->mKeysDown.insert(code);
 }
 
 void PlatformInput::OnKeyUp(Input* pInput, WPARAM wParam, LPARAM lParam)
 {
-    KeyCode code = KeyCodeFromWParam(wParam);
-
-    std::cout << "Key Up: " << code << std::endl;
+    Platform::Input::KeyCode code = KeyCodeFromWParam(wParam);
 
     // remove the key from pressed keys
     pInput->mKeysPressed.erase(code);
@@ -61,9 +62,9 @@ void PlatformInput::OnKeyUp(Input* pInput, WPARAM wParam, LPARAM lParam)
     pInput->mKeysUp.insert(code);
 }
 
-void PlatformInput::OnMouseDown(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam)
+void PlatformInput::OnMouseDown(Input* pInput, Platform::Input::MouseButton button, WPARAM wParam, LPARAM lParam)
 {
-    if (button == MOUSEBUTTON_X)
+    if (button == Platform::Input::MOUSEBUTTON_X)
     {
         // GET_XBUTTON_WPARAM returns n for XBUTTON n
         short xButton = GET_XBUTTON_WPARAM(wParam);
@@ -78,9 +79,9 @@ void PlatformInput::OnMouseDown(Input* pInput, MouseButton button, WPARAM wParam
     }
 }
 
-void PlatformInput::OnMouseUp(Input* pInput, MouseButton button, WPARAM wParam, LPARAM lParam)
+void PlatformInput::OnMouseUp(Input* pInput, Platform::Input::MouseButton button, WPARAM wParam, LPARAM lParam)
 {
-    if (button == MOUSEBUTTON_X)
+    if (button == Platform::Input::MOUSEBUTTON_X)
     {
         // GET_XBUTTON_WPARAM returns n for XBUTTON n
         short xButton = GET_XBUTTON_WPARAM(wParam);
@@ -116,11 +117,10 @@ Input::~Input()
 
 }
 
-int Input::Initialize(Platform* pPlatform)
+int Input::Initialize()
 {
 #if _WIN64 || _WIN32
-    auto windows = static_cast<MS::Windows*>(pPlatform);
-    auto messageCenter = windows->GetMessageCenter();
+    auto messageCenter = &Platform::s_messageBus;
 
     // Mouse Down
     messageCenter->GetEvent(WM_LBUTTONDOWN)->Bind<Input, &Input::OnPlatformNotification>(this);
@@ -153,22 +153,22 @@ int Input::Initialize(Platform* pPlatform)
 
 #pragma region Input Checkers
 
-bool Input::GetKeyDown(KeyCode key)
+bool Input::GetKeyDown(Platform::Input::KeyCode key)
 {
 	return mKeysDown.find(key) != mKeysDown.end();
 }
 
-bool Input::GetKey(KeyCode key)
+bool Input::GetKey(Platform::Input::KeyCode key)
 {
 	return GetKeyDown(key) || mKeysPressed.find(key) != mKeysPressed.end();
 }
 
-bool Input::GetKeyUp(KeyCode key)
+bool Input::GetKeyUp(Platform::Input::KeyCode key)
 {
 	return mKeysUp.find(key) != mKeysUp.end();
 }
 
-bool Input::GetMouseButtonDown(MouseButton button)
+bool Input::GetMouseButtonDown(Platform::Input::MouseButton button)
 {
 	if (!mIsMouseActive)
 	{
@@ -181,7 +181,7 @@ bool Input::GetMouseButtonDown(MouseButton button)
 	return wasNotPressed && isPressed;
 }
 
-bool Input::GetMouseButtonUp(MouseButton button)
+bool Input::GetMouseButtonUp(Platform::Input::MouseButton button)
 {
 	if (!mIsMouseActive)
 	{
@@ -194,7 +194,7 @@ bool Input::GetMouseButtonUp(MouseButton button)
 	return wasPressed && isNotPressed;
 }
 
-bool Input::GetMouseButton(MouseButton button)
+bool Input::GetMouseButton(Platform::Input::MouseButton button)
 {
 	if (!mIsMouseActive)
 	{
@@ -206,7 +206,7 @@ bool Input::GetMouseButton(MouseButton button)
 	return isPressed;
 }
 
-bool Input::GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive, short id)
+bool Input::GetGamepadButtonDown(Platform::Input::GamepadButton buttonMask, bool isAdditive, short id)
 {
 	bool justPressed = false;
 	if (id == -1)
@@ -229,7 +229,7 @@ bool Input::GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive, shor
 	// otherwise we return true.
 	// if is not additive, we stop as soon as a button in the mas was pressed this frame
 	// otherwise we return false.
-	for (int button = GAMEPADBUTTON_UP; button <= GAMEPADBUTTON_Y; button <<= 1)
+	for (int button = Platform::Input::GAMEPADBUTTON_UP; button <= Platform::Input::GAMEPADBUTTON_Y; button <<= 1)
 	{
 		// button not in flag
 		if ((button & buttonMask) == 0)
@@ -269,7 +269,7 @@ bool Input::GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive, shor
 	return false;
 }
 
-bool Input::GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive, short id)
+bool Input::GetGamepadButtonUp(Platform::Input::GamepadButton buttonMask, bool isAdditive, short id)
 {
 	bool justReleased = false;
 	if (id == -1)
@@ -292,7 +292,7 @@ bool Input::GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive, short 
 	// otherwise we return true.
 	// if is not additive, we stop as soon as a button in the mas was pressed this frame
 	// otherwise we return false.
-	for (int button = GAMEPADBUTTON_UP; button <= GAMEPADBUTTON_Y; button <<= 1)
+	for (int button = Platform::Input::GAMEPADBUTTON_UP; button <= Platform::Input::GAMEPADBUTTON_Y; button <<= 1)
 	{
 		// button not in flag
 		if ((button & buttonMask) == 0)
@@ -332,7 +332,7 @@ bool Input::GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive, short 
 	return false;
 }
 
-bool Input::GetGamepadButton(GamepadButton buttonMask, bool isAdditive, short id)
+bool Input::GetGamepadButton(Platform::Input::GamepadButton buttonMask, bool isAdditive, short id)
 {
 	bool isPressed = false;
 	if (id == -1)
@@ -351,7 +351,7 @@ bool Input::GetGamepadButton(GamepadButton buttonMask, bool isAdditive, short id
 	// otherwise we return true.
 	// if is additive, we stop as soon as a button in the mas IS pressed
 	// otherwise we return false.
-	for (int button = GAMEPADBUTTON_UP; button <= GAMEPADBUTTON_Y; button <<= 1)
+	for (int button = Platform::Input::GAMEPADBUTTON_UP; button <= Platform::Input::GAMEPADBUTTON_Y; button <<= 1)
 	{
 		// button not in flag
 		if ((button & buttonMask) == 0)
@@ -382,7 +382,7 @@ bool Input::GetGamepadButton(GamepadButton buttonMask, bool isAdditive, short id
 	return !isAdditive;
 }
 
-float Input::GetGamepadAxis(GamepadAxis axis, short id)
+float Input::GetGamepadAxis(Platform::Input::GamepadAxis axis, short id)
 {
 	float rawValue;
 	float deadzone;
@@ -391,32 +391,32 @@ float Input::GetGamepadAxis(GamepadAxis axis, short id)
 	auto gamepad = mCurrGamepadState[id].Gamepad;
 	switch (axis)
 	{
-	case GAMEPADAXIS_LEFT_THUMB_X:
+	case Platform::Input::GAMEPADAXIS_LEFT_THUMB_X:
 		rawValue = gamepad.sThumbLX;
 		deadzone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 		rawLimit = 32767;
 		break;
-	case GAMEPADAXIS_LEFT_THUMB_Y:
+	case Platform::Input::GAMEPADAXIS_LEFT_THUMB_Y:
 		rawValue = gamepad.sThumbLY;
 		deadzone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 		rawLimit = 32767;
 		break;
-	case GAMEPADAXIS_RIGHT_THUMB_X:
+	case Platform::Input::GAMEPADAXIS_RIGHT_THUMB_X:
 		rawValue = gamepad.sThumbRX;
 		deadzone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
 		rawLimit = 32767;
 		break;
-	case GAMEPADAXIS_RIGHT_THUMB_Y:
+	case Platform::Input::GAMEPADAXIS_RIGHT_THUMB_Y:
 		rawValue = gamepad.sThumbRY;
 		deadzone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
 		rawLimit = 32767;
 		break;
-	case GAMEPADAXIS_LEFT_TRIGGER:
+	case Platform::Input::GAMEPADAXIS_LEFT_TRIGGER:
 		rawValue = gamepad.bLeftTrigger;
 		deadzone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 		rawLimit = 255;
 		break;
-	case GAMEPADAXIS_RIGHT_TRIGGER:
+	case Platform::Input::GAMEPADAXIS_RIGHT_TRIGGER:
 		rawValue = gamepad.bRightTrigger;
 		deadzone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 		rawLimit = 255;
@@ -455,28 +455,28 @@ void Input::OnPlatformNotification(const Notification& notification)
     switch (wm.msg)
     {
     case WM_LBUTTONDOWN:
-        PlatformInput::OnMouseDown(this, MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, Platform::Input::MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
         break;
     case WM_MBUTTONDOWN:
-        PlatformInput::OnMouseDown(this, MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, Platform::Input::MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
         break;
     case WM_RBUTTONDOWN:
-        PlatformInput::OnMouseDown(this, MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, Platform::Input::MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
         break;
     case WM_XBUTTONDOWN:
-        PlatformInput::OnMouseDown(this, MOUSEBUTTON_X, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseDown(this, Platform::Input::MOUSEBUTTON_X, wm.wparam, wm.lparam);
         break;
     case WM_LBUTTONUP:
-        PlatformInput::OnMouseUp(this, MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, Platform::Input::MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
         break;
     case WM_MBUTTONUP:
-        PlatformInput::OnMouseUp(this, MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, Platform::Input::MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
         break;
     case WM_RBUTTONUP:
-        PlatformInput::OnMouseUp(this, MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, Platform::Input::MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
         break;
     case WM_XBUTTONUP:
-        PlatformInput::OnMouseUp(this, MOUSEBUTTON_X, wm.wparam, wm.lparam);
+        PlatformInput::OnMouseUp(this, Platform::Input::MOUSEBUTTON_X, wm.wparam, wm.lparam);
         break;
     case WM_MOUSEMOVE:
         PlatformInput::OnMouseMove(this, wm.wparam, wm.lparam);
@@ -505,12 +505,10 @@ void Input::OnPlatformNotification(const Notification& notification)
 void Input::Update(double deltaSeconds)
 {
 	// persist all keys pressed at this frame.
-	for (const KeyCode &key : mKeysDown)
+	for (const Platform::Input::KeyCode &key : mKeysDown)
 	{
 		mKeysPressed.insert(key);
 	}
-
-    if (mKeysUp.size()) std::cout << "Clear Key Up: " << std::endl;
 
 	// clear keys down and up
 	mKeysDown.clear();

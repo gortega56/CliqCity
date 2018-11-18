@@ -207,13 +207,13 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="Graphics\ResourceCollection.cpp" />
     <ClCompile Include="IApplication.cpp" />
     <ClCompile Include="LzAssert.cpp" />
-    <ClCompile Include="Console.cpp" />
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Platform\Input.cpp" />
-    <ClCompile Include="Platform\MSPlatformWindow.cpp" />
-    <ClCompile Include="Platform\Platform.cpp" />
+    <ClCompile Include="Platform\PlatformTypes.cpp" />
     <ClCompile Include="Platform\WindowsPlatform.cpp" />
+    <ClCompile Include="Platform\WindowsPlatformTypes.cpp" />
     <ClCompile Include="Resource\Fbx.cpp" />
     <ClCompile Include="Resource\MeshResourceUtility.cpp" />
     <ClCompile Include="Resource\MtlResource.cpp" />
@@ -222,7 +222,6 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Platform\Window.cpp" />
     <ClCompile Include="Platform\WindowsMessageCenter.cpp" />
-    <ClCompile Include="Platform\windows_utils.cpp" />
     <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -239,15 +238,14 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="Graphics\ResourceCollection.h" />
     <ClInclude Include="LuzExport.h" />
     <ClInclude Include="LzAssert.h" />
-    <ClInclude Include="Console.h" />
     <ClInclude Include="Graphics\DirectX12\d3dx12.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Luz.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Platform\Input.h" />
-    <ClInclude Include="Platform\MSPlatformWindow.h" />
     <ClInclude Include="Platform\Platform.h" />
-    <ClInclude Include="Platform\WindowsPlatform.h" />
+    <ClInclude Include="Platform\PlatformTypes.h" />
+    <ClInclude Include="Platform\WindowsPlatformTypes.h" />
     <ClInclude Include="Resource\Fbx.h" />
     <ClInclude Include="Resource\MeshResourceUtility.h" />
     <ClInclude Include="Resource\MtlResource.h" />
@@ -261,7 +259,6 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="TypeDefs.h" />
     <ClInclude Include="Platform\Window.h" />
     <ClInclude Include="Platform\WindowsMessageCenter.h" />
-    <ClInclude Include="Platform\windows_utils.h" />
     <ClInclude Include="VertexTraits.h" />
   </ItemGroup>
   <ItemGroup>

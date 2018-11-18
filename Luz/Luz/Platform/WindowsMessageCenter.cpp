@@ -1,19 +1,12 @@
 #include "stdafx.h"
 #include "WindowsMessageCenter.h"
+#include "WindowsPlatformTypes.h"
 
 using namespace Luz;
 
-namespace
-{
-    std::vector<std::shared_ptr<WindowsMessageCenter>> gMessageCenters;
-}
-
 LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    for (auto mc : gMessageCenters)
-    {
-        mc->Notify({ hwnd, msg, wparam, lparam });
-    }
+    Platform::s_messageBus.Notify({ hwnd, msg, wparam, lparam });
 
     return DefWindowProc(hwnd, msg, wparam, lparam);
 }
@@ -93,22 +86,4 @@ void WindowsMessageCenter::Notify(const WindowsMessage wm)
     {
         windowsEvent->Broadcast(wm);
     }
-}
-
-std::shared_ptr<WindowsMessageCenter> WindowsMessageCenter::Create()
-{
-    gMessageCenters.emplace_back(std::make_shared<WindowsMessageCenter>());
-    
-    return gMessageCenters.back();
-}
-
-void WindowsMessageCenter::Destroy(std::shared_ptr<WindowsMessageCenter>& mc)
-{
-    auto iter = std::find_if(gMessageCenters.begin(), gMessageCenters.end(), [&](std::shared_ptr<WindowsMessageCenter> wm) { return mc == wm; });
-    if (iter != gMessageCenters.end())
-    {
-        gMessageCenters.erase(iter);
-    }
-
-    mc.reset();
 }
