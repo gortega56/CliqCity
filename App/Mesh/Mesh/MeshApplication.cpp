@@ -25,14 +25,20 @@
 
 using namespace Luz;
 using namespace lina;
-static float g_scale = 5.0f;
 Console g_console;
 
 static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f, 3000.0f);
-
-static bool s_renderShadows = true;
-static bool s_shadowFullScreen = false;
+static float3 s_lightColor = float3(0.8f, 0.8f, 0.8f);
+static float3 s_lightDirection = float3(0.0f, -0.5f, 0.0f);
+static float4 s_lightIntensity = float4(0.5f, 2.5f, 5.0f, 0.0f);
+static float s_exposure = 10.0f;
 static float s_lightMoveSpeed = 0.2f;
+static bool s_shadowFullScreen = false;
+static bool s_ambientEnabled = true;
+static bool s_diffuseEnabled = true;
+static bool s_specEnabled = true;
+static bool s_bumpEnabled = true;
+static bool s_shadowEnabled = true;
 
 static int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName);
 
@@ -49,6 +55,17 @@ int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::strin
 }
 
 MeshApplication::MeshApplication()
+    : m_window(nullptr)
+    , m_vs(0)
+    , m_ps(0)
+    , m_fs_vs(0)
+    , m_fs_ps(0)
+    , m_fs_ib(0)
+    , m_opaquePipeline(0)
+    , m_shadowPipeline(0)
+    , m_fullScreenPipeline(0)
+    , m_baseDescriptorHandle(0)
+    , m_frameIndex(0)
 {
 
 }
@@ -64,7 +81,9 @@ bool MeshApplication::Initialize()
 
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
-    if (!Graphics::Initialize(m_window.get(), 3))
+    m_frameIndex = 0;
+
+    if (!Graphics::Initialize(m_window.get(), s_nSwapChainTargets))
     {
         return false;
     }
@@ -84,10 +103,6 @@ bool MeshApplication::Initialize()
     pCamera->SetAspectRatio(m_window->AspectRatio());
     pCamera->SetNear(0.1f);
     pCamera->SetFar(3000.0f);
-
-    m_lightingConsts.Color = float3(0.8f, 0.8f, 0.8f);
-    m_lightingConsts.Direction = float3(0.0f, -0.5f, 0.0f);
-    m_lightingConsts.Intensity = float4(0.5f, 2.5f, 5.0f);
 
     //rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
     //{
@@ -198,15 +213,10 @@ bool MeshApplication::Initialize()
         s_lighting.SetFar(3000.0f);
         s_lighting.SetNear(0.1f);
 
-        float3 lightPos = dim * -normalize(m_lightingConsts.Direction);
-        float3x3 lightView = float3x3::orientation_lh(m_lightingConsts.Direction, float3(0.0f, 0.0f, 1.0f));
+        float3 lightPos = dim * -normalize(s_lightDirection);
+        float3x3 lightView = float3x3::orientation_lh(s_lightDirection, float3(0.0f, 0.0f, 1.0f));
         s_lighting.GetTransform()->SetPosition(lightPos);
         s_lighting.GetTransform()->SetRotation(quaternion::create(lightView));
-
-        m_shadowConsts.View = s_lighting.GetView();
-        m_shadowConsts.Proj = s_lighting.GetProjection();
-        m_shadowConsts.InverseView = m_shadowConsts.View.inverse().transpose();
-        m_shadowConsts.InverseProj = m_shadowConsts.Proj.inverse().transpose();
 
         // Create geo
         meshes.resize(static_cast<size_t>(pObj->GetNumSurfaces()));
@@ -268,13 +278,19 @@ bool MeshApplication::Initialize()
     cbd.SizeInBytes = sizeof(CameraConstants);
     cbd.StrideInBytes = sizeof(CameraConstants);
     cbd.AllocHeap = false;
-    cbd.pData = &m_cameraConsts;
-    m_cameraHandle = Graphics::CreateConstantBuffer(cbd);
-    m_shadowHandle = Graphics::CreateConstantBuffer(cbd);
+    cbd.pData = nullptr;// &m_frameConsts[0].CameraConsts;
+    m_frameConsts[0].hCamera = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[1].hCamera = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[2].hCamera = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[0].hShadow = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[1].hShadow = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[2].hShadow = Graphics::CreateConstantBuffer(cbd);
 
     cbd.SizeInBytes = sizeof(LightingConstants);
     cbd.SizeInBytes = sizeof(LightingConstants);
-    m_lightHandle = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[0].hLighting = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[1].hLighting = Graphics::CreateConstantBuffer(cbd);
+    m_frameConsts[2].hLighting = Graphics::CreateConstantBuffer(cbd);
 
     cbd.SizeInBytes = sizeof(MaterialConstants);
     cbd.StrideInBytes = sizeof(MaterialConstants);
@@ -340,18 +356,48 @@ int MeshApplication::Shutdown()
 
 void MeshApplication::Update(double dt)
 {
-    static int frame = 0;
+    m_cameraController.Update(dt);
+
+    float4x4 view = m_cameraController.GetCamera()->GetView();
+    float4x4 proj = m_cameraController.GetCamera()->GetProjection();
+
+    FrameConstants* pConsts = &m_frameConsts[m_frameIndex];
+
+    pConsts->CameraConsts.View = view.transpose();
+    pConsts->CameraConsts.Proj = proj.transpose();
+    pConsts->CameraConsts.InverseView = view.inverse().transpose();
+    pConsts->CameraConsts.InverseProj = proj.inverse().transpose();
+
+    view = s_lighting.GetView();
+    proj = s_lighting.GetProjection();
+
+    pConsts->ShadowConsts.View = view.transpose();
+    pConsts->ShadowConsts.Proj = proj.transpose();
+    pConsts->ShadowConsts.InverseView = view.inverse().transpose();
+    pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
+
+    pConsts->LightingConsts.Color = float3(0.8f, 0.8f, 0.8f);
+    pConsts->LightingConsts.Direction = float3(0.0f, -0.5f, 0.0f);
+    pConsts->LightingConsts.Intensity = float4(0.5f, 2.5f, 5.0f);
+    pConsts->LightingConsts.Exposure = s_exposure;
+    pConsts->LightingConsts.EnableAmbient = s_ambientEnabled;
+    pConsts->LightingConsts.EnableDiffuse = s_diffuseEnabled;
+    pConsts->LightingConsts.EnableSpec = s_specEnabled;
+    pConsts->LightingConsts.EnableBump = s_bumpEnabled;
+    pConsts->LightingConsts.EnableShadow = s_bumpEnabled;
+
     static const float clear[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
     static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f, 0.0f, 1.0f };
     static const Graphics::Rect scissor = { 0, 0, 1600, 900 };
     
+
     // Shadow 
-    if (s_renderShadows)
+    if (s_shadowEnabled)
     {
         static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
         static const Graphics::Rect s_shadow_scissor = { 0, 0, 2048, 2048 };
 
-        Graphics::UpdateConstantBuffer(&m_shadowConsts, sizeof(m_shadowConsts), m_shadowHandle);
+        Graphics::UpdateConstantBuffer(&pConsts->ShadowConsts, sizeof(CameraConstants), pConsts->hShadow);
 
         auto& cs = m_commandStream;
         cs.SetPipeline(m_shadowPipeline);
@@ -359,7 +405,7 @@ void MeshApplication::Update(double dt)
         cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
         cs.SetViewport(s_shadow_vp);
         cs.SetScissorRect(s_shadow_scissor);
-        cs.SetConstantBuffer(0, m_shadowHandle);
+        cs.SetConstantBuffer(0, pConsts->hShadow);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
@@ -370,8 +416,6 @@ void MeshApplication::Update(double dt)
             cs.SetIndexBuffer(surface.ib);
             cs.DrawInstanceIndexed(surface.ib);
         }
-        cs.TransitionDepthStencilToTexture(m_shadowTexture);
-
 
         Graphics::SubmitCommandStream(&cs, false);
     }
@@ -398,19 +442,20 @@ void MeshApplication::Update(double dt)
     else
     {
         // Main visual
-        Graphics::UpdateConstantBuffer(&m_cameraConsts, sizeof(m_cameraConsts), m_cameraHandle);
-        Graphics::UpdateConstantBuffer(&m_lightingConsts, sizeof(m_lightingConsts), m_lightHandle);
+        Graphics::UpdateConstantBuffer(&pConsts->CameraConsts, sizeof(CameraConstants), pConsts->hCamera);
+        Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
 
         auto& cs = m_commandStream;
+        cs.TransitionDepthStencilToTexture(m_shadowTexture);
         cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        cs.SetConstantBuffer(0, m_cameraHandle);
-        cs.SetConstantBuffer(1, m_shadowHandle);
-        cs.SetConstantBuffer(2, m_lightHandle);
+        cs.SetConstantBuffer(0, pConsts->hCamera);
+        cs.SetConstantBuffer(1, pConsts->hShadow);
+        cs.SetConstantBuffer(2, pConsts->hLighting);
         cs.SetDescriptorTable(3, m_baseDescriptorHandle);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -430,7 +475,7 @@ void MeshApplication::Update(double dt)
         
     Graphics::Present();
 
-    frame++;
+    m_frameIndex = (m_frameIndex + 1) % s_nSwapChainTargets;
 
     auto pInput = m_engine->OS()->GetInput();
     if (pInput)
@@ -449,56 +494,9 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
-    m_cameraController.Update(dt);
-
-    float4x4 view = m_cameraController.GetCamera()->GetView();
-    float4x4 proj = m_cameraController.GetCamera()->GetProjection();
-
-    m_cameraConsts.View = view.transpose();
-    m_cameraConsts.Proj = proj.transpose();
-    m_cameraConsts.InverseView = view.inverse().transpose();
-    m_cameraConsts.InverseProj = proj.inverse().transpose();
-
     static double s_time = 0.0;
-    static float s_pi = 3.14159265359f;
-    static float s_minTheta = s_pi * 0.25f;     // 45
-    static float s_maxTheta = s_pi * 0.75f;    // 135
-    static float s_2pi = s_pi * 2.0f;           
-    static float s_minPhi = s_2pi * 0.25f;    // 45
-    static float s_maxPhi = s_2pi * 0.35f;      // 135
 
-    float phi_t = sinf((float)s_time * s_lightMoveSpeed) * 0.5f + 0.5f;
-    float phi = (1.0f - phi_t) * s_minPhi + s_maxPhi * phi_t;
-    
-    float theta_t = phi_t * 0.5f + 0.5f;
-    float theta = (1.0f - theta_t) * s_minTheta + s_maxTheta * theta_t;
 
-    auto pTransform = s_lighting.GetTransform();
-    auto range = m_sceneBounds.max - m_sceneBounds.min;
-    auto center = (m_sceneBounds.max + m_sceneBounds.min) * 0.5f;
-    auto radius = lina::length(float2(range.x, range.y)) * 0.5f;
-    float3 position =
-    {
-        center.x + radius * sinf(theta) * cosf(phi),
-        center.y + radius * sinf(theta) * sinf(phi),
-        center.z + radius * cosf(theta)
-    };
-
-    pTransform->SetPosition(position);
-
-    auto direction = lina::normalize(center - position);
-    auto frame = float3x3::orientation_lh(direction, float3(0.0f, 0.0f, 1.0f));
-    pTransform->SetRotation(quat::create(frame));
-
-    m_lightingConsts.Direction = direction;
-
-    view = s_lighting.GetView();
-    proj = s_lighting.GetProjection();
-
-    m_shadowConsts.View = view.transpose();
-    m_shadowConsts.Proj = proj.transpose();
-    m_shadowConsts.InverseView = view.inverse().transpose();
-    m_shadowConsts.InverseProj = proj.inverse().transpose();
 
     s_time += dt;
 }

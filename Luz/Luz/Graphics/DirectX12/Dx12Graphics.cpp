@@ -442,6 +442,7 @@ namespace Graphics
 
         s_swapChain.pSwapChain3 = static_cast<IDXGISwapChain3*>(pTempSwapChain);
         s_swapChain.FrameIndex = s_swapChain.pSwapChain3->GetCurrentBackBufferIndex();
+        LUZASSERT(s_swapChain.FrameIndex == 0);
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
         ZeroMemory(&heapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
@@ -1207,6 +1208,19 @@ namespace Graphics
                 IID_PPV_ARGS(&cb.pResource));
             LUZASSERT(SUCCEEDED(hr));
 
+            cb.GpuVirtualAddress = cb.pResource->GetGPUVirtualAddress();
+
+            if (desc.AllocHeap)
+            {
+                cb.CbvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+
+                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+                ZeroMemory(&cbvDesc, sizeof(D3D12_CONSTANT_BUFFER_VIEW_DESC));
+                cbvDesc.BufferLocation = cb.GpuVirtualAddress;
+                cbvDesc.SizeInBytes = static_cast<UINT>(desc.SizeInBytes);
+                s_device.pDevice->CreateConstantBufferView(&cbvDesc, cb.CbvHandle.CpuHandle);
+            }
+
             if (desc.pData)
             {
                 u32* gpuAddress = nullptr;
@@ -1214,19 +1228,6 @@ namespace Graphics
                 LUZASSERT(SUCCEEDED(hr));
                 memcpy(gpuAddress, desc.pData, static_cast<size_t>(desc.SizeInBytes));
                 cb.pResource->Unmap(0, &CD3DX12_RANGE(0, 0));
-
-                cb.GpuVirtualAddress = cb.pResource->GetGPUVirtualAddress();
-
-                if (desc.AllocHeap)
-                {
-                    cb.CbvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
-
-                    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-                    ZeroMemory(&cbvDesc, sizeof(D3D12_CONSTANT_BUFFER_VIEW_DESC));
-                    cbvDesc.BufferLocation = cb.GpuVirtualAddress;
-                    cbvDesc.SizeInBytes = static_cast<UINT>(desc.SizeInBytes);
-                    s_device.pDevice->CreateConstantBufferView(&cbvDesc, cb.CbvHandle.CpuHandle);
-                }
             }
         }
 

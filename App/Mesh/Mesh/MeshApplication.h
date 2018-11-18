@@ -66,6 +66,7 @@ struct LightingConstants
     float3 Direction;
     float _padding1;
     float4 Intensity; // ambient, diffuse, spec
+    float Exposure;
     u32 EnableAmbient;
     u32 EnableDiffuse;
     u32 EnableSpec;
@@ -95,13 +96,30 @@ struct Surface
     Graphics::IndexBufferHandle ib;
 };
 
+struct FrameConstants
+{
+    CameraConstants CameraConsts;
+    CameraConstants ShadowConsts;
+    LightingConstants LightingConsts;
+
+    Graphics::ConstantBufferHandle hCamera;
+    Graphics::ConstantBufferHandle hShadow;
+    Graphics::ConstantBufferHandle hLighting;
+};
+
 class MeshApplication :
     public IApplication, public std::enable_shared_from_this<MeshApplication>
 {
 public:
     using IApplication::IApplication;
 
+    static constexpr u32 s_nSwapChainTargets = 3;
+
     std::shared_ptr<Window> m_window;
+
+    Luz::CameraController m_cameraController;
+
+    range3 m_sceneBounds;
 
     Graphics::CommandStream m_commandStream;
 
@@ -109,30 +127,21 @@ public:
     Graphics::ShaderHandle m_ps;
     Graphics::ShaderHandle m_fs_vs;
     Graphics::ShaderHandle m_fs_ps;
+    Graphics::IndexBufferHandle m_fs_ib;
 
     Graphics::PipelineStateHandle m_opaquePipeline;
     Graphics::PipelineStateHandle m_shadowPipeline;
     Graphics::PipelineStateHandle m_fullScreenPipeline;
 
-    Graphics::IndexBufferHandle m_fs_ib;
-
     Graphics::ConstantBufferHandle m_baseDescriptorHandle;
-    Graphics::ConstantBufferHandle m_cameraHandle;
-    Graphics::ConstantBufferHandle m_lightHandle;
-    Graphics::ConstantBufferHandle m_shadowHandle;
     Graphics::DepthStencilHandle m_shadowTexture;
 
-    CameraConstants m_cameraConsts;
-    CameraConstants m_shadowConsts;
-    LightingConstants m_lightingConsts;
     std::vector<MaterialConstants> m_materialConstants;
-
-    Luz::CameraController m_cameraController;
-
     std::vector<i32> m_materialIndices;
     std::vector<Surface> m_surfaces;
 
-    range3 m_sceneBounds;
+    FrameConstants m_frameConsts[s_nSwapChainTargets];
+    u32 m_frameIndex;
 
     MeshApplication();
     ~MeshApplication();
