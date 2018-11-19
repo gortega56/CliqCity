@@ -152,6 +152,42 @@ namespace Platform
         return (success == 1);
     }
 
+    int ClearConsole()
+    {
+        HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hStdOut == INVALID_HANDLE_VALUE) return 0;
+
+        /* Get the number of cells in the current buffer */
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        if (!GetConsoleScreenBufferInfo(hStdOut, &csbi)) return 0;
+        DWORD cellCount = csbi.dwSize.X *csbi.dwSize.Y;
+
+        /* Fill the entire buffer with spaces */
+        DWORD count;
+        COORD homeCoords = { 0, 0 };
+        if (!FillConsoleOutputCharacter(
+            hStdOut,
+            (TCHAR) ' ',
+            cellCount,
+            homeCoords,
+            &count
+        )) return 0;
+
+        /* Fill the entire buffer with the current colors and attributes */
+        if (!FillConsoleOutputAttribute(
+            hStdOut,
+            csbi.wAttributes,
+            cellCount,
+            homeCoords,
+            &count
+        )) return 0;
+
+        /* Move the cursor home */
+        SetConsoleCursorPosition(hStdOut, homeCoords);
+
+        return 1;
+    }
+
     void DestroyConsole()
     {
         if (s_console.Cin) {  fclose(s_console.Cin); }

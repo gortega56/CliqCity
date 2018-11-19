@@ -63,6 +63,8 @@ namespace Platform
 
     LUZ_API int CreateConsole();
 
+    LUZ_API int ClearConsole();
+
     LUZ_API void DestroyConsole();
 
     namespace Input

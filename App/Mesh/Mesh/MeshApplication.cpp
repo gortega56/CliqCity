@@ -25,18 +25,45 @@
 using namespace Luz;
 using namespace lina;
 
+struct ShaderOptions
+{
+    float3 LightColor;
+    float3 LightDirection;
+    float4 LightIntensity;
+    float Exposure;
+    bool AmbientEnabled;
+    bool DiffuseEnabled;
+    bool SpecEnabled;
+    bool BumpEnabled;
+    bool ShadowEnabled;
+};
+
+static ShaderOptions s_shaderOptions =
+{
+    float3(0.8f, 0.8f, 0.8f),
+    float3(0.0f, -0.5f, -0.1f),
+    float4(0.2f, 10.0f, 100.0f, 0.0f),
+    10.0f,
+    true,
+    true,
+    true,
+    true,
+    true
+};
+
+static std::mutex s_shaderOptionMutex;
+
 static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f, 3000.0f);
-static float3 s_lightColor = float3(0.8f, 0.8f, 0.8f);
-static float3 s_lightDirection = float3(0.0f, -0.5f, 0.0f);
-static float4 s_lightIntensity = float4(0.5f, 2.5f, 5.0f, 0.0f);
-static float s_exposure = 10.0f;
+
 static float s_lightMoveSpeed = 0.2f;
+
 static bool s_shadowFullScreen = false;
-static bool s_ambientEnabled = true;
-static bool s_diffuseEnabled = true;
-static bool s_specEnabled = true;
-static bool s_bumpEnabled = true;
-static bool s_shadowEnabled = true;
+
+static std::thread s_consoleThread;
+
+static std::atomic_bool s_loading = ATOMIC_VAR_INIT(1);
+
+static std::atomic_bool s_consoleWritten = ATOMIC_VAR_INIT(0);
 
 static int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName);
 
@@ -52,26 +79,88 @@ int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::strin
     return (int)(iter - textureNames.begin());
 }
 
-static std::thread s_consoleThread;
-
 static void ConsoleThread()
 {
     Platform::CreateConsole();
 
+    ShaderOptions shaderOptions = s_shaderOptions;
+
+    int iter = 0, nDots = 3;
+    while (s_loading.load())
+    {
+        Platform::ClearConsole();
+        iter = (iter + 1) % nDots;
+
+        switch (iter)
+        {
+        case 0: std::cout << "Loading." << std::endl; break;
+        case 1: std::cout << "Loading.." << std::endl; break;
+        case 2: std::cout << "Loading..." << std::endl; break;
+        default: LUZASSERT(false);
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
     while (Platform::Running())
     {
-        std::cout << ">: " << std::endl;
-        
+        std::cout << ">: ";
+       
         std::string input;
         getline(std::cin, input);
 
-        if (strcmp(input.c_str(), "exit") == 0)
+        std::stringstream ss = std::stringstream(input);
+        
+        std::string cmd;
+        ss >> cmd;
+        if (strcmp(cmd.c_str(), "exit") == 0)
         {
             break;
         }
-    }
+        else if (strcmp(cmd.c_str(), "set_exposure") == 0)
+        {
+            ss >> shaderOptions.Exposure;
+        } 
+        else if (strcmp(cmd.c_str(), "set_ambient") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.x;
+        }
+        else if (strcmp(cmd.c_str(), "set_diffuse") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.y;
+        }
+        else if (strcmp(cmd.c_str(), "set_spec") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.z;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_ambient") == 0)
+        {
+            shaderOptions.AmbientEnabled = !shaderOptions.AmbientEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_diffuse") == 0)
+        {
+            shaderOptions.DiffuseEnabled = !shaderOptions.DiffuseEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_spec") == 0)
+        {
+            shaderOptions.SpecEnabled = !shaderOptions.SpecEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_shadow") == 0)
+        {
+            shaderOptions.ShadowEnabled = !shaderOptions.ShadowEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_bump") == 0)
+        {
+            shaderOptions.BumpEnabled = !shaderOptions.BumpEnabled;
+        }
+        else
+        {
+            continue;
+        }
 
-    Platform::DestroyConsole();
+        std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+        s_shaderOptions = shaderOptions;
+    }
 }
 
 MeshApplication::MeshApplication()
@@ -233,8 +322,8 @@ bool MeshApplication::Initialize()
         s_lighting.SetFar(3000.0f);
         s_lighting.SetNear(0.1f);
 
-        float3 lightPos = dim * -normalize(s_lightDirection);
-        float3x3 lightView = float3x3::orientation_lh(s_lightDirection, float3(0.0f, 0.0f, 1.0f));
+        float3 lightPos = dim * -normalize(s_shaderOptions.LightDirection);
+        float3x3 lightView = float3x3::orientation_lh(s_shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
         s_lighting.GetTransform()->SetPosition(lightPos);
         s_lighting.GetTransform()->SetRotation(quaternion::create(lightView));
 
@@ -363,6 +452,8 @@ bool MeshApplication::Initialize()
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
     Graphics::CreateCommandStream(csd, &m_commandStream);
 
+    s_loading.store(false);
+
     return true;
 }
 
@@ -377,6 +468,12 @@ int MeshApplication::Shutdown()
 
 void MeshApplication::Update(double dt)
 {
+    ShaderOptions shaderOptions;
+    {
+        std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+        shaderOptions = s_shaderOptions;
+    }
+
     m_cameraController.Update(dt);
 
     float4x4 view = m_cameraController.GetCamera()->GetView();
@@ -397,15 +494,15 @@ void MeshApplication::Update(double dt)
     pConsts->ShadowConsts.InverseView = view.inverse().transpose();
     pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
 
-    pConsts->LightingConsts.Color = float3(0.8f, 0.8f, 0.8f);
-    pConsts->LightingConsts.Direction = float3(0.0f, -0.5f, 0.0f);
-    pConsts->LightingConsts.Intensity = float4(0.5f, 2.5f, 5.0f);
-    pConsts->LightingConsts.Exposure = s_exposure;
-    pConsts->LightingConsts.EnableAmbient = s_ambientEnabled;
-    pConsts->LightingConsts.EnableDiffuse = s_diffuseEnabled;
-    pConsts->LightingConsts.EnableSpec = s_specEnabled;
-    pConsts->LightingConsts.EnableBump = s_bumpEnabled;
-    pConsts->LightingConsts.EnableShadow = s_bumpEnabled;
+    pConsts->LightingConsts.Color = shaderOptions.LightColor;
+    pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
+    pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
+    pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
+    pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
+    pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
+    pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
+    pConsts->LightingConsts.EnableBump = shaderOptions.BumpEnabled;
+    pConsts->LightingConsts.EnableShadow = shaderOptions.ShadowEnabled;
 
     static const float clear[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
     static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f, 0.0f, 1.0f };
@@ -413,7 +510,7 @@ void MeshApplication::Update(double dt)
     
 
     // Shadow 
-    if (s_shadowEnabled)
+    if (shaderOptions.ShadowEnabled)
     {
         static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
         static const Graphics::Rect s_shadow_scissor = { 0, 0, 2048, 2048 };
@@ -507,6 +604,8 @@ void MeshApplication::Update(double dt)
     if (Platform::Input::GetKey(Platform::Input::KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
     if (Platform::Input::GetKey(Platform::Input::KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
     if (Platform::Input::GetKey(Platform::Input::KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
+
+    if (Platform::Input::GetKeyUp(Platform::Input::KEYCODE_RETURN)) s_consoleWritten.store(true);
 }
 
 void MeshApplication::FixedUpdate(double dt)

@@ -74,7 +74,7 @@ float4 main(PS_Input input) : SV_TARGET
     float4 output = float4(1, 0, 1, 1); // magenta
 
     float3 N = normalize(input.norm);
-    float3 L = -Direction.xyz;
+    float3 L = normalize(-Direction.xyz);
     float3 Lc = Color.xyz;
     float Ia = Intensity.x;
     float Id = Intensity.y;
