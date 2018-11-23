@@ -159,9 +159,10 @@ float4 main(PS_Input input) : SV_TARGET
             Sf = Shadow_Factor(shadow, shadow_sampler, Lp.xy, Lp.z);
         }
 
-        float3 shadow = (ambient) * max(0.2f, Sf);
-        float3 color = (ambient + diffuse + specular) * Sf;
-        output.xyz = lerp(shadow, color, Sf);
+        //float3 shadow = (ambient) * max(0.2f, Sf);
+        float3 color = (ambient + diffuse + specular) * max(0.2f, Sf);
+        //output.xyz = lerp(shadow, color, Sf);
+        output.xyz = color;
 
         output.xyz *= Exposure;
         output.xyz = Reinhard_Luma(output.xyz);

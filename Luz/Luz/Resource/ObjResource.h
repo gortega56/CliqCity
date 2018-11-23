@@ -204,7 +204,7 @@ namespace Resource
         std::vector<IndexType>& indices) const
     {
         auto iter = indirects.find(vi);
-        if (iter == indirects.end())
+        if (/*iter == indirects.end()*/true)
         {
             // New vertex: Create and store for look up later
             u32 index = static_cast<u32>(vertices.size());

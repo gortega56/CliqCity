@@ -41,7 +41,7 @@ struct ShaderOptions
 static ShaderOptions s_shaderOptions =
 {
     float3(0.8f, 0.8f, 0.8f),
-    float3(0.0f, -0.5f, -0.1f),
+    float3(0.0f, -0.5f, 0.1f),
     float4(0.2f, 10.0f, 100.0f, 0.0f),
     10.0f,
     true,
@@ -382,25 +382,24 @@ bool MeshApplication::Initialize()
        // surface.isReady = true;
     }
 
+    for (u32 i = 0; i < s_nFrameResources; ++i)
+    {
+        Graphics::ConstantBufferDesc cbd;
+        cbd.Alignment = 0;
+        cbd.SizeInBytes = sizeof(CameraConstants);
+        cbd.StrideInBytes = sizeof(CameraConstants);
+        cbd.AllocHeap = false;
+        cbd.pData = nullptr;// &m_frameConsts[0].CameraConsts;
+        m_frameConsts[i].hCamera = Graphics::CreateConstantBuffer(cbd);
+        m_frameConsts[i].hShadow = Graphics::CreateConstantBuffer(cbd);
+
+        cbd.SizeInBytes = sizeof(LightingConstants);
+        cbd.SizeInBytes = sizeof(LightingConstants);
+        m_frameConsts[i].hLighting = Graphics::CreateConstantBuffer(cbd);
+    }
+
     Graphics::ConstantBufferDesc cbd;
     cbd.Alignment = 0;
-    cbd.SizeInBytes = sizeof(CameraConstants);
-    cbd.StrideInBytes = sizeof(CameraConstants);
-    cbd.AllocHeap = false;
-    cbd.pData = nullptr;// &m_frameConsts[0].CameraConsts;
-    m_frameConsts[0].hCamera = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[1].hCamera = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[2].hCamera = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[0].hShadow = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[1].hShadow = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[2].hShadow = Graphics::CreateConstantBuffer(cbd);
-
-    cbd.SizeInBytes = sizeof(LightingConstants);
-    cbd.SizeInBytes = sizeof(LightingConstants);
-    m_frameConsts[0].hLighting = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[1].hLighting = Graphics::CreateConstantBuffer(cbd);
-    m_frameConsts[2].hLighting = Graphics::CreateConstantBuffer(cbd);
-
     cbd.SizeInBytes = sizeof(MaterialConstants);
     cbd.StrideInBytes = sizeof(MaterialConstants);
     cbd.AllocHeap = true;
@@ -554,6 +553,7 @@ void MeshApplication::Update(double dt)
         cs.SetVertexBuffer(0);
         cs.SetIndexBuffer(m_fs_ib);
         cs.DrawInstanceIndexed(m_fs_ib);
+        cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
 
         Graphics::SubmitCommandStream(&cs, false);
     }
@@ -593,19 +593,19 @@ void MeshApplication::Update(double dt)
         
     Graphics::Present();
 
-    m_frameIndex = (m_frameIndex + 1) % s_nSwapChainTargets;
+    m_frameIndex = (m_frameIndex + 1) % s_nFrameResources;
 
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_I)) s_lighting.GetTransform()->MoveForward(1);
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_J)) s_lighting.GetTransform()->MoveRight(-1);
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_K)) s_lighting.GetTransform()->MoveRight(1);
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_L)) s_lighting.GetTransform()->MoveForward(-1);
+    if (Platform::GetKey(Platform::KEYCODE_I)) s_lighting.GetTransform()->MoveForward(1);
+    if (Platform::GetKey(Platform::KEYCODE_J)) s_lighting.GetTransform()->MoveRight(-1);
+    if (Platform::GetKey(Platform::KEYCODE_K)) s_lighting.GetTransform()->MoveRight(1);
+    if (Platform::GetKey(Platform::KEYCODE_L)) s_lighting.GetTransform()->MoveForward(-1);
 
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_V)) s_lighting.SetWidth(s_lighting.GetWidth() + 1);
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
-    if (Platform::Input::GetKey(Platform::Input::KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
+    if (Platform::GetKey(Platform::KEYCODE_V)) s_lighting.SetWidth(s_lighting.GetWidth() + 1);
+    if (Platform::GetKey(Platform::KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
+    if (Platform::GetKey(Platform::KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
+    if (Platform::GetKey(Platform::KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
 
-    if (Platform::Input::GetKeyUp(Platform::Input::KEYCODE_RETURN)) s_consoleWritten.store(true);
+    if (Platform::GetKeyUp(Platform::KEYCODE_RETURN)) s_consoleWritten.store(true);
 }
 
 void MeshApplication::FixedUpdate(double dt)

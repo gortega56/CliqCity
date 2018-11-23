@@ -22,13 +22,13 @@ namespace Luz
 
     void CameraController::Update(double deltaSeconds)
     {
-        Platform::Input::ScreenPoint mousePosition = Platform::Input::GetMousePosition();
+        Platform::ScreenPoint mousePosition = Platform::GetMousePosition();
         float mouseX = (float)mousePosition.x;
         float mouseY = (float)mousePosition.y;
 
         Transform* pTransform = m_camera.GetTransform();
 
-        if (Platform::Input::GetMouseButton(Platform::Input::MOUSEBUTTON_RIGHT))
+        if (Platform::GetMouseButton(Platform::MOUSEBUTTON_RIGHT))
         {
             float3 rotation = pTransform->GetEuler();
             rotation.x += (mouseY - m_mouseY) * g_radian * m_verticalTurnSpeed;
@@ -41,32 +41,32 @@ namespace Luz
         m_mouseY = mouseY;
 
         float3 position = pTransform->GetPosition();
-        if (Platform::Input::GetKey(Platform::Input::KEYCODE_W))
+        if (Platform::GetKey(Platform::KEYCODE_W))
         {
             position += pTransform->GetForward() * m_movementSpeed;
         }
 
-        if (Platform::Input::GetKey(Platform::Input::KEYCODE_A))
+        if (Platform::GetKey(Platform::KEYCODE_A))
         {
             position += -pTransform->GetRight() * m_movementSpeed;
         }
 
-        if (Platform::Input::GetKey(Platform::Input::KEYCODE_S))
+        if (Platform::GetKey(Platform::KEYCODE_S))
         {
             position += -pTransform->GetForward() * m_movementSpeed;
         }
 
-        if (Platform::Input::GetKey(Platform::Input::KEYCODE_D))
+        if (Platform::GetKey(Platform::KEYCODE_D))
         {
             position += pTransform->GetRight() * m_movementSpeed;
         }
 
-        if (Platform::Input::GetKey(Platform::Input::KEYCODE_Q))
+        if (Platform::GetKey(Platform::KEYCODE_Q))
         {
             position += pTransform->GetUp() * m_movementSpeed;
         }
 
-        if (Platform::Input::GetKey(Platform::Input::KEYCODE_E))
+        if (Platform::GetKey(Platform::KEYCODE_E))
         {
             position += -pTransform->GetUp() * m_movementSpeed;
         }

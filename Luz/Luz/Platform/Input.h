@@ -6,31 +6,20 @@
 #include "PlatformTypes.h"
 #endif
 
-#define PREV_KEY_STATE_BIT 0x40000000
+#ifndef WINDOWSPLATFORMTYPES_H
+#include "WindowsPlatformTypes.h"
+#endif
 
-class PlatformInput;
+struct WindowsMessage;
 
-namespace Luz
+namespace Platform
 {
-    struct Notification;
-
 	class Input
 	{
-	private:
-        friend class PlatformInput;
-
-		short	mCurrMouseState;
-		short	mPrevMouseState;
-		bool    mIsMouseActive;
-
-		std::unordered_set<Platform::Input::KeyCode>	mKeysDown;
-		std::unordered_set<Platform::Input::KeyCode>	mKeysUp;
-		std::unordered_set<Platform::Input::KeyCode>	mKeysPressed;
-
 	public:
-		Platform::Input::ScreenPoint mousePosition;
-		Platform::Input::ScreenPoint prevMousePosition;
-		Platform::Input::ScreenPoint delta;
+		ScreenPoint mousePosition;
+		ScreenPoint prevMousePosition;
+		ScreenPoint delta;
 
 		Input();
 		~Input();
@@ -38,21 +27,38 @@ namespace Luz
 		int Initialize();
 		void Update(double delta);
 		
-        bool LUZ_API IsMouseActive() const { return mIsMouseActive; }
-		void LUZ_API SetMouseActive(bool active) { mIsMouseActive = active; }
+        bool IsMouseActive() const { return mIsMouseActive; }
+		void SetMouseActive(bool active) { mIsMouseActive = active; }
 
-		bool LUZ_API GetKeyDown(Platform::Input::KeyCode key);
-		bool LUZ_API GetKeyUp(Platform::Input::KeyCode key);
-		bool LUZ_API GetKey(Platform::Input::KeyCode key);
-		bool LUZ_API GetMouseButtonDown(Platform::Input::MouseButton button);
-		bool LUZ_API GetMouseButtonUp(Platform::Input::MouseButton button);
-		bool LUZ_API GetMouseButton(Platform::Input::MouseButton button);
-		bool LUZ_API GetGamepadButtonDown(Platform::Input::GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-		bool LUZ_API GetGamepadButtonUp(Platform::Input::GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-		bool LUZ_API GetGamepadButton(Platform::Input::GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-		float LUZ_API GetGamepadAxis(Platform::Input::GamepadAxis axis, short id);
+		bool GetKeyDown(KeyCode key);
+		bool GetKeyUp(KeyCode key);
+		bool GetKey(KeyCode key);
+		bool GetMouseButtonDown(MouseButton button);
+		bool GetMouseButtonUp(MouseButton button);
+		bool GetMouseButton(MouseButton button);
+		bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+		bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+		bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+		float GetGamepadAxis(GamepadAxis axis, short id);
+        
+        void OnWindowsMessage(const WindowsMessage& wm);
+        void OnKeyDown(WPARAM wparam, LPARAM lparam);
+        void OnKeyUp(WPARAM wparam, LPARAM lparam);
+        void OnMouseDown(MouseButton button, WPARAM wparam, LPARAM lparam);
+        void OnMouseUp(MouseButton button, WPARAM wparam, LPARAM lparam);
+        void OnMouseMove(WPARAM wparam, LPARAM lparam);
 
-        void OnPlatformNotification(const Luz::Notification& notification);
+    private:
+        short mCurrMouseState;
+        short mPrevMouseState;
+        bool mIsMouseActive;
+
+        std::unordered_set<KeyCode>	mKeysDown;
+        std::unordered_set<KeyCode>	mKeysUp;
+        std::unordered_set<KeyCode>	mKeysPressed;
+
+        XINPUT_STATE mCurrGamepadState[XUSER_MAX_COUNT];
+        XINPUT_STATE mPrevGamepadState[XUSER_MAX_COUNT];
 	};
 }
 

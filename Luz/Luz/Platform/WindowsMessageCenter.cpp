@@ -11,17 +11,6 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-WindowsMessage::WindowsMessage()
-{
-
-}
-
-WindowsMessage::WindowsMessage(HWND inH, UINT inM, WPARAM wp, LPARAM lp) :
-    hwnd(inH), msg(inM), wparam(wp), lparam(lp)
-{
-
-}
-
 WindowsMessageCenter::WindowsMessageCenter()
 {
 

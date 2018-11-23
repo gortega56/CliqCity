@@ -36,16 +36,9 @@ namespace Luz
         DEFAULT_COPY(Notification)
         DEFAULT_MOVE(Notification)
     };
-
-    enum KeyCode;
-    enum MouseButton;
-    enum GamepadButton;
-    enum GamepadAxis;
 }
 
 class Window;
-
-
 
 namespace Platform
 {
@@ -67,34 +60,31 @@ namespace Platform
 
     LUZ_API void DestroyConsole();
 
-    namespace Input
-    {
-        LUZ_API ScreenPoint GetMousePosition();
+    LUZ_API ScreenPoint GetMousePosition();
 
-        LUZ_API bool IsMouseActive();
-        
-        LUZ_API void SetMouseActive(bool active);
+    LUZ_API bool IsMouseActive();
 
-        LUZ_API bool GetKeyDown(KeyCode key);
-        
-        LUZ_API bool GetKeyUp(KeyCode key);
-        
-        LUZ_API bool GetKey(KeyCode key);
-        
-        LUZ_API bool GetMouseButtonDown(MouseButton button);
-        
-        LUZ_API bool GetMouseButtonUp(MouseButton button);
-        
-        LUZ_API bool GetMouseButton(MouseButton button);
-        
-        LUZ_API bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-        
-        LUZ_API bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-        
-        LUZ_API bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-        
-        LUZ_API float GetGamepadAxis(GamepadAxis axis, short id);
-    }
+    LUZ_API void SetMouseActive(bool active);
+
+    LUZ_API bool GetKeyDown(KeyCode key);
+
+    LUZ_API bool GetKeyUp(KeyCode key);
+
+    LUZ_API bool GetKey(KeyCode key);
+
+    LUZ_API bool GetMouseButtonDown(MouseButton button);
+
+    LUZ_API bool GetMouseButtonUp(MouseButton button);
+
+    LUZ_API bool GetMouseButton(MouseButton button);
+
+    LUZ_API bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+
+    LUZ_API bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+
+    LUZ_API bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+
+    LUZ_API float GetGamepadAxis(GamepadAxis axis, short id);
 }
 
 #endif

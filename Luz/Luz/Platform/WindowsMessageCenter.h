@@ -3,22 +3,19 @@
 #define WINDOWSMESSAGECENTER_H
 
 #include <Windows.h>
-#include "Platform.h" // TODO: Extract Notification from Platform
+
+#ifndef DELEGATE_H
+#include "Delegate.h"
+#endif
 
 LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-struct WindowsMessage : public Luz::Notification
+struct WindowsMessage
 {
     HWND	hwnd;
     UINT	msg;
     WPARAM	wparam;
     LPARAM	lparam;
-
-    WindowsMessage();
-    WindowsMessage(HWND, UINT, WPARAM, LPARAM);
-
-    DEFAULT_COPY(WindowsMessage)
-    DEFAULT_MOVE(WindowsMessage)
 };
 
 __interface IWindowsMessageCenterCallback
@@ -26,16 +23,13 @@ __interface IWindowsMessageCenterCallback
     virtual void HandleWindowsMessage(const WindowsMessage& wm) = 0;
 };
 
-typedef Luz::Event<void(const Luz::Notification&)> WindowsEvent;
+typedef Luz::Event<void(const WindowsMessage&)> WindowsEvent;
 
 class WindowsMessageCenter
 {
 public:
-    
-    static std::shared_ptr<WindowsMessageCenter> Create();
-    static void Destroy(std::shared_ptr<WindowsMessageCenter>& mc);
-
     WindowsMessageCenter();
+    
     ~WindowsMessageCenter();
    
     void PeekMessages();

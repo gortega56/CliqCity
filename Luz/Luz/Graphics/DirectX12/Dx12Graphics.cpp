@@ -1536,7 +1536,7 @@ namespace Graphics
         }
     }
 
-    void Present()
+    void Present(bool wait /*= false*/)
     {
         ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
         if (!s_swapChain.pGraphicsCommandList)
@@ -1574,7 +1574,14 @@ namespace Graphics
             LUZASSERT(false);
         }
 
+        if (wait)
+        {
+            WaitOnFence(cq.pFence, cq.ExecutionsCompleted);
+        }
+
         s_swapChain.FrameIndex = s_swapChain.pSwapChain3->GetCurrentBackBufferIndex();
+
+
     }
 
 

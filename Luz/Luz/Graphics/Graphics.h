@@ -77,7 +77,7 @@ namespace Graphics
 
     LUZ_API void SubmitCommandStream(const CommandStream* pCommandStream, bool wait = false);
 
-    LUZ_API void Present();
+    LUZ_API void Present(bool wait = false);
 
     LUZ_API void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream);
 

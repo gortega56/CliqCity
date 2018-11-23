@@ -3,22 +3,12 @@
 
 #ifdef WINXX
 #include "WindowsPlatformTypes.h"
-
-namespace Luz
-{
-    Notification::Notification() : Notification(Identifier::NONE)
-    {
-
-    }
-
-    Notification::Notification(Identifier id) : ID(id)
-    {
-
-    }
-}
+#include "Input.h"
 
 namespace Platform
 {    
+    static Input s_input = Input();
+
     int Initialize(int n, ...)
     {
         va_list args;
@@ -29,16 +19,16 @@ namespace Platform
         s_nShowCmd = va_arg(args, int);
         va_end(args);
 
-        auto quit = [](const Luz::Notification& wm)
+        auto quit = [](const WindowsMessage& wm)
         {
             s_quit.store(true);
         };
 
         s_messageBus.GetEvent(WM_QUIT)->Bind(quit);
         s_messageBus.GetEvent(WM_CLOSE)->Bind(quit);
-        s_messageBus.GetEvent(WM_DESTROY)->Bind([](const Luz::Notification& wm) { PostQuitMessage(0); });
+        s_messageBus.GetEvent(WM_DESTROY)->Bind([](const WindowsMessage& wm) { PostQuitMessage(0); });
     
-        int success = Luz::s_input.Initialize();
+        int success = s_input.Initialize();
         LUZASSERT(success);
 
         return success;
@@ -51,7 +41,7 @@ namespace Platform
 
     void BeginUpdate(double time, double delta)
     {
-        Luz::s_input.Update(delta);
+        s_input.Update(delta);
         s_messageBus.PeekMessages();
     }
 
@@ -196,72 +186,69 @@ namespace Platform
         FreeConsole();
     }
 
-    namespace Input
+    ScreenPoint GetMousePosition()
     {
-        ScreenPoint GetMousePosition()
-        {
-            return Luz::s_input.mousePosition;
-        }
+        return s_input.mousePosition;
+    }
 
-        bool IsMouseActive()
-        {
-            return Luz::s_input.IsMouseActive();
-        }
+    bool IsMouseActive()
+    {
+        return s_input.IsMouseActive();
+    }
 
-        void SetMouseActive(bool active)
-        {
-            Luz::s_input.SetMouseActive(active);
-        }
+    void SetMouseActive(bool active)
+    {
+        s_input.SetMouseActive(active);
+    }
 
-        bool GetKeyDown(KeyCode key)
-        {
-            return Luz::s_input.GetKeyDown(key);
-        }
+    bool GetKeyDown(KeyCode key)
+    {
+        return s_input.GetKeyDown(key);
+    }
 
-        bool GetKeyUp(KeyCode key)
-        {
-            return Luz::s_input.GetKeyUp(key);
-        }
+    bool GetKeyUp(KeyCode key)
+    {
+        return s_input.GetKeyUp(key);
+    }
 
-        bool GetKey(KeyCode key)
-        {
-            return Luz::s_input.GetKey(key);
-        }
+    bool GetKey(KeyCode key)
+    {
+        return s_input.GetKey(key);
+    }
 
-        bool GetMouseButtonDown(MouseButton button)
-        {
-            return Luz::s_input.GetMouseButtonDown(button);
-        }
+    bool GetMouseButtonDown(MouseButton button)
+    {
+        return s_input.GetMouseButtonDown(button);
+    }
 
-        bool GetMouseButtonUp(MouseButton button)
-        {
-            return Luz::s_input.GetMouseButtonUp(button);
-        }
+    bool GetMouseButtonUp(MouseButton button)
+    {
+        return s_input.GetMouseButtonUp(button);
+    }
 
-        bool GetMouseButton(MouseButton button)
-        {
-            return Luz::s_input.GetMouseButton(button);
-        }
+    bool GetMouseButton(MouseButton button)
+    {
+        return s_input.GetMouseButton(button);
+    }
 
-        bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive, short id)
-        {
-            return Luz::s_input.GetGamepadButtonDown(buttonMask, isAdditive, id);
-        }
+    bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive, short id)
+    {
+        return s_input.GetGamepadButtonDown(buttonMask, isAdditive, id);
+    }
 
-        bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive, short id)
-        {
-            return Luz::s_input.GetGamepadButtonUp(buttonMask, isAdditive, id);
-        }
+    bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive, short id)
+    {
+        return s_input.GetGamepadButtonUp(buttonMask, isAdditive, id);
+    }
 
-        bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive, short id)
-        {
-            return Luz::s_input.GetGamepadButton(buttonMask, isAdditive, id);
-        }
+    bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive, short id)
+    {
+        return s_input.GetGamepadButton(buttonMask, isAdditive, id);
+    }
 
-        float GetGamepadAxis(GamepadAxis axis, short id)
-        {
-            return Luz::s_input.GetGamepadAxis(axis, id);
-        }
+    float GetGamepadAxis(GamepadAxis axis, short id)
+    {
+        return s_input.GetGamepadAxis(axis, id);
     }
 }
 

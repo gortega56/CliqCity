@@ -113,7 +113,9 @@ class MeshApplication :
 public:
     using IApplication::IApplication;
 
-    static constexpr u32 s_nSwapChainTargets = 3;
+    static constexpr u32 s_nSwapChainTargets = 2;
+
+    static constexpr u32 s_nFrameResources = s_nSwapChainTargets * 2;
 
     std::shared_ptr<Window> m_window;
 
@@ -140,7 +142,7 @@ public:
     std::vector<i32> m_materialIndices;
     std::vector<Surface> m_surfaces;
 
-    FrameConstants m_frameConsts[s_nSwapChainTargets];
+    FrameConstants m_frameConsts[s_nFrameResources];
     u32 m_frameIndex;
 
     MeshApplication();
