@@ -110,6 +110,11 @@ float3 F_Schlick(float3 F0, float3 F90, float NoV)
     return F0 + (F90 - F0) * pow(1.0f - NoV, 5.0f);
 }
 
+float Fd_Lambert()
+{
+    return 1.0f / PI;
+}
+
 float Fd_Burley(float NoV, float NoL, float LoH, float roughness) 
 {
     float F90 = 0.5 + 2.0 * roughness * LoH * LoH;
@@ -125,11 +130,16 @@ float D_Beckmann(float NoH, float roughness)
 }
 
 // NoH should be clamped to zero
-float D_Trowbridge_Reitz(float NoH, float roughness)
+float D_GGX(float NoH, float roughness)
 {
+    //http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
     float a = NoH * roughness;
     float k = roughness / (1.0 - NoH * NoH + a * a);
     return k * k * (1.0 / PI);
+
+    //http://www.realtimerendering.com/#brdf
+    // Includes an extra factor of NoH in the numerator?
+    //return NoH * k * k * (1.0 / PI);
 }
 
 // NoS clamped to zero
@@ -151,7 +161,7 @@ float G1_Smith_Beckmann(float NoS, float roughness)
         c = 1.0f;
     }
 
-    // Real-Time Rendering 
+    //http://www.realtimerendering.com/#brdf
     //const float a = 1.259f;
     //const float b = 0.396f;
     //const float d = 3.535f;
@@ -179,8 +189,9 @@ float G_Smith_Beckmann(float NoV, float NoL, float roughness)
 
 // NoV clamped to zero
 // NoL clamped to zero
-float G_Smith_Trowbridge_Reitz(float NoV, float NoL, float roughness)
+float G_Smith_GGX(float NoV, float NoL, float roughness)
 {
+    //https://google.github.io/filament/Filament.md.html#toc1
     float a = roughness * roughness;
     float ggxv = NoL * sqrt(NoV * NoV * (1.0f - a) + a);
     float ggxl = NoV * sqrt(NoL * NoL * (1.0f - a) + a);

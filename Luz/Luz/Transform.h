@@ -25,6 +25,7 @@ public:
     LUZ_API void SetPosition(const float3& position);
     LUZ_API void SetRotation(const float3& euler);
     LUZ_API void SetRotation(const quat& quat);
+    LUZ_API void SetRotation(const float3x3& mat);
     LUZ_API void SetScale(const float3& scale);
 
     LUZ_API void SetRotation(const float& pitch, const float& yaw, const float& roll);

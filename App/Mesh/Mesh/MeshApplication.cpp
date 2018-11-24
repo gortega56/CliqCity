@@ -31,19 +31,27 @@ struct ShaderOptions
     float3 LightDirection;
     float4 LightIntensity;
     float Exposure;
+    u32 LightingMode;
     bool AmbientEnabled;
     bool DiffuseEnabled;
     bool SpecEnabled;
     bool BumpEnabled;
     bool ShadowEnabled;
+    bool MicrofacetEnabled;
+    bool MaskingEnabled;
+    bool FresnelEnabled;
 };
 
 static ShaderOptions s_shaderOptions =
 {
     float3(0.8f, 0.8f, 0.8f),
-    float3(0.0f, -0.5f, 0.1f),
+    normalize(float3(0.0f, -0.5f, -0.1f)),
     float4(0.2f, 10.0f, 100.0f, 0.0f),
     10.0f,
+    1,
+    true,
+    true,
+    true,
     true,
     true,
     true,
@@ -153,6 +161,26 @@ static void ConsoleThread()
         {
             shaderOptions.BumpEnabled = !shaderOptions.BumpEnabled;
         }
+        else if (strcmp(cmd.c_str(), "toggle_micro") == 0)
+        {
+            shaderOptions.MicrofacetEnabled = !shaderOptions.MicrofacetEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_masking") == 0)
+        {
+            shaderOptions.MaskingEnabled = !shaderOptions.MaskingEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_fresnel") == 0)
+        {
+            shaderOptions.FresnelEnabled = !shaderOptions.FresnelEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_bp") == 0)
+        {
+            shaderOptions.LightingMode = 0;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_pbr") == 0)
+        {
+            shaderOptions.LightingMode = 1;
+        }
         else
         {
             continue;
@@ -260,7 +288,7 @@ bool MeshApplication::Initialize()
         .AppendConstantView(2)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
         .AppendDescriptorTableRange(3, 25, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
-        .AppendDescriptorTableRange(3, 38, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
+        .AppendDescriptorTableRange(3, 51, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
         .AppendAnisotropicWrapSampler(0)
         .AppendComparisonPointBorderSampler(1)
@@ -322,10 +350,8 @@ bool MeshApplication::Initialize()
         s_lighting.SetFar(3000.0f);
         s_lighting.SetNear(0.1f);
 
-        float3 lightPos = dim * -normalize(s_shaderOptions.LightDirection);
-        float3x3 lightView = float3x3::orientation_lh(s_shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
-        s_lighting.GetTransform()->SetPosition(lightPos);
-        s_lighting.GetTransform()->SetRotation(quaternion::create(lightView));
+        s_lighting.GetTransform()->SetPosition(dim * -s_shaderOptions.LightDirection);
+        s_lighting.GetTransform()->SetRotation(float3x3::orientation_lh(s_shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f)));
 
         // Create geo
         meshes.resize(static_cast<size_t>(pObj->GetNumSurfaces()));
@@ -497,11 +523,15 @@ void MeshApplication::Update(double dt)
     pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
     pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
     pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
+    pConsts->LightingConsts.LightingMode = shaderOptions.LightingMode;
     pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
     pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
     pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
     pConsts->LightingConsts.EnableBump = shaderOptions.BumpEnabled;
     pConsts->LightingConsts.EnableShadow = shaderOptions.ShadowEnabled;
+    pConsts->LightingConsts.MicrofacetEnabled = shaderOptions.MicrofacetEnabled;
+    pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
+    pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
 
     static const float clear[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
     static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f, 0.0f, 1.0f };

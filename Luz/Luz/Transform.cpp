@@ -53,6 +53,12 @@ void Transform::SetRotation(const quat& quat)
     m_isDirty = true;
 }
 
+void Transform::SetRotation(const float3x3& mat)
+{
+    m_rotation = quaternion::create(mat);
+    m_isDirty = true;
+}
+
 void Transform::SetScale(const float3& scale)
 {
     m_scale = scale;

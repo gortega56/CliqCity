@@ -4364,26 +4364,26 @@ namespace lina
         }
         case 1:
         {
-            o.x = (m23 - m32) * mult;
+            o.x = biggestVal;
             o.y = (m12 + m21) * mult;
             o.z = (m31 + m13) * mult;
-            o.w = biggestVal;
+            o.w = (m23 - m32) * mult;
             break;
         }
         case 2:
         {
-            o.x = (m31 - m13) * mult;
-            o.y = (m12 + m21) * mult;
+            o.x = (m12 + m21) * mult;
+            o.y = biggestVal;
             o.z = (m23 + m32) * mult;
-            o.w = biggestVal;
+            o.w = (m31 - m13) * mult;
             break;
         }
-        case 4:
+        case 3:
         {
-            o.x = (m12 - m21) * mult;
-            o.y = (m31 + m13) * mult;
-            o.z = (m23 + m32) * mult;
-            o.w = biggestVal;
+            o.x = (m31 + m13) * mult;
+            o.y = (m23 + m32) * mult;
+            o.z = biggestVal;
+            o.w = (m12 - m21) * mult;
             break;
         }
         default:

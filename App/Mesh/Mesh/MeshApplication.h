@@ -67,11 +67,15 @@ struct LightingConstants
     float _padding1;
     float4 Intensity; // ambient, diffuse, spec
     float Exposure;
+    u32 LightingMode;
     u32 EnableAmbient;
     u32 EnableDiffuse;
     u32 EnableSpec;
     u32 EnableBump;
     u32 EnableShadow;
+    u32 MicrofacetEnabled;
+    u32 MaskingEnabled;
+    u32 FresnelEnabled;
 };
 
 struct MaterialConstants
