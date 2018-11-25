@@ -33,9 +33,10 @@ namespace Resource
             const char* AmbientTextureName;
             const char* DiffuseTextureName;
             const char* SpecularTextureName;
-            const char* EmissiveTextureName;
+            const char* SpecularPowerTextureName;
             const char* DissolveTextureName;
-            const char* BumpTextureName;
+            const char* BumpTextureName0;
+            const char* BumpTextureName1;
         };
 
         static std::shared_ptr<const Mtl> LUZ_API Load(const Desc desc);
@@ -64,9 +65,10 @@ namespace Resource
             std::string AmbientTextureName;
             std::string DiffuseTextureName;
             std::string SpecularTextureName;
-            std::string EmissiveTextureName;
+            std::string SpecularPowerTextureName;
             std::string DissolveTextureName;
-            std::string BumpTextureName;
+            std::string BumpTextureName0;
+            std::string BumpTextureName1;
         };
 
         std::unordered_map<std::string, Material> m_materials;

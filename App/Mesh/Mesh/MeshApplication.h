@@ -65,9 +65,10 @@ struct LightingConstants
     float _padding0;
     float3 Direction;
     float _padding1;
-    float4 Intensity; // ambient, diffuse, spec
+    float4 Intensity; // ambient, diffuse, spec, lx
     float Exposure;
     u32 LightingMode;
+    u32 BumpMode;
     u32 EnableAmbient;
     u32 EnableDiffuse;
     u32 EnableSpec;
@@ -89,10 +90,17 @@ struct MaterialConstants
     float3 Diffuse;             
     float Dissolve;               
     float3 Emissive;
-    float _padding0;
-    int TextureIndices[4] = { -1, -1, -1, -1 };
-    float4 _padding2[10];    
+    float _unused0;
+    int iMetal = -1;
+    int iDiffuse = -1;
+    int iSpec = -1;
+    int iRough = -1;
+    int iBump = -1;
+    int iNormal = -1;
+    float _unused1[38];
 };
+
+static_assert(sizeof(MaterialConstants) == 256, "MaterialConstants must be 256 bytes");
 
 struct Surface
 {

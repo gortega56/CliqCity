@@ -21,9 +21,10 @@ cbuffer LightingConstants : register(b2)
 {
     float4 Color;
     float4 Direction;
-    float4 Intensity; // ambient, diffuse, spec
+    float4 Intensity; // ambient, diffuse, spec, lx
     float Exposure;
     uint LightingMode;
+    uint BumpMode;
     uint AmbientEnabled;
     uint DiffuseEnabled;
     uint SpecEnabled;
@@ -45,9 +46,14 @@ struct Material
     float3 diffuse;
     float dissolve;
     float3 emissive;
-    float p0;
-    int4 textureIndices; // x - diffuse, y - bump z - dissolve w - spec
-    float4 p2[10];
+    float _unused0;
+    int iMetal;
+    int iDiffuse;
+    int iSpec;
+    int iRough;
+    int iBump;
+    int iNormal;
+    float _unused1[38];
 };
 
 ConstantBuffer<Material> materials[] : register(b3);
@@ -88,67 +94,91 @@ struct ShadingFrame
     float Ia;
     float Id;
     float Is;
+    float Lx;
     int iMaterial;
 };
+
+float3 GetNormal(ShadingFrame frame, int iBump, int iNormal, uint mode)
+{
+    float3x3 tbn =
+    {
+        frame.T.x, frame.T.y, frame.T.z,
+        frame.B.x, frame.B.y, frame.B.z,
+        frame.N.x, frame.N.y, frame.N.z
+    };
+
+    float3 N = frame.N;
+
+    if (mode == 0 && iBump != -1)
+    {
+        N = SobelFilter(textures[iBump], bump_sampler, frame.UV, 1.0f);
+        N = normalize(mul(N, tbn));
+    }
+    else if (mode == 1 && iNormal != -1)
+    {
+        N = textures[iNormal].Sample(default_sampler, frame.UV).xyz;
+        N = N * 2.0 - 1.0;
+        N = normalize(mul(N, tbn));
+    }
+
+    return N;
+}
 
 float4 Shade_Blinn_Phong(ShadingFrame frame)
 {
     float4 output = float4(1, 0, 1, 1); // magenta
 
-
     int iMaterial = frame.iMaterial;
     if (iMaterial != -1)
     {
-        int iMask = materials[iMaterial].textureIndices.z;
-        if (iMask != -1)
-        {
-            float m = textures[iMask].Sample(default_sampler, frame.UV).r;
-            clip(m - 0.001f);
-        }
-
+        float4 base = float4(0, 0, 0, 0);
         float3 ambient = float3(0, 0, 0);
         float3 diffuse = float3(0, 0, 0);
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
 
-        int iBump = materials[iMaterial].textureIndices.y;
-        bool bumpEnabled = BumpEnabled && (iBump != -1);
-        if (bumpEnabled)
+        int iDiffuse = materials[iMaterial].iDiffuse;
+        if (iDiffuse != -1)
         {
-            float3x3 tbn =
-            {
-                frame.T.x, frame.T.y, frame.T.z,
-                frame.B.x, frame.B.y, frame.B.z,
-                frame.N.x, frame.N.y, frame.N.z
-            };
-
-            N = SobelFilter(textures[iBump], bump_sampler, frame.UV, 1.0f);
-            N = normalize(mul(N, tbn));
+            base = textures[iDiffuse].Sample(default_sampler, frame.UV);
+            clip(base.a - 0.001f);
+            base.xyz = SRGB_to_Linear(base.xyz);
         }
 
-        int iDiffuse = materials[iMaterial].textureIndices.x;
+        // Unlit
+        if (AmbientEnabled)
+        {
+            ambient = base.xyz * materials[iMaterial].ambient * frame.Ia;
+        }
+
+        int iBump = materials[iMaterial].iBump;
+        int iNormal = materials[iMaterial].iNormal;
+        bool bumpEnabled = BumpEnabled;
+        if (bumpEnabled)
+        {
+            N = GetNormal(frame, iBump, iNormal, BumpMode);
+        }
+
         bool diffuseEnabled = DiffuseEnabled && (iDiffuse != -1);
         if (diffuseEnabled)
         {
-            float3 color = textures[iDiffuse].Sample(default_sampler, frame.UV).xyz;
-            color = SRGB_to_Linear(color);
-
-            // Unlit
-            if (AmbientEnabled)
-            {
-                ambient = color * materials[iMaterial].ambient * frame.Ia;
-            }
-
-            diffuse = color * materials[iMaterial].diffuse;
+            diffuse = base.xyz * materials[iMaterial].diffuse;
             diffuse = Blinn_Phong_Diffuse(diffuse, N, frame.L, frame.Lc, frame.Id);
         }
 
-        int iSpec = materials[iMaterial].textureIndices.w;
+        int iSpec = materials[iMaterial].iSpec;
         bool specEnabled = SpecEnabled && (iSpec != -1);
         if (specEnabled)
         {
+            specular = textures[iSpec].Sample(default_sampler, frame.UV).xyz;
+            if (!all(specular))
+            {
+                specular = specular.xxx;
+            }
+
+            specular *= materials[iMaterial].specular;
+
             float specExp = materials[iMaterial].specularExponent;
-            specular = materials[iMaterial].specular * textures[iSpec].Sample(default_sampler, frame.UV).r;
             specular = Blinn_Phong_Spec(specular, N, frame.H, frame.Lc, specExp, frame.Is);
         }
 
@@ -178,36 +208,42 @@ float4 Shade_GGX(ShadingFrame frame)
 {
     float4 output = float4(1, 0, 1, 1); // magenta
 
-    float3 N = frame.N;
-
     int iMaterial = frame.iMaterial;
     if (iMaterial != -1)
     {
-        int iMask = materials[iMaterial].textureIndices.z;
-        if (iMask != -1)
-        {
-            float m = textures[iMask].Sample(default_sampler, frame.UV).r;
-            clip(m - 0.001f);
-        }
-
+        float4 base = float4(0, 0, 0, 0);
         float3 ambient = float3(0, 0, 0);
         float3 diffuse = float3(0, 0, 0);
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
+        float metallic = 0;
 
-        int iBump = materials[iMaterial].textureIndices.y;
-        bool bumpEnabled = BumpEnabled && (iBump != -1);
+        int iDiffuse = materials[iMaterial].iDiffuse;
+        if (iDiffuse != -1)
+        {
+            base = textures[iDiffuse].Sample(default_sampler, frame.UV);
+            clip(base.a - 0.001f);
+            base.xyz = SRGB_to_Linear(base.xyz);
+        }
+
+        // Unlit
+        if (AmbientEnabled)
+        {
+            ambient = base.xyz * materials[iMaterial].ambient * frame.Ia;
+        }
+
+        int iBump = materials[iMaterial].iBump;
+        int iNormal = materials[iMaterial].iNormal;
+        bool bumpEnabled = BumpEnabled;
         if (bumpEnabled)
         {
-            float3x3 tbn =
-            {
-                frame.T.x, frame.T.y, frame.T.z,
-                frame.B.x, frame.B.y, frame.B.z,
-                frame.N.x, frame.N.y, frame.N.z
-            };
+            N = GetNormal(frame, iBump, iNormal, BumpMode);
+        }
 
-            N = SobelFilter(textures[iBump], bump_sampler, frame.UV, 1.0f);
-            N = normalize(mul(N, tbn));
+        int iMetal = materials[iMaterial].iMetal;
+        if (iMetal != -1)
+        {
+            metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
         }
 
         float NoV = abs(dot(N, frame.V)) + 1e-5;
@@ -215,51 +251,26 @@ float4 Shade_GGX(ShadingFrame frame)
         float NoH = saturate(dot(N, frame.H));
         float VoH = saturate(dot(frame.H, frame.V));
 
-        int iDiffuse = materials[iMaterial].textureIndices.x;
         bool diffuseEnabled = DiffuseEnabled && (iDiffuse != -1);
         if (diffuseEnabled)
         {
-            float3 color = textures[iDiffuse].Sample(default_sampler, frame.UV).xyz;
-            color = SRGB_to_Linear(color);
-
-            // Unlit
-            if (AmbientEnabled)
-            {
-                ambient = color * materials[iMaterial].ambient * frame.Ia;
-            }
-
-            diffuse = color * materials[iMaterial].diffuse * Fd_Lambert() * NoL * frame.Lc * frame.Id;
+            diffuse = base.xyz * materials[iMaterial].diffuse * (1.0 - metallic) * Fd_Lambert();
         }
 
-        int iSpec = materials[iMaterial].textureIndices.w;
-        bool specEnabled = SpecEnabled && (iSpec != -1);
+        int iRough = materials[iMaterial].iRough;
+        bool specEnabled = SpecEnabled && (iRough != -1);
         if (specEnabled)
         {
-            float F0 = 0.035f;
-            float F90 = 1.0f;
+            float3 F0 = (1.0 - metallic) * float3(0.04, 0.04, 0.04) + base.xyz * metallic;
+            float3 F90 = float3(1, 1, 1);
 
-            float3 color = materials[iMaterial].specular;
-            if (!any(color))
-            {
-                color = float3(F0, F0, F0); 
-            }
-
-            float3 tex = textures[iSpec].Sample(default_sampler, frame.UV).xyz;
-            if (!all(tex))
-            {
-                tex = tex.xxx;
-            }
-
-            color *= tex;
-
-            float shininess = materials[iMaterial].specularExponent;
-            float roughness = sqrt(2.0 / (shininess + 2.0));
+            float roughness = textures[iRough].Sample(default_sampler, frame.UV).x;
             roughness = roughness * roughness;
-
-            float F = 1.0;
+            
+            float3 F = float3(1,1,1);
             if (FresnelEnabled)
             {
-                F = F_Schlick(F0, F90, NoH);
+                F = F_Schlick(F0, F90, VoH);
             }
 
             float D = 1.0f;
@@ -274,7 +285,7 @@ float4 Shade_GGX(ShadingFrame frame)
                 G = G_Smith_GGX(NoV, NoL, roughness);
             }
 
-            specular = color * D * G * F * NoL * frame.Lc * frame.Is;
+            specular = (D * G) * F;
         }
 
         float Sf = 1.0f;
@@ -293,7 +304,8 @@ float4 Shade_GGX(ShadingFrame frame)
             Sf = Shadow_Factor(shadow, shadow_sampler, Lp.xy, Lp.z);
         }
 
-        output.xyz = lerp(ambient, (ambient + diffuse + specular), Sf);
+        //output.xyz = lerp(base.xyz, ((diffuse + specular) * NoL * frame.Lx) * frame.Lc, Sf);
+        output.xyz = (((diffuse + specular) * NoL * frame.Lx) * frame.Lc) * max(0.2f, Sf);
     }
 
     return output;
@@ -315,6 +327,7 @@ float4 main(PS_Input input) : SV_TARGET
     frame.Ia = Intensity.x;
     frame.Id = Intensity.y;
     frame.Is = Intensity.z;
+    frame.Lx = Intensity.w;
     frame.iMaterial = input.mat;
 
     float4 output;

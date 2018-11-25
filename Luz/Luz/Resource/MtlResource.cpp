@@ -32,9 +32,10 @@ namespace Resource
             desc.AmbientTextureName = pMaterial->AmbientTextureName.c_str();
             desc.DiffuseTextureName = pMaterial->DiffuseTextureName.c_str();
             desc.SpecularTextureName = pMaterial->SpecularTextureName.c_str();
-            desc.EmissiveTextureName = pMaterial->EmissiveTextureName.c_str();
+            desc.SpecularPowerTextureName = pMaterial->SpecularPowerTextureName.c_str();
             desc.DissolveTextureName = pMaterial->DissolveTextureName.c_str();
-            desc.BumpTextureName = pMaterial->BumpTextureName.c_str();
+            desc.BumpTextureName0 = pMaterial->BumpTextureName0.c_str();
+            desc.BumpTextureName1 = pMaterial->BumpTextureName1.c_str();
             return true;
         }
 
@@ -137,19 +138,26 @@ namespace Resource
 
                     pMaterial->SpecularTextureName = desc.TextureDirectory + textureName;
                 }
-                else if (statement.compare("map_Ke") == 0)
+                else if (statement.compare("map_Ns") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->EmissiveTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->SpecularPowerTextureName = desc.TextureDirectory + textureName;
                 }
-                else if (statement.compare("map_bump") == 0 || statement.compare("bump") == 0)
+                else if (statement.compare("map_bump") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->BumpTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->BumpTextureName0 = desc.TextureDirectory + textureName;
+                }
+                else if (statement.compare("bump") == 0)
+                {
+                    std::string textureName;
+                    fileStream >> textureName;
+
+                    pMaterial->BumpTextureName1 = desc.TextureDirectory + textureName;
                 }
                 else if (statement.compare("map_d") == 0)
                 {

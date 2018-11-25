@@ -15,6 +15,13 @@
 
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
+#define CHECK_DEVICE_REMOVED(hr)                        \
+if (FAILED(hr))                                         \
+{                                                       \
+    hr = s_device.pDevice->GetDeviceRemovedReason();    \
+    LUZASSERT(false);                                   \
+}
+
 void ErrorDescription(HRESULT hr)
 {
     if (FACILITY_WINDOWS == HRESULT_FACILITY(hr))
@@ -1339,21 +1346,23 @@ namespace Graphics
             }
 
             std::wstring filename = Internal::ConvertCString(desc.Filename);
-
             LPCWSTR extension = PathFindExtension(filename.c_str());
-
             DirectX::ScratchImage image;
+
             if (_wcsicmp(L".dds", extension) == 0)
             {
-                Internal::LoadDDSImage(filename, image, desc.GenMips);
+                bool imageLoaded = Internal::LoadDDSImage(filename, image, desc.GenMips);
+                LUZASSERT(imageLoaded);
             }
             else if (_wcsicmp(L".tga", extension) == 0)
             {
-                Internal::LoadTgaImage(filename, image, desc.GenMips);
+                bool imageLoaded = Internal::LoadTgaImage(filename, image, desc.GenMips);
+                LUZASSERT(imageLoaded);
             }
             else
             {
-                Internal::LoadWICImage(filename, image, desc.GenMips);
+                bool imageLoaded = Internal::LoadWICImage(filename, image, desc.GenMips);
+                LUZASSERT(imageLoaded);
             }
 
             Texture& tex = s_textureCollection.GetData(handle);
@@ -1508,7 +1517,7 @@ namespace Graphics
         
         u32* gpuAddress = nullptr;
         HRESULT hr = cb.pResource->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&gpuAddress));
-        LUZASSERT(SUCCEEDED(hr));
+        CHECK_DEVICE_REMOVED(hr);
         memcpy(gpuAddress, pData, static_cast<size_t>(sizeInBytes));
     }
 
@@ -1568,11 +1577,7 @@ namespace Graphics
         LUZASSERT(SUCCEEDED(hr));
 
         hr = s_swapChain.pSwapChain3->Present(0, 0);
-        if (FAILED(hr))
-        {
-            hr = s_device.pDevice->GetDeviceRemovedReason();
-            LUZASSERT(false);
-        }
+        CHECK_DEVICE_REMOVED(hr);
 
         if (wait)
         {

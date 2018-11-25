@@ -32,6 +32,7 @@ struct ShaderOptions
     float4 LightIntensity;
     float Exposure;
     u32 LightingMode;
+    u32 BumpMode;
     bool AmbientEnabled;
     bool DiffuseEnabled;
     bool SpecEnabled;
@@ -44,10 +45,11 @@ struct ShaderOptions
 
 static ShaderOptions s_shaderOptions =
 {
-    float3(0.8f, 0.8f, 0.8f),
+    float3(0.753f, 0.82f, 1.0f),
     normalize(float3(0.0f, -0.5f, -0.1f)),
-    float4(0.2f, 10.0f, 100.0f, 0.0f),
+    float4(0.2f, 10.0f, 100.0f, 110000.0f),
     10.0f,
+    1,
     1,
     true,
     true,
@@ -125,6 +127,10 @@ static void ConsoleThread()
         {
             break;
         }
+        else if (strcmp(cmd.c_str(), "set_light") == 0)
+        {
+            ss >> shaderOptions.LightColor.x >> shaderOptions.LightColor.y >> shaderOptions.LightColor.z;
+        }
         else if (strcmp(cmd.c_str(), "set_exposure") == 0)
         {
             ss >> shaderOptions.Exposure;
@@ -140,6 +146,10 @@ static void ConsoleThread()
         else if (strcmp(cmd.c_str(), "set_spec") == 0)
         {
             ss >> shaderOptions.LightIntensity.z;
+        }
+        else if (strcmp(cmd.c_str(), "set_lx") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.w;
         }
         else if (strcmp(cmd.c_str(), "toggle_ambient") == 0)
         {
@@ -180,6 +190,14 @@ static void ConsoleThread()
         else if (strcmp(cmd.c_str(), "set_mode_pbr") == 0)
         {
             shaderOptions.LightingMode = 1;
+        }
+        else if (strcmp(cmd.c_str(), "set_bump_h") == 0)
+        {
+            shaderOptions.BumpMode = 0;
+        }
+        else if (strcmp(cmd.c_str(), "set_bump_n") == 0)
+        {
+            shaderOptions.BumpMode = 1;
         }
         else
         {
@@ -277,57 +295,6 @@ bool MeshApplication::Initialize()
     m_fs_vs = Graphics::CreateVertexShader("FS_Tri_VS.hlsl");
     m_fs_ps = Graphics::CreatePixelShader("FS_Tri_PS.hlsl");
 
-    Graphics::PipelineDesc pd;
-    pd.Signature.SetName("Opaque")
-        .AllowInputLayout()
-        .DenyHS()
-        .DenyDS()
-        .DenyGS()
-        .AppendConstantView(0)
-        .AppendConstantView(1)
-        .AppendConstantView(2)
-        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
-        .AppendDescriptorTableRange(3, 25, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
-        .AppendDescriptorTableRange(3, 51, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
-        .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendAnisotropicWrapSampler(0)
-        .AppendComparisonPointBorderSampler(1)
-        .AppendWrapSampler(2, Graphics::GFX_FILTER_MIN_MAG_LINEAR_MIP_POINT);
-    pd.InputLayout.AppendFloat4("TANGENT")
-        .AppendPosition3F()
-        .AppendNormal3F()
-        .AppendUV3();
-    pd.VertexShaderHandle = m_vs;
-    pd.PixelShaderHandle = m_ps;
-    pd.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    pd.SampleCount = 1;
-    pd.SampleQuality = 0;
-    pd.SampleMask = 0xffffffff;
-
-    pd.DepthStencil = Graphics::DepthStencilState::DepthCompareLessWriteAll_StencilOff;
-    pd.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
-    pd.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
-    pd.Blend.AlphaToCoverageEnable = false;
-    pd.Blend.IndependentBlendEnable = false;
-
-    pd.UseSwapChain = true;
-
-    m_opaquePipeline = Graphics::CreateGraphicsPipelineState(pd);
-
-    memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
-    pd.Signature.SetName("fullscreen")
-        .AllowInputLayout()
-        .DenyHS()
-        .DenyDS()
-        .DenyGS()
-        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-        .AppendDescriptorTableRange(0, 1, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendAnisotropicWrapSampler(0);
-    pd.VertexShaderHandle = m_fs_vs;
-    pd.PixelShaderHandle = m_fs_ps;
-    pd.UseSwapChain = true;
-    m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
-
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
     std::vector<std::string> textureNames;
 
@@ -378,10 +345,12 @@ bool MeshApplication::Initialize()
             mc.Diffuse = float3(md.Diffuse[0], md.Diffuse[1], md.Diffuse[2]);
             mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
 
-            if (strlen(md.DiffuseTextureName)) mc.TextureIndices[0] = FindOrPushBackTextureName(textureNames, md.DiffuseTextureName);
-            if (strlen(md.BumpTextureName)) mc.TextureIndices[1] = FindOrPushBackTextureName(textureNames, md.BumpTextureName);
-            if (strlen(md.DissolveTextureName)) mc.TextureIndices[2] = FindOrPushBackTextureName(textureNames, md.DissolveTextureName);
-            if (strlen(md.SpecularTextureName)) mc.TextureIndices[3] = FindOrPushBackTextureName(textureNames, md.SpecularTextureName);
+            if (strlen(md.AmbientTextureName)) mc.iMetal = FindOrPushBackTextureName(textureNames, md.AmbientTextureName);
+            if (strlen(md.DiffuseTextureName)) mc.iDiffuse = FindOrPushBackTextureName(textureNames, md.DiffuseTextureName);
+            if (strlen(md.SpecularTextureName)) mc.iSpec = FindOrPushBackTextureName(textureNames, md.SpecularTextureName);
+            if (strlen(md.SpecularPowerTextureName)) mc.iRough = FindOrPushBackTextureName(textureNames, md.SpecularPowerTextureName);
+            if (strlen(md.BumpTextureName0)) mc.iBump = FindOrPushBackTextureName(textureNames, md.BumpTextureName0);
+            if (strlen(md.BumpTextureName1)) mc.iNormal = FindOrPushBackTextureName(textureNames, md.BumpTextureName1);
         }
     }
 
@@ -452,6 +421,57 @@ bool MeshApplication::Initialize()
     ds.Width = 2048;
     ds.Height = 2048;
     m_shadowTexture = Graphics::CreateDepthStencil(ds);
+
+    Graphics::PipelineDesc pd;
+    pd.Signature.SetName("Opaque")
+        .AllowInputLayout()
+        .DenyHS()
+        .DenyDS()
+        .DenyGS()
+        .AppendConstantView(0)
+        .AppendConstantView(1)
+        .AppendConstantView(2)
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
+        .AppendDescriptorTableRange(3, static_cast<u32>(m_materialConstants.size()), 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
+        .AppendDescriptorTableRange(3, static_cast<u32>(textureNames.size()), 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
+        .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendAnisotropicWrapSampler(0)
+        .AppendComparisonPointBorderSampler(1)
+        .AppendWrapSampler(2, Graphics::GFX_FILTER_MIN_MAG_LINEAR_MIP_POINT);
+    pd.InputLayout.AppendFloat4("TANGENT")
+        .AppendPosition3F()
+        .AppendNormal3F()
+        .AppendUV3();
+    pd.VertexShaderHandle = m_vs;
+    pd.PixelShaderHandle = m_ps;
+    pd.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pd.SampleCount = 1;
+    pd.SampleQuality = 0;
+    pd.SampleMask = 0xffffffff;
+
+    pd.DepthStencil = Graphics::DepthStencilState::DepthCompareLessWriteAll_StencilOff;
+    pd.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    pd.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+    pd.Blend.AlphaToCoverageEnable = false;
+    pd.Blend.IndependentBlendEnable = false;
+
+    pd.UseSwapChain = true;
+
+    m_opaquePipeline = Graphics::CreateGraphicsPipelineState(pd);
+
+    memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
+    pd.Signature.SetName("fullscreen")
+        .AllowInputLayout()
+        .DenyHS()
+        .DenyDS()
+        .DenyGS()
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+        .AppendDescriptorTableRange(0, 1, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendAnisotropicWrapSampler(0);
+    pd.VertexShaderHandle = m_fs_vs;
+    pd.PixelShaderHandle = m_fs_ps;
+    pd.UseSwapChain = true;
+    m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
     memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
     pd.Signature.SetName("shadow")
@@ -524,6 +544,7 @@ void MeshApplication::Update(double dt)
     pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
     pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
     pConsts->LightingConsts.LightingMode = shaderOptions.LightingMode;
+    pConsts->LightingConsts.BumpMode = shaderOptions.BumpMode;
     pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
     pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
     pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
@@ -533,10 +554,15 @@ void MeshApplication::Update(double dt)
     pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
     pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
 
-    static const float clear[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
     static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f, 0.0f, 1.0f };
     static const Graphics::Rect scissor = { 0, 0, 1600, 900 };
-    
+    float clear[4] =
+    {
+        shaderOptions.LightColor.x,
+        shaderOptions.LightColor.y,
+        shaderOptions.LightColor.z,
+        1.0f,
+    };
 
     // Shadow 
     if (shaderOptions.ShadowEnabled)
