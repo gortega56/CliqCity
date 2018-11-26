@@ -222,14 +222,14 @@ float4 Shade_GGX(ShadingFrame frame)
         if (iDiffuse != -1)
         {
             base = textures[iDiffuse].Sample(default_sampler, frame.UV);
-            clip(base.a - 0.001f);
+            clip(base.a - 0.1f);
             base.xyz = SRGB_to_Linear(base.xyz);
         }
 
         // Unlit
         if (AmbientEnabled)
         {
-            ambient = base.xyz * materials[iMaterial].ambient * frame.Ia;
+            ambient = base.xyz * frame.Lc * frame.Lx;
         }
 
         int iBump = materials[iMaterial].iBump;
@@ -244,34 +244,37 @@ float4 Shade_GGX(ShadingFrame frame)
         if (iMetal != -1)
         {
             metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
+            metallic = round(metallic);
         }
 
-        float NoV = abs(dot(N, frame.V)) + 1e-5;
+        float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
         float NoL = saturate(dot(N, frame.L));
         float NoH = saturate(dot(N, frame.H));
-        float VoH = saturate(dot(frame.H, frame.V));
+        float VoH = saturate(dot(frame.V, frame.H));
+        float LoH = saturate(dot(frame.L, frame.H));
 
         bool diffuseEnabled = DiffuseEnabled && (iDiffuse != -1);
         if (diffuseEnabled)
         {
-            diffuse = base.xyz * materials[iMaterial].diffuse * (1.0 - metallic) * Fd_Lambert();
+            diffuse = base.xyz * (1.0 - metallic) * Fd_Lambert();
         }
 
         int iRough = materials[iMaterial].iRough;
         bool specEnabled = SpecEnabled && (iRough != -1);
         if (specEnabled)
         {
-            float3 F0 = (1.0 - metallic) * float3(0.04, 0.04, 0.04) + base.xyz * metallic;
             float3 F90 = float3(1, 1, 1);
+            float F0d = 0.16 * 0.5 * 0.5;
+            float3 F0 = lerp(F0d.xxx, base.xyz, metallic);
 
-            float roughness = textures[iRough].Sample(default_sampler, frame.UV).x;
-            roughness = roughness * roughness;
-            
-            float3 F = float3(1,1,1);
+            float3 F = F90;
             if (FresnelEnabled)
             {
-                F = F_Schlick(F0, F90, VoH);
+                F = F_Schlick(F0, F90, LoH);
             }
+
+            float roughness = textures[iRough].Sample(default_sampler, frame.UV).x;
+            roughness = max(roughness * roughness, 0.01f);
 
             float D = 1.0f;
             if (MicrofacetEnabled)
@@ -285,6 +288,7 @@ float4 Shade_GGX(ShadingFrame frame)
                 G = G_Smith_GGX(NoV, NoL, roughness);
             }
 
+            diffuse = (F90 - F) * diffuse;
             specular = (D * G) * F;
         }
 
@@ -305,7 +309,10 @@ float4 Shade_GGX(ShadingFrame frame)
         }
 
         //output.xyz = lerp(base.xyz, ((diffuse + specular) * NoL * frame.Lx) * frame.Lc, Sf);
-        output.xyz = (((diffuse + specular) * NoL * frame.Lx) * frame.Lc) * max(0.2f, Sf);
+        float illuminance = NoL * frame.Lx;
+        output.xyz = (diffuse + specular) * illuminance * frame.Lc;
+        output.xyz *= max(0.2f, Sf);
+        //output.xyz = specular;
     }
 
     return output;

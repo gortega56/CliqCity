@@ -42,12 +42,13 @@ struct ShaderOptions
     bool MaskingEnabled;
     bool FresnelEnabled;
 };
-
+// Daylight rgb(1.0f, 0.96, 0.95)
+// Sky rgb((0.753f, 0.82f, 1.0f)
 static ShaderOptions s_shaderOptions =
 {
-    float3(0.753f, 0.82f, 1.0f),
+    float3(1.0f, 0.96f, 0.95f),
     normalize(float3(0.0f, -0.5f, -0.1f)),
-    float4(0.2f, 10.0f, 100.0f, 110000.0f),
+    float4(0.2f, 10.0f, 100.0f, 1.0f),
     10.0f,
     1,
     1,
@@ -519,6 +520,18 @@ void MeshApplication::Update(double dt)
         shaderOptions = s_shaderOptions;
     }
 
+    static double s_time = 0.0;
+
+    // Daylight rgb(1.0f, 0.96, 0.95)
+    // Sky rgb((0.753f, 0.82f, 1.0f)
+    //static float3 daylight = float3(1.0f, 0.96f, 0.95f);
+    //static float3 sky = float3(0.753f, 0.82f, 1.0f);
+    //float t = sin(static_cast<float>(s_time)) * 0.5f + 0.5f;
+    //float3 lightColor = lerp(sky, daylight, t);
+
+
+    s_time += dt;
+
     m_cameraController.Update(dt);
 
     float4x4 view = m_cameraController.GetCamera()->GetView();
@@ -666,9 +679,5 @@ void MeshApplication::Update(double dt)
 
 void MeshApplication::FixedUpdate(double dt)
 {
-    static double s_time = 0.0;
 
-
-
-    s_time += dt;
 }

@@ -99,15 +99,15 @@ float3 ACES_Film(float3 x)
 }
 
 // NoV should be clamped to zero
-float F_Schlick(float F0, float F90, float NoV)
+float F_Schlick(float F0, float F90, float LoH)
 {
-    return F0 + (F90 - F0) * pow(1.0f - NoV, 5.0f);
+    return F0 + (F90 - F0) * pow(1.0f - LoH, 5.0f);
 }
 
 // NoV should be clamped to zero
-float3 F_Schlick(float3 F0, float3 F90, float NoV)
+float3 F_Schlick(float3 F0, float3 F90, float LoH)
 {
-    return F0 + (F90 - F0) * pow(1.0f - NoV, 5.0f);
+    return F0 + (F90 - F0) * pow(1.0f - LoH, 5.0f);
 }
 
 float Fd_Lambert()
@@ -133,13 +133,18 @@ float D_Beckmann(float NoH, float roughness)
 float D_GGX(float NoH, float roughness)
 {
     //http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
-    float a = NoH * roughness;
-    float k = roughness / (1.0 - NoH * NoH + a * a);
-    return k * k * (1.0 / PI);
+    //float a = NoH * roughness;
+    //float k = roughness / (1.0 - NoH * NoH + a * a);
+    //return k * k * (1.0 / PI);
 
     //http://www.realtimerendering.com/#brdf
     // Includes an extra factor of NoH in the numerator?
     //return NoH * k * k * (1.0 / PI);
+
+    //https://www.shadertoy.com/view/4sSfzK
+    float a = roughness * roughness;
+    float k = (NoH * a - NoH) * NoH + 1.0;
+    return a / (k * k * PI);
 }
 
 // NoS clamped to zero
@@ -195,5 +200,5 @@ float G_Smith_GGX(float NoV, float NoL, float roughness)
     float a = roughness * roughness;
     float ggxv = NoL * sqrt(NoV * NoV * (1.0f - a) + a);
     float ggxl = NoV * sqrt(NoL * NoL * (1.0f - a) + a);
-    return 0.5f / (ggxv + ggxl);
+    return 0.5f / max(ggxv + ggxl, 0.00001f);
 }
