@@ -50,7 +50,7 @@ static ShaderOptions s_shaderOptions =
     normalize(float3(0.0f, -0.5f, -0.1f)),
     float4(0.2f, 10.0f, 100.0f, 1.0f),
     10.0f,
-    1,
+    3,
     1,
     true,
     true,
@@ -184,13 +184,21 @@ static void ConsoleThread()
         {
             shaderOptions.FresnelEnabled = !shaderOptions.FresnelEnabled;
         }
-        else if (strcmp(cmd.c_str(), "set_mode_bp") == 0)
+        else if (strcmp(cmd.c_str(), "set_mode_npbr") == 0)
         {
             shaderOptions.LightingMode = 0;
         }
-        else if (strcmp(cmd.c_str(), "set_mode_pbr") == 0)
+        else if (strcmp(cmd.c_str(), "set_mode_bp") == 0)
         {
             shaderOptions.LightingMode = 1;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_beckmann") == 0)
+        {
+            shaderOptions.LightingMode = 2;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_ggx") == 0)
+        {
+            shaderOptions.LightingMode = 3;
         }
         else if (strcmp(cmd.c_str(), "set_bump_h") == 0)
         {
@@ -199,6 +207,17 @@ static void ConsoleThread()
         else if (strcmp(cmd.c_str(), "set_bump_n") == 0)
         {
             shaderOptions.BumpMode = 1;
+        }
+        else if (strcmp(cmd.c_str(), "reset") == 0)
+        {
+            shaderOptions.AmbientEnabled = true;
+            shaderOptions.DiffuseEnabled = true;
+            shaderOptions.SpecEnabled = true;
+            shaderOptions.BumpEnabled = true;
+            shaderOptions.ShadowEnabled = true;
+            shaderOptions.MaskingEnabled = true;
+            shaderOptions.MicrofacetEnabled = true;
+            shaderOptions.FresnelEnabled = true;
         }
         else
         {
