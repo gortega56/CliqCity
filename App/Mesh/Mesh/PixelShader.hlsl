@@ -234,7 +234,7 @@ float4 Shade_Blinn_Phong_BRDF(ShadingFrame frame)
         // Unlit
         if (AmbientEnabled)
         {
-            ambient = base.xyz * frame.Lc * frame.Lx;
+            ambient = base.xyz * 0.1f;
         }
 
         int iBump = materials[iMaterial].iBump;
@@ -249,7 +249,6 @@ float4 Shade_Blinn_Phong_BRDF(ShadingFrame frame)
         if (iMetal != -1)
         {
             metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
-            metallic = round(metallic);
         }
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
@@ -306,8 +305,9 @@ float4 Shade_Blinn_Phong_BRDF(ShadingFrame frame)
         }
 
         float illuminance = NoL * frame.Lx;
-        output.xyz = (diffuse + specular) * illuminance * frame.Lc;
-        output.xyz *= max(0.2f, Sf);
+        float3 unlit = ambient * frame.Lc * max(0.1f, Sf);
+        float3 lit = unlit + (diffuse + specular) * frame.Lc * illuminance;
+        output.xyz = lerp(unlit, lit, Sf);
     }
 
     return output;
@@ -339,7 +339,7 @@ float4 Shade_Beckmann(ShadingFrame frame)
         // Unlit
         if (AmbientEnabled)
         {
-            ambient = base.xyz * frame.Lc * frame.Lx;
+            ambient = base.xyz * 0.1f;
         }
 
         int iBump = materials[iMaterial].iBump;
@@ -354,7 +354,6 @@ float4 Shade_Beckmann(ShadingFrame frame)
         if (iMetal != -1)
         {
             metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
-            metallic = round(metallic);
         }
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
@@ -411,8 +410,9 @@ float4 Shade_Beckmann(ShadingFrame frame)
         }
 
         float illuminance = NoL * frame.Lx;
-        output.xyz = (diffuse + specular) * illuminance * frame.Lc;
-        output.xyz *= max(0.2f, Sf);
+        float3 unlit = ambient * frame.Lc * max(0.1f, Sf);
+        float3 lit = unlit + (diffuse + specular) * frame.Lc * illuminance;
+        output.xyz = lerp(unlit, lit, Sf);
     }
 
     return output;
@@ -444,7 +444,7 @@ float4 Shade_GGX(ShadingFrame frame)
         // Unlit
         if (AmbientEnabled)
         {
-            ambient = base.xyz * frame.Lc * frame.Lx;
+            ambient = base.xyz * 0.1f;
         }
 
         int iBump = materials[iMaterial].iBump;
@@ -459,7 +459,6 @@ float4 Shade_GGX(ShadingFrame frame)
         if (iMetal != -1)
         {
             metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
-            metallic = round(metallic);
         }
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
@@ -514,8 +513,9 @@ float4 Shade_GGX(ShadingFrame frame)
         }
 
         float illuminance = NoL * frame.Lx;
-        output.xyz = (diffuse + specular) * illuminance * frame.Lc;
-        output.xyz *= max(0.2f, Sf);
+        float3 unlit = ambient * frame.Lc * max(0.1f, Sf);
+        float3 lit = unlit + (diffuse + specular) * frame.Lc * illuminance;
+        output.xyz = lerp(unlit, lit, Sf);
     }
 
     return output;

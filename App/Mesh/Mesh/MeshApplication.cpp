@@ -25,6 +25,14 @@
 using namespace Luz;
 using namespace lina;
 
+enum ShadingMode
+{
+    SHADING_MODE_DEFAULT,
+    SHADING_MODE_BLINN_PHONG,
+    SHADING_MODE_BECKMANN,
+    SHADING_MODE_GGX
+};
+
 struct ShaderOptions
 {
     float3 LightColor;
@@ -50,7 +58,7 @@ static ShaderOptions s_shaderOptions =
     normalize(float3(0.0f, -0.5f, -0.1f)),
     float4(0.2f, 10.0f, 100.0f, 1.0f),
     10.0f,
-    3,
+    SHADING_MODE_GGX,
     1,
     true,
     true,
