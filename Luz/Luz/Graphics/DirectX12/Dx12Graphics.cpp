@@ -1365,14 +1365,17 @@ namespace Graphics
                 LUZASSERT(imageLoaded);
             }
 
+            const DirectX::TexMetadata& imageMetadata = image.GetMetadata();
+
+
             Texture& tex = s_textureCollection.GetData(handle);
-            HRESULT hr = DirectX::CreateTexture(s_device.pDevice, image.GetMetadata(), &tex.pResource);
+            HRESULT hr = DirectX::CreateTexture(s_device.pDevice, imageMetadata, &tex.pResource);
             LUZASSERT(SUCCEEDED(hr));
 
             tex.pResource->SetName(filename.c_str());
 
             std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-            hr = PrepareUpload(s_device.pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources);
+            hr = PrepareUpload(s_device.pDevice, image.GetImages(), image.GetImageCount(), imageMetadata, subresources);
             LUZASSERT(SUCCEEDED(hr));
 
             UINT subresourceSize = static_cast<UINT>(subresources.size());
@@ -1415,13 +1418,39 @@ namespace Graphics
             WaitOnFence(commandQueue.pFence, commandQueue.ExecutionsCompleted);
 
             tex.SrvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+            
+            D3D12_SRV_DIMENSION dimension;
+            switch (imageMetadata.dimension)
+            {
+            case DirectX::TEX_DIMENSION_TEXTURE2D: 
+            {
+                if (imageMetadata.IsCubemap())
+                {
+                    LUZASSERT(imageMetadata.arraySize % 6 == 0);
+                    dimension = (imageMetadata.arraySize > 6) ? D3D12_SRV_DIMENSION_TEXTURECUBEARRAY : D3D12_SRV_DIMENSION_TEXTURECUBE;
+                }
+                else
+                {
+                    dimension = (imageMetadata.arraySize > 1) ? D3D12_SRV_DIMENSION_TEXTURE2DARRAY : D3D12_SRV_DIMENSION_TEXTURE2D;
+                }
+                break;
+            }
+            case DirectX::TEX_DIMENSION_TEXTURE3D:
+            {
+                dimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+                break;
+            }
+            default: 
+                LUZASSERT(false) 
+                    break;
+            }
 
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
             ZeroMemory(&srvDesc, sizeof(D3D12_SHADER_RESOURCE_VIEW_DESC));
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            srvDesc.Format = image.GetMetadata().format;
-            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            srvDesc.Texture2D.MipLevels = static_cast<UINT>(image.GetMetadata().mipLevels);
+            srvDesc.Format = imageMetadata.format;
+            srvDesc.ViewDimension = dimension;
+            srvDesc.Texture2D.MipLevels = static_cast<UINT>(imageMetadata.mipLevels);
 
             s_device.pDevice->CreateShaderResourceView(tex.pResource, &srvDesc, tex.SrvHandle.CpuHandle);
             // TODO: RTV, UAV?

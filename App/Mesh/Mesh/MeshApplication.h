@@ -141,11 +141,19 @@ public:
     Graphics::ShaderHandle m_ps;
     Graphics::ShaderHandle m_fs_vs;
     Graphics::ShaderHandle m_fs_ps;
+    Graphics::ShaderHandle m_cube_map_vs;
+    Graphics::ShaderHandle m_cube_map_ps;
+
     Graphics::IndexBufferHandle m_fs_ib;
+    
+    Graphics::VertexBufferHandle m_cube_map_vb_handle;
+    Graphics::IndexBufferHandle m_cube_map_ib_handle;
+    Graphics::TextureHandle m_cube_map_texture_handle;
 
     Graphics::PipelineStateHandle m_opaquePipeline;
     Graphics::PipelineStateHandle m_shadowPipeline;
     Graphics::PipelineStateHandle m_fullScreenPipeline;
+    Graphics::PipelineStateHandle m_cubemapPipeline;
 
     Graphics::ConstantBufferHandle m_baseDescriptorHandle;
     Graphics::DepthStencilHandle m_shadowTexture;

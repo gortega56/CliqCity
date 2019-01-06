@@ -22,8 +22,49 @@
 #define DABROVIC_SPONZA_OBJ_PATH  ".\\Assets\\dabrovic_sponza\\sponza.obj"
 #define DABROVIC_SPONZA_TEXTURE_DIRECTORY DABROVIC_SPONZA_DIRECTORY
 
+#define CUBE_MAP_PATH ".\\Assets\\skybox.dds"
+
 using namespace Luz;
 using namespace lina;
+
+float3 s_cube_map_vertices[] =
+{
+    { +0.5f, +0.5f, +0.5f },
+    { +0.5f, +0.5f, -0.5f },
+    { +0.5f, -0.5f, +0.5f },
+    { +0.5f, -0.5f, -0.5f },
+    { -0.5f, +0.5f, +0.5f },
+    { -0.5f, +0.5f, -0.5f },
+    { -0.5f, -0.5f, +0.5f },
+    { -0.5f, -0.5f, -0.5f }
+};
+
+unsigned int s_cube_map_indices[] = 
+{
+    // right
+    0, 1, 2,
+    2, 1, 3,
+
+    // top
+    0, 4, 1, 
+    1, 4, 5,
+
+    // front
+    1, 5, 3,
+    3, 5, 7,
+
+    // left
+    4, 6, 5,
+    5, 6, 7,
+
+    // bottom
+    2, 3, 6,
+    6, 3, 7,
+
+    // back
+    0, 2, 4,
+    4, 2, 6
+};
 
 enum ShadingMode
 {
@@ -309,8 +350,21 @@ bool MeshApplication::Initialize()
     //    }
     //});
 
-    static u32 s_ib[] = { 0, 1, 2 };
+    Graphics::BufferDesc vb;
+    vb.Alignment = 0;
+    vb.SizeInBytes = sizeof(float3) * 8;
+    vb.StrideInBytes = sizeof(float3);
+    vb.pData = s_cube_map_vertices;
+    m_cube_map_vb_handle = Graphics::CreateVertexBuffer(vb);
+
     Graphics::BufferDesc ib;
+    ib.Alignment = 0;
+    ib.SizeInBytes = sizeof(int) * 36;
+    ib.StrideInBytes = sizeof(int);
+    ib.pData = s_cube_map_indices;
+    m_cube_map_ib_handle = Graphics::CreateIndexBuffer(ib);
+
+    static u32 s_ib[] = { 0, 1, 2 };
     ib.Alignment = 0;
     ib.SizeInBytes = 12;
     ib.StrideInBytes = sizeof(u32);
@@ -322,6 +376,9 @@ bool MeshApplication::Initialize()
 
     m_fs_vs = Graphics::CreateVertexShader("FS_Tri_VS.hlsl");
     m_fs_ps = Graphics::CreatePixelShader("FS_Tri_PS.hlsl");
+
+    m_cube_map_vs = Graphics::CreateVertexShader("cube_map_vs.hlsl");
+    m_cube_map_ps = Graphics::CreatePixelShader("cube_map_ps.hlsl");
 
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
     std::vector<std::string> textureNames;
@@ -450,6 +507,13 @@ bool MeshApplication::Initialize()
     ds.Height = 2048;
     m_shadowTexture = Graphics::CreateDepthStencil(ds);
 
+    Graphics::TextureFileDesc td;
+    td.Filename = CUBE_MAP_PATH;
+    td.GenMips = true;
+    m_cube_map_texture_handle = Graphics::CreateTexture(td);
+
+    // Opaque pipeline
+
     Graphics::PipelineDesc pd;
     pd.Signature.SetName("Opaque")
         .AllowInputLayout()
@@ -487,6 +551,8 @@ bool MeshApplication::Initialize()
 
     m_opaquePipeline = Graphics::CreateGraphicsPipelineState(pd);
 
+    // full screen quad pipeline
+
     memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
     pd.Signature.SetName("fullscreen")
         .AllowInputLayout()
@@ -500,6 +566,8 @@ bool MeshApplication::Initialize()
     pd.PixelShaderHandle = m_fs_ps;
     pd.UseSwapChain = true;
     m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
+
+    // shadow map pipeline
 
     memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
     pd.Signature.SetName("shadow")
@@ -520,6 +588,35 @@ bool MeshApplication::Initialize()
     pd.Rasterizer.SlopeScaledDepthBias = 1.0f;
 
     m_shadowPipeline = Graphics::CreateGraphicsPipelineState(pd);
+
+    // skybox pipeline
+    memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
+    pd.Signature.SetName("skybox")
+        .AllowInputLayout()
+        .DenyHS()
+        .DenyDS()
+        .DenyGS()
+        .AppendConstantView(0)
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+        .AppendDescriptorTableRange(1, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendAnisotropicWrapSampler(0);
+    pd.InputLayout.AppendPosition3F();
+    pd.VertexShaderHandle = m_cube_map_vs;
+    pd.PixelShaderHandle = m_cube_map_ps;
+    pd.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pd.SampleCount = 1;
+    pd.SampleQuality = 0;
+    pd.SampleMask = 0xffffffff;
+
+    pd.DepthStencil = Graphics::DepthStencilState::DepthCompareLessWriteAll_StencilOff;
+    pd.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    pd.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+    pd.Blend.AlphaToCoverageEnable = false;
+    pd.Blend.IndependentBlendEnable = false;
+
+    pd.UseSwapChain = true;
+
+    m_cubemapPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
     Graphics::CommandStreamDesc csd;
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
@@ -661,28 +758,37 @@ void MeshApplication::Update(double dt)
 
         auto& cs = m_commandStream;
         cs.TransitionDepthStencilToTexture(m_shadowTexture);
-        cs.SetPipeline(m_opaquePipeline);
+       // cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        cs.SetConstantBuffer(0, pConsts->hCamera);
-        cs.SetConstantBuffer(1, pConsts->hShadow);
-        cs.SetConstantBuffer(2, pConsts->hLighting);
-        cs.SetDescriptorTable(3, m_baseDescriptorHandle);
+        //cs.SetConstantBuffer(0, pConsts->hCamera);
+        //cs.SetConstantBuffer(1, pConsts->hShadow);
+        //cs.SetConstantBuffer(2, pConsts->hLighting);
+        //cs.SetDescriptorTable(3, m_baseDescriptorHandle);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
         {
             if (m_materialIndices[i] == -1) continue;
             auto& surface = m_surfaces[i];
-            cs.SetVertexBuffer(surface.vb);
-            cs.SetIndexBuffer(surface.ib);
-            cs.DrawInstanceIndexed(surface.ib);
+            //cs.SetVertexBuffer(surface.vb);
+            //cs.SetIndexBuffer(surface.ib);
+            //cs.DrawInstanceIndexed(surface.ib);
         }
 
         cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
+
+        // Draw cube map
+        cs.SetPipeline(m_cubemapPipeline);
+        cs.SetConstantBuffer(0, pConsts->hCamera);
+        cs.SetDescriptorTable(1, m_cube_map_texture_handle);
+
+        cs.SetVertexBuffer(m_cube_map_vb_handle);
+        cs.SetIndexBuffer(m_cube_map_ib_handle);
+        cs.DrawInstanceIndexed(m_cube_map_ib_handle);
 
         Graphics::SubmitCommandStream(&cs, false);
     }

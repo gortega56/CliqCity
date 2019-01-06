@@ -32,5 +32,7 @@
     <FxCompile Include="VertexShader.hlsl" />
     <FxCompile Include="FS_Tri_PS.hlsl" />
     <FxCompile Include="FS_Tri_VS.hlsl" />
+    <FxCompile Include="cube_map_ps.hlsl" />
+    <FxCompile Include="cube_map_vs.hlsl" />
   </ItemGroup>
 </Project>
