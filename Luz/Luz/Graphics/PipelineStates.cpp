@@ -23,6 +23,18 @@ namespace Graphics
         false
     };
 
+    DepthStencilState DepthStencilState::DepthCompareLessEqualWriteAll_StencilOff =
+    {
+        GFX_DEPTH_WRITE_MASK_ALL,
+        COMPARISON_TYPE_LESS_EQUAL,
+        true,
+        0xff,
+        0xff,
+        StencilState::KeepAlways,
+        StencilState::KeepAlways,
+        false
+    };
+
     RasterizerState RasterizerState::FillSolidCullCCW =
     {
         GFX_FILL_MODE_SOLID,

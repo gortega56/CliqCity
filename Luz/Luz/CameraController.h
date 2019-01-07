@@ -12,14 +12,24 @@ namespace Luz
     {
     public:
         LUZ_API CameraController();
+        
         LUZ_API ~CameraController() = default;
 
         LUZ_API void Update(double deltaSeconds);
 
         LUZ_API PerspectiveCamera* GetCamera();
+        
         LUZ_API float GetMovementSpeed() const;
+        
         LUZ_API float GetHorizontalTurnSpeed() const;
+        
         LUZ_API float GetVerticalTurnSpeed() const;
+
+        LUZ_API void SetMovementSpeed(const float speed);
+
+        LUZ_API void SetHorizontalTurnSpeed(const float speed);
+
+        LUZ_API void SetVerticalTurnSpeed(const float speed);
 
     private:
         PerspectiveCamera m_camera;
@@ -49,6 +59,21 @@ namespace Luz
     inline float CameraController::GetVerticalTurnSpeed() const
     {
         return m_verticalTurnSpeed;
+    }
+
+    inline void CameraController::SetMovementSpeed(const float speed)
+    {
+        m_movementSpeed = speed;
+    }
+
+    inline void CameraController::SetHorizontalTurnSpeed(const float speed)
+    {
+        m_horizontalTurnSpeed = speed;
+    }
+
+    inline void CameraController::SetVerticalTurnSpeed(const float speed)
+    {
+        m_verticalTurnSpeed = speed;
     }
 }
 #endif

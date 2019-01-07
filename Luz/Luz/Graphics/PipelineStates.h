@@ -383,6 +383,9 @@ namespace Graphics
         bool StencilEnable = true;
 
         static DepthStencilState DepthCompareLessWriteAll_StencilOff;
+
+        static DepthStencilState DepthCompareLessEqualWriteAll_StencilOff;
+
     };
 
     enum LUZ_API FillMode : u8

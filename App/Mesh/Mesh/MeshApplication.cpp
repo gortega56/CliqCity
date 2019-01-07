@@ -42,28 +42,28 @@ float3 s_cube_map_vertices[] =
 unsigned int s_cube_map_indices[] = 
 {
     // right
-    0, 1, 2,
-    2, 1, 3,
+    0, 1, 3,
+    3, 2, 0,
 
     // top
-    0, 4, 1, 
-    1, 4, 5,
+    5, 1, 0, 
+    0, 4, 5,
 
     // front
-    1, 5, 3,
-    3, 5, 7,
+    1, 5, 7,
+    7, 3, 1,
 
     // left
-    4, 6, 5,
-    5, 6, 7,
+    5, 4, 6,
+    6, 7, 5,
 
     // bottom
-    2, 3, 6,
-    6, 3, 7,
+    6, 2, 3,
+    3, 7, 6,
 
     // back
-    0, 2, 4,
-    4, 2, 6
+    4, 0, 2,
+    2, 6, 4
 };
 
 enum ShadingMode
@@ -590,8 +590,8 @@ bool MeshApplication::Initialize()
     m_shadowPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
     // skybox pipeline
-    memset(&pd.Signature, 0, sizeof(Graphics::SignatureDesc));
-    pd.Signature.SetName("skybox")
+    Graphics::PipelineDesc skyboxPipe;
+    skyboxPipe.Signature.SetName("skybox")
         .AllowInputLayout()
         .DenyHS()
         .DenyDS()
@@ -600,23 +600,23 @@ bool MeshApplication::Initialize()
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
         .AppendDescriptorTableRange(1, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
         .AppendAnisotropicWrapSampler(0);
-    pd.InputLayout.AppendPosition3F();
-    pd.VertexShaderHandle = m_cube_map_vs;
-    pd.PixelShaderHandle = m_cube_map_ps;
-    pd.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    pd.SampleCount = 1;
-    pd.SampleQuality = 0;
-    pd.SampleMask = 0xffffffff;
+    skyboxPipe.InputLayout.AppendPosition3F();
+    skyboxPipe.VertexShaderHandle = m_cube_map_vs;
+    skyboxPipe.PixelShaderHandle = m_cube_map_ps;
+    skyboxPipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    skyboxPipe.SampleCount = 1;
+    skyboxPipe.SampleQuality = 0;
+    skyboxPipe.SampleMask = 0xffffffff;
 
-    pd.DepthStencil = Graphics::DepthStencilState::DepthCompareLessWriteAll_StencilOff;
-    pd.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
-    pd.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
-    pd.Blend.AlphaToCoverageEnable = false;
-    pd.Blend.IndependentBlendEnable = false;
+    skyboxPipe.DepthStencil = Graphics::DepthStencilState::DepthCompareLessEqualWriteAll_StencilOff;
+    skyboxPipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    skyboxPipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+    skyboxPipe.Blend.AlphaToCoverageEnable = false;
+    skyboxPipe.Blend.IndependentBlendEnable = false;
 
-    pd.UseSwapChain = true;
+    skyboxPipe.UseSwapChain = true;
 
-    m_cubemapPipeline = Graphics::CreateGraphicsPipelineState(pd);
+    m_cubemapPipeline = Graphics::CreateGraphicsPipelineState(skyboxPipe);
 
     Graphics::CommandStreamDesc csd;
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
@@ -758,25 +758,25 @@ void MeshApplication::Update(double dt)
 
         auto& cs = m_commandStream;
         cs.TransitionDepthStencilToTexture(m_shadowTexture);
-       // cs.SetPipeline(m_opaquePipeline);
+        cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        //cs.SetConstantBuffer(0, pConsts->hCamera);
-        //cs.SetConstantBuffer(1, pConsts->hShadow);
-        //cs.SetConstantBuffer(2, pConsts->hLighting);
-        //cs.SetDescriptorTable(3, m_baseDescriptorHandle);
+        cs.SetConstantBuffer(0, pConsts->hCamera);
+        cs.SetConstantBuffer(1, pConsts->hShadow);
+        cs.SetConstantBuffer(2, pConsts->hLighting);
+        cs.SetDescriptorTable(3, m_baseDescriptorHandle);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         for (u32 i = 0, count = (u32)m_surfaces.size(); i < count; ++i)
         {
             if (m_materialIndices[i] == -1) continue;
             auto& surface = m_surfaces[i];
-            //cs.SetVertexBuffer(surface.vb);
-            //cs.SetIndexBuffer(surface.ib);
-            //cs.DrawInstanceIndexed(surface.ib);
+            cs.SetVertexBuffer(surface.vb);
+            cs.SetIndexBuffer(surface.ib);
+            cs.DrawInstanceIndexed(surface.ib);
         }
 
         cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
