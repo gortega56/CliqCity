@@ -306,6 +306,16 @@ namespace Graphics
     D3D12_STENCIL_OP GetD3D12StencilOp(const StencilOp op);
 
     D3D12_PRIMITIVE_TOPOLOGY GetD3D12PrimitiveTogopology(const PrimitiveSubtopology topology);
+
+    D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(const ResourceFlags flags);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(const TextureDesc& td);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(const DirectX::TexMetadata& td);
+
+    D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(const TextureDesc& td);
+
+    D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(const DirectX::TexMetadata& td);
 }
 
 #endif

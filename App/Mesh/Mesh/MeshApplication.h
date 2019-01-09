@@ -150,6 +150,9 @@ public:
     Graphics::IndexBufferHandle m_cube_map_ib_handle;
     Graphics::TextureHandle m_cube_map_texture_handle;
 
+    Graphics::TextureHandle m_environment_cube_map_handle;
+    Graphics::TextureHandle m_environment_lut_handle;
+
     Graphics::PipelineStateHandle m_opaquePipeline;
     Graphics::PipelineStateHandle m_shadowPipeline;
     Graphics::PipelineStateHandle m_fullScreenPipeline;

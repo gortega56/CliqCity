@@ -418,8 +418,7 @@ bool MeshApplication::Initialize()
         for (u32 i = 0, numMaterials = pObj->GetNumMaterials(); i < numMaterials; ++i)
         {
             auto md = pObj->GetMaterialDesc(i);
-            m_materialConstants.emplace_back();
-            auto& mc = m_materialConstants.back();
+            auto& mc = m_materialConstants.emplace_back();
             mc.SpecularExponent = md.SpecularExponent;
             mc.Transparency = md.Transparency;
             mc.OpticalDensity = md.OpticalDensity;
@@ -507,10 +506,28 @@ bool MeshApplication::Initialize()
     ds.Height = 2048;
     m_shadowTexture = Graphics::CreateDepthStencil(ds);
 
-    Graphics::TextureFileDesc td;
-    td.Filename = CUBE_MAP_PATH;
-    td.GenMips = true;
-    m_cube_map_texture_handle = Graphics::CreateTexture(td);
+    Graphics::TextureFileDesc fd;
+    fd.Filename = CUBE_MAP_PATH;
+    fd.GenMips = true;
+    m_cube_map_texture_handle = Graphics::CreateTexture(fd);
+
+    Graphics::TextureDesc td;
+    td.Width = 256;
+    td.Height = 256;
+    td.Depth = 6;
+    td.MipLevels = 6;
+    td.SampleCount = 1;
+    td.SampleQuality = 0;
+    td.Format = Graphics::GFX_FORMAT_R8G8B8A8_UNORM;
+    td.Dimension = Graphics::GFX_RESOURCE_DIMENSION_TEXTURE2D;
+    td.Flags = Graphics::GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    td.bIsCube = true;
+    m_environment_cube_map_handle = Graphics::CreateTexture(td);
+
+    td.MipLevels = 1;
+    td.Depth = 1;
+    td.bIsCube = false;
+    m_environment_lut_handle = Graphics::CreateTexture(td);
 
     // Opaque pipeline
 

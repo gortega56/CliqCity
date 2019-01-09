@@ -198,9 +198,16 @@ namespace Graphics
         GFX_DEPTH_STENCIL_FLAG_SHADER_RESOURCE
     };
 
-    enum LUZ_API GpuResourceFlags : uint16_t
+    enum LUZ_API ResourceFlags : uint8_t
     {
-
+        GFX_RESOURCE_FLAG_NONE = 0,
+        GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET = 0x1,
+        GFX_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL = 0x2,
+        GFX_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS = 0x4,
+        GFX_RESOURCE_FLAG_DENY_SHADER_RESOURCE = 0x8,
+        GFX_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER = 0x10,
+        GFX_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS = 0x20,
+        GFX_RESOURCE_FLAG_VIDEO_DECODE_REFERENCE_ONLY = 0x40
     };
 
     struct LUZ_API BufferDesc
@@ -225,14 +232,15 @@ namespace Graphics
         uint64_t SizeInBytes;
         uint64_t Width;
         uint32_t Height;
-        uint16_t Depth;
-        uint16_t ArraySize = 1;
+        uint16_t Depth = 1;
         uint16_t MipLevels = 0;
         uint32_t SampleCount = 1;
         uint32_t SampleQuality = 0;
         Format Format;
         ResourceDimension Dimension;
-        float* pColor;
+        ResourceFlags Flags;
+        bool bIsCube = false;
+        float* pColor = nullptr;
         void* pData = nullptr;
     };
 

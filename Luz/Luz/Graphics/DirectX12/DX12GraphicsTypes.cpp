@@ -480,4 +480,241 @@ namespace Graphics
 
         return (D3D12_PRIMITIVE_TOPOLOGY)-1;
     }
+
+    D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(const ResourceFlags resourceFlags)
+    {
+        D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+
+        if (resourceFlags & GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        if (resourceFlags & GFX_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        if (resourceFlags & GFX_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        if (resourceFlags & GFX_RESOURCE_FLAG_DENY_SHADER_RESOURCE) flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+        if (resourceFlags & GFX_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER) flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
+        if (resourceFlags & GFX_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS) flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+        if (resourceFlags & GFX_RESOURCE_FLAG_VIDEO_DECODE_REFERENCE_ONLY) flags |= D3D12_RESOURCE_FLAG_VIDEO_DECODE_REFERENCE_ONLY;
+
+        return flags;
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(const TextureDesc& td)
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc;
+        ZeroMemory(&desc, sizeof(D3D12_SHADER_RESOURCE_VIEW_DESC));
+        desc.Format = GetDxgiFormat(td.Format);
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        if (td.Dimension == GFX_RESOURCE_DIMENSION_TEXTURE1D)
+        {
+            if (td.Depth > 1)
+            {
+                desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+                desc.Texture1DArray.ArraySize = td.Depth;
+                desc.Texture1DArray.MipLevels = td.MipLevels;
+            }
+            else
+            {
+                desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+                desc.Texture1D.MipLevels = td.MipLevels;
+            }
+        }
+        else if (td.Dimension == GFX_RESOURCE_DIMENSION_TEXTURE2D)
+        {
+            if (td.bIsCube)
+            {
+                LUZASSERT(td.Depth % 6 == 0);
+                if (td.Depth > 6)
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+                    desc.TextureCubeArray.NumCubes = td.Depth / 6;
+                    desc.TextureCubeArray.MipLevels = td.MipLevels;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+                    desc.TextureCube.MipLevels = td.MipLevels;
+                }
+            }
+            else
+            {
+                if (td.Depth > 1)
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+                    desc.Texture2DArray.ArraySize = td.Depth;
+                    desc.Texture2DArray.MipLevels = td.MipLevels;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                    desc.Texture2D.MipLevels = td.MipLevels;
+                }
+            }
+            
+        }
+        else if (td.Dimension == GFX_RESOURCE_DIMENSION_TEXTURE3D)
+        {
+            desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            desc.Texture3D.MipLevels = td.MipLevels;
+        }
+        else
+        {
+            LUZASSERT(false);
+        }
+
+        return desc;
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(const DirectX::TexMetadata& td)
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc;
+        ZeroMemory(&desc, sizeof(D3D12_SHADER_RESOURCE_VIEW_DESC));
+        desc.Format = td.format;
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        if (td.dimension == DirectX::TEX_DIMENSION_TEXTURE1D)
+        {
+            if (td.depth > 1)
+            {
+                desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+                desc.Texture1DArray.ArraySize = static_cast<UINT>(td.depth);
+                desc.Texture1DArray.MipLevels = static_cast<UINT>(td.mipLevels);
+            }
+            else
+            {
+                desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+                desc.Texture1D.MipLevels = static_cast<UINT>(td.mipLevels);
+            }
+        }
+        else if (td.dimension == DirectX::TEX_DIMENSION_TEXTURE2D)
+        {
+            if (td.IsCubemap())
+            {
+                if (td.depth > 6)
+                {
+                    LUZASSERT(td.depth % 6 == 0);
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+                    desc.TextureCubeArray.NumCubes = static_cast<UINT>(td.depth) / 6;
+                    desc.TextureCubeArray.MipLevels = static_cast<UINT>(td.mipLevels);
+                }
+                else
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+                    desc.TextureCube.MipLevels = static_cast<UINT>(td.mipLevels);
+                }
+            }
+            else
+            {
+                if (td.depth > 1)
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+                    desc.Texture2DArray.ArraySize = static_cast<UINT>(td.depth);;
+                    desc.Texture2DArray.MipLevels = static_cast<UINT>(td.mipLevels);
+                }
+                else
+                {
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                    desc.Texture2D.MipLevels = static_cast<UINT>(td.mipLevels);
+                }
+            }
+
+        }
+        else if (td.dimension == DirectX::TEX_DIMENSION_TEXTURE3D)
+        {
+            desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            desc.Texture3D.MipLevels = static_cast<UINT>(td.mipLevels);
+        }
+        else
+        {
+            LUZASSERT(false);
+        }
+
+        return desc;
+    }
+
+    D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(const TextureDesc& td)
+    {
+        D3D12_RENDER_TARGET_VIEW_DESC desc;
+        ZeroMemory(&desc, sizeof(D3D12_RENDER_TARGET_VIEW_DESC));
+        desc.Format = GetDxgiFormat(td.Format);
+        
+        if (td.Dimension == GFX_RESOURCE_DIMENSION_TEXTURE1D)
+        {
+            if (td.Depth > 1)
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+                desc.Texture1DArray.ArraySize = 1;
+            }
+            else
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+            }
+        }
+        else if (td.Dimension == GFX_RESOURCE_DIMENSION_TEXTURE2D)
+        {
+            if (td.Depth > 1)
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                desc.Texture2DArray.ArraySize = 1;
+            }
+            else
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            }
+
+        }
+        else if (td.Dimension == GFX_RESOURCE_DIMENSION_TEXTURE3D)
+        {
+            desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+            desc.Texture3D.WSize = -1;
+        }
+        else
+        {
+            LUZASSERT(false);
+        }
+
+        return desc;
+    }
+
+    D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(const DirectX::TexMetadata& td)
+    {
+        D3D12_RENDER_TARGET_VIEW_DESC desc;
+        ZeroMemory(&desc, sizeof(D3D12_RENDER_TARGET_VIEW_DESC));
+        desc.Format = td.format;
+
+        if (td.dimension == DirectX::TEX_DIMENSION_TEXTURE1D)
+        {
+            if (td.depth > 1)
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+                desc.Texture1DArray.ArraySize = static_cast<UINT>(td.depth);
+            }
+            else
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+            }
+        }
+        else if (td.dimension == DirectX::TEX_DIMENSION_TEXTURE2D)
+        {
+            if (td.depth > 1)
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                desc.Texture2DArray.ArraySize = static_cast<UINT>(td.depth);
+            }
+            else
+            {
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            }
+
+        }
+        else if (td.dimension == DirectX::TEX_DIMENSION_TEXTURE3D)
+        {
+            desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+            desc.Texture3D.WSize = -1;
+        }
+        else
+        {
+            LUZASSERT(false);
+        }
+
+        return desc;
+    }
 }
