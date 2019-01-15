@@ -57,6 +57,8 @@ namespace Graphics
     };
 
     extern DescriptorAllocator s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+    UINT GetDescriptorHandleIncrementSize(const D3D12_DESCRIPTOR_HEAP_TYPE eType);
 }
 
 #endif

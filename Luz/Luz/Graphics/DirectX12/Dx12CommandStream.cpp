@@ -7,6 +7,14 @@
 
 namespace Graphics
 {
+    static void TransitionResource(ID3D12GraphicsCommandList* pCommandList, ID3D12Resource* pResource, const D3D12_RESOURCE_STATES before, const D3D12_RESOURCE_STATES after)
+    {
+        LUZASSERT(pCommandList);
+        LUZASSERT(pResource);
+
+        pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, before, after));
+    }
+
     CommandStream::CommandStream()
         : CommandStream((CommandStreamHandle)-1)
     {
@@ -36,6 +44,36 @@ namespace Graphics
 
         cl.pGraphicsCommandList->SetPipelineState(pso.pPipelineState);
         cl.pGraphicsCommandList->SetGraphicsRootSignature(pso.pSignature);
+    }
+
+    void CommandStream::SetRenderTargets(const u32 numRenderTargets, const TextureHandle* pTextureHandles, const u32* pMipSlices, const u32* pArraySlices, const DepthStencilHandle dsHandle)
+    {
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE pHandles[8] = { 0 };
+        if (pMipSlices && pArraySlices)
+        {
+            for (u32 i = 0; i < numRenderTargets; ++i)
+            {
+                const Texture& texture = s_textureCollection.GetData(pTextureHandles[i]);
+                const D3D12_RESOURCE_DESC desc = texture.pResource->GetDesc();
+                const UINT offset = static_cast<UINT>(pMipSlices[i]) * desc.DepthOrArraySize + static_cast<UINT>(pArraySlices[i]);
+                const UINT size = GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+                pHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(texture.RtvHandle.CpuHandle, offset, size);
+            }
+        }
+        else
+        {
+            for (u32 i = 0; i < numRenderTargets; ++i)
+            {
+                const Texture& texture = s_textureCollection.GetData(pTextureHandles[i]);
+                pHandles[i] = texture.RtvHandle.CpuHandle;
+            }
+        }
+
+        DepthStencil& ds = s_depthStencilCollection.GetData(dsHandle);
+
+        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, &ds.DsvHandle.CpuHandle);
     }
 
     void CommandStream::SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle)
@@ -93,13 +131,16 @@ namespace Graphics
         cl.pGraphicsCommandList->RSSetScissorRects(1, &scissor);
     }
 
-    void CommandStream::ClearRenderTarget(const float* pColor, const RenderTargetHandle handle)
+    void CommandStream::ClearRenderTarget(const float* pColor, const TextureHandle handle, const u32 mipSlice /*= 0*/, const u32 arraySlice /*= 0*/)
     {
         LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-        RenderTarget& rt = s_renderTargetCollection.GetData(handle);
+        Texture& texture = s_textureCollection.GetData(handle);
 
-        cl.pGraphicsCommandList->ClearRenderTargetView(rt.CpuHandle, pColor, 0, nullptr);
+        const D3D12_RESOURCE_DESC desc = texture.pResource->GetDesc();
+        const UINT offset = static_cast<UINT>(mipSlice) * desc.DepthOrArraySize + static_cast<UINT>(arraySlice);
+        const UINT size = GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        cl.pGraphicsCommandList->ClearRenderTargetView(CD3DX12_CPU_DESCRIPTOR_HANDLE(texture.RtvHandle.CpuHandle, offset, size), pColor, 0, nullptr);
     }
 
     void CommandStream::ClearRenderTarget(const float* pColor)
@@ -186,18 +227,31 @@ namespace Graphics
         cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), descriptor.GpuHandle);
     }
 
-    void CommandStream::TransitionDepthStencilToTexture(const DepthStencilHandle handle)
+    void CommandStream::TransitionDepthStencil(const DepthStencilHandle handle, const ResourceStates before, const ResourceStates after)
     {
         DepthStencil& ds = s_depthStencilCollection.GetData(handle);
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-        cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ds.pResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+        D3D12_RESOURCE_STATES b = GetD3D12ResourceState(before);
+        D3D12_RESOURCE_STATES a = GetD3D12ResourceState(after);
+        TransitionResource(cl.pGraphicsCommandList, ds.pResource, b, a);
     }
 
-    void CommandStream::TransitionDepthStencilToDepthWrite(const DepthStencilHandle handle)
+    void CommandStream::TransitionRenderTarget(const RenderTargetHandle handle, const ResourceStates before, const ResourceStates after)
     {
-        DepthStencil& ds = s_depthStencilCollection.GetData(handle);
+        RenderTarget& rt = s_renderTargetCollection.GetData(handle);
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-        cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ds.pResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+        D3D12_RESOURCE_STATES b = GetD3D12ResourceState(before);
+        D3D12_RESOURCE_STATES a = GetD3D12ResourceState(after);
+        TransitionResource(cl.pGraphicsCommandList, rt.pResource, b, a);
+    }
+
+    void CommandStream::TransitionTexture(const TextureHandle handle, const ResourceStates before, const ResourceStates after)
+    {
+        Texture texture = s_textureCollection.GetData(handle);
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        D3D12_RESOURCE_STATES b = GetD3D12ResourceState(before);
+        D3D12_RESOURCE_STATES a = GetD3D12ResourceState(after);
+        TransitionResource(cl.pGraphicsCommandList, texture.pResource, b, a);
     }
 
     void CommandStream::DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount /*= 1*/, const u32 startIndex /*= 0*/, const i32 baseVertexLocation /*= 0*/, const u32 startInstanceLocation /*= 0*/)

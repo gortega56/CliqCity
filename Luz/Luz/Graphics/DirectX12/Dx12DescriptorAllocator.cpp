@@ -45,4 +45,9 @@ namespace Graphics
         descriptor.GpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pCurrentDescriptorHeap->pHeap->GetGPUDescriptorHandleForHeapStart(), descriptorOffset, m_descriptorHandleIncrementSize);
         return descriptor;
     }
+
+    UINT GetDescriptorHandleIncrementSize(const D3D12_DESCRIPTOR_HEAP_TYPE eType)
+    {
+        return s_descriptorAllocatorCollection[eType].m_descriptorHandleIncrementSize;
+    }
 }

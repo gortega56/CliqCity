@@ -508,14 +508,14 @@ bool MeshApplication::Initialize()
 
     Graphics::TextureFileDesc fd;
     fd.Filename = CUBE_MAP_PATH;
-    fd.GenMips = true;
+    fd.GenMips = false;
     m_cube_map_texture_handle = Graphics::CreateTexture(fd);
 
     Graphics::TextureDesc td;
     td.Width = 256;
     td.Height = 256;
     td.Depth = 6;
-    td.MipLevels = 6;
+    td.MipLevels = 2;
     td.SampleCount = 1;
     td.SampleQuality = 0;
     td.Format = Graphics::GFX_FORMAT_R8G8B8A8_UNORM;
@@ -639,6 +639,36 @@ bool MeshApplication::Initialize()
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
     Graphics::CreateCommandStream(csd, &m_commandStream);
 
+    m_commandStream.SetPipeline(m_opaquePipeline);
+
+    float4 cc[12] =
+    {
+        {0, 0, 0, 1},
+        {0, 0, 1, 1},
+        {0, 1, 0, 1},
+        {0, 1, 1, 1},
+        {1, 0, 0, 1},
+        {1, 0, 1, 1},
+        {1, 1, 0, 1},
+        {1, 1, 1, 1},
+        {0, 0, 0, 1},
+        {0, 0, 1, 1},
+        {0, 1, 0, 1},
+        {0, 1, 1, 1}
+    };
+
+    m_commandStream.TransitionTexture(m_environment_cube_map_handle, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+
+    for (int i = 0; i < 2; ++i)
+    {
+        for (int j = 0; j < 6; ++j)
+        {
+            m_commandStream.ClearRenderTarget(cc[i * 2 + j].p_cols, m_environment_cube_map_handle, i, j);
+        }
+    }
+    m_commandStream.TransitionTexture(m_environment_cube_map_handle, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    Graphics::SubmitCommandStream(&m_commandStream, true);
     s_loading.store(false);
 
     return true;
@@ -750,7 +780,7 @@ void MeshApplication::Update(double dt)
     if (s_shadowFullScreen)
     {
         auto& cs = m_commandStream;
-        cs.TransitionDepthStencilToTexture(m_shadowTexture);
+        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         cs.SetPipeline(m_fullScreenPipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
@@ -763,7 +793,7 @@ void MeshApplication::Update(double dt)
         cs.SetVertexBuffer(0);
         cs.SetIndexBuffer(m_fs_ib);
         cs.DrawInstanceIndexed(m_fs_ib);
-        cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
+        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
 
         Graphics::SubmitCommandStream(&cs, false);
     }
@@ -774,7 +804,7 @@ void MeshApplication::Update(double dt)
         Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
 
         auto& cs = m_commandStream;
-        cs.TransitionDepthStencilToTexture(m_shadowTexture);
+        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
@@ -796,12 +826,12 @@ void MeshApplication::Update(double dt)
             cs.DrawInstanceIndexed(surface.ib);
         }
 
-        cs.TransitionDepthStencilToDepthWrite(m_shadowTexture);
+        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
 
         // Draw cube map
         cs.SetPipeline(m_cubemapPipeline);
         cs.SetConstantBuffer(0, pConsts->hCamera);
-        cs.SetDescriptorTable(1, m_cube_map_texture_handle);
+        cs.SetDescriptorTable(1, m_environment_cube_map_handle);
 
         cs.SetVertexBuffer(m_cube_map_vb_handle);
         cs.SetIndexBuffer(m_cube_map_ib_handle);

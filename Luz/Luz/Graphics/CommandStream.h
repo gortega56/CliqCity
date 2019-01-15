@@ -21,15 +21,17 @@ namespace Graphics
 
         void SetPipeline(const PipelineStateHandle handle);
 
+        void SetRenderTargets(const u32 numRenderTargets, const TextureHandle* pTextureHandles, const u32* pMipSlices, const u32* pArraySlices, const DepthStencilHandle dsHandle);
+
         void SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle);
 
-        void SetRenderTargets();    // Clears swap chain
+        void SetRenderTargets();    // Sets swap chain
 
         void SetViewport(const Viewport& viewport);
 
         void SetScissorRect(const Rect& rect);
 
-        void ClearRenderTarget(const float* pColor, const RenderTargetHandle handle);
+        void ClearRenderTarget(const float* pColor, const TextureHandle handle, const u32 mipSlice = 0, const u32 arraySlice = 0);
 
         void ClearRenderTarget(const float* pColor);
 
@@ -49,9 +51,11 @@ namespace Graphics
 
         void SetDescriptorTable(const u32 param, const GpuResourceHandle baseHandle);
 
-        void TransitionDepthStencilToDepthWrite(const DepthStencilHandle handle);
+        void TransitionDepthStencil(const DepthStencilHandle handle, const ResourceStates before, const ResourceStates after);
 
-        void TransitionDepthStencilToTexture(const DepthStencilHandle handle);
+        void TransitionRenderTarget(const RenderTargetHandle handle, const ResourceStates before, const ResourceStates after);
+
+        void TransitionTexture(const TextureHandle handle, const ResourceStates before, const ResourceStates after);
 
         void DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount = 1, const u32 startIndex = 0, const i32 baseVertexLocation = 0, const u32 startInstanceLocation = 0);
 

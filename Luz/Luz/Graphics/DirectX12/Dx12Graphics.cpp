@@ -463,12 +463,11 @@ namespace Graphics
 
         // Create Render Target Views for back buffers
         D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = s_swapChain.pRenderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        UINT descriptorHandleSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         for (u32 i = 0; i < s_swapChain.NumBuffers; ++i)
         {
             ID3D12Resource* pSwapChainBuffer = nullptr;
             s_swapChain.pSwapChain3->GetBuffer(i, IID_PPV_ARGS(&pSwapChainBuffer));
-            s_swapChain.RenderTargetViewHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHandle, static_cast<INT>(i), descriptorHandleSize);
+            s_swapChain.RenderTargetViewHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHandle, static_cast<INT>(i), GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 
             D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
             ZeroMemory(&rtvDesc, sizeof(D3D12_RENDER_TARGET_VIEW_DESC));
@@ -967,10 +966,21 @@ namespace Graphics
 
             D3D12_CLEAR_VALUE clearValue = {};
             clearValue.Format = format;
-            clearValue.Color[0] = desc.pColor[0];
-            clearValue.Color[1] = desc.pColor[0];
-            clearValue.Color[2] = desc.pColor[0];
-            clearValue.Color[3] = desc.pColor[0];
+            if (desc.pColor)
+            {
+                clearValue.Color[0] = desc.pColor[0];
+                clearValue.Color[1] = desc.pColor[1];
+                clearValue.Color[2] = desc.pColor[2];
+                clearValue.Color[3] = desc.pColor[3];
+            }
+            else
+            {
+                clearValue.Color[0] = 0.0f;
+                clearValue.Color[1] = 0.0f;
+                clearValue.Color[2] = 0.0f;
+                clearValue.Color[3] = 0.0f;
+            }
+
 
             HRESULT hr = s_device.pDevice->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -1276,7 +1286,7 @@ namespace Graphics
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Tex1D(format, desc.Width, desc.Depth, desc.MipLevels, flags),
-                    D3D12_RESOURCE_STATE_COPY_DEST,
+                    D3D12_RESOURCE_STATE_GENERIC_READ,
                     &clearValue,
                     IID_PPV_ARGS(&tex.pResource));
                 LUZASSERT(SUCCEEDED(hr));
@@ -1287,7 +1297,7 @@ namespace Graphics
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Tex2D(format, desc.Width, desc.Height, desc.Depth, desc.MipLevels, desc.SampleCount, desc.SampleQuality, flags),
-                    D3D12_RESOURCE_STATE_COPY_DEST,
+                    D3D12_RESOURCE_STATE_GENERIC_READ,
                     &clearValue,
                     IID_PPV_ARGS(&tex.pResource));
                 LUZASSERT(SUCCEEDED(hr));
@@ -1298,7 +1308,7 @@ namespace Graphics
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Tex3D(format, desc.Width, desc.Height, desc.Depth, desc.MipLevels, flags),
-                    D3D12_RESOURCE_STATE_COPY_DEST,
+                    D3D12_RESOURCE_STATE_GENERIC_READ,
                     &clearValue,
                     IID_PPV_ARGS(&tex.pResource));
                 LUZASSERT(SUCCEEDED(hr));
@@ -1355,7 +1365,6 @@ namespace Graphics
                 if (desc.Depth > 1)
                 {
                     tex.RtvHandle = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, desc.Depth * desc.MipLevels);
-                    UINT size = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
                     for (uint16_t mip = 0; mip < desc.MipLevels; ++mip)
                     {
@@ -1369,7 +1378,7 @@ namespace Graphics
                             rtv.Texture2DArray.FirstArraySlice = arr;
                             rtv.Texture2DArray.ArraySize = 1;
                             rtv.Texture2DArray.PlaneSlice = 0;
-                            s_device.pDevice->CreateRenderTargetView(tex.pResource, &rtv, CD3DX12_CPU_DESCRIPTOR_HANDLE(tex.RtvHandle.CpuHandle, size));
+                            s_device.pDevice->CreateRenderTargetView(tex.pResource, &rtv, CD3DX12_CPU_DESCRIPTOR_HANDLE(tex.RtvHandle.CpuHandle, desc.Depth * static_cast<UINT>(mip) + static_cast<UINT>(arr), GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
                         }
                     }
                 }

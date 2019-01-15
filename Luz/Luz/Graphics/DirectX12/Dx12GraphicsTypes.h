@@ -316,6 +316,8 @@ namespace Graphics
     D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(const TextureDesc& td);
 
     D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(const DirectX::TexMetadata& td);
+
+    D3D12_RESOURCE_STATES GetD3D12ResourceState(const ResourceStates rs);
 }
 
 #endif

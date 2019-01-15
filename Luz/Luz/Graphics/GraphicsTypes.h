@@ -210,6 +210,41 @@ namespace Graphics
         GFX_RESOURCE_FLAG_VIDEO_DECODE_REFERENCE_ONLY = 0x40
     };
 
+    enum LUZ_API ResourceStates
+    {
+        GFX_RESOURCE_STATE_COMMON = 0,
+        GFX_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER = 0x1,
+        GFX_RESOURCE_STATE_INDEX_BUFFER = 0x2,
+        GFX_RESOURCE_STATE_RENDER_TARGET = 0x4,
+        GFX_RESOURCE_STATE_UNORDERED_ACCESS = 0x8,
+        GFX_RESOURCE_STATE_DEPTH_WRITE = 0x10,
+        GFX_RESOURCE_STATE_DEPTH_READ = 0x20,
+        GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE = 0x40,
+        GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE = 0x80,
+        GFX_RESOURCE_STATE_STREAM_OUT = 0x100,
+        GFX_RESOURCE_STATE_INDIRECT_ARGUMENT = 0x200,
+        GFX_RESOURCE_STATE_COPY_DEST = 0x400,
+        GFX_RESOURCE_STATE_COPY_SOURCE = 0x800,
+        GFX_RESOURCE_STATE_RESOLVE_DEST = 0x1000,
+        GFX_RESOURCE_STATE_RESOLVE_SOURCE = 0x2000,
+        GFX_RESOURCE_STATE_GENERIC_READ = (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
+        GFX_RESOURCE_STATE_PRESENT = 0,
+        GFX_RESOURCE_STATE_PREDICATION = 0x200,
+        GFX_RESOURCE_STATE_VIDEO_DECODE_READ = 0x10000,
+        GFX_RESOURCE_STATE_VIDEO_DECODE_WRITE = 0x20000,
+        GFX_RESOURCE_STATE_VIDEO_PROCESS_READ = 0x40000,
+        GFX_RESOURCE_STATE_VIDEO_PROCESS_WRITE = 0x80000
+    };
+
+    inline constexpr ResourceStates operator | (ResourceStates a, ResourceStates b) throw() { return ResourceStates(((std::underlying_type<ResourceStates>::type)a) | ((std::underlying_type<ResourceStates>::type)b)); }
+    inline ResourceStates &operator |= (ResourceStates &a, ResourceStates b) throw() { return (ResourceStates &)(((std::underlying_type<ResourceStates>::type &)a) |= ((std::underlying_type<ResourceStates>::type)b)); }
+    inline constexpr ResourceStates operator & (ResourceStates a, ResourceStates b) throw() { return ResourceStates(((std::underlying_type<ResourceStates>::type)a) & ((std::underlying_type<ResourceStates>::type)b)); }
+    inline ResourceStates &operator &= (ResourceStates &a, ResourceStates b) throw() { return (ResourceStates &)(((std::underlying_type<ResourceStates>::type &)a) &= ((std::underlying_type<ResourceStates>::type)b)); }
+    inline constexpr ResourceStates operator ~ (ResourceStates a) throw() { return ResourceStates(~((std::underlying_type<ResourceStates>::type)a)); }
+    inline constexpr ResourceStates operator ^ (ResourceStates a, ResourceStates b) throw() { return ResourceStates(((std::underlying_type<ResourceStates>::type)a) ^ ((std::underlying_type<ResourceStates>::type)b)); }
+    inline ResourceStates &operator ^= (ResourceStates &a, ResourceStates b) throw() { return (ResourceStates &)(((std::underlying_type<ResourceStates>::type &)a) ^= ((std::underlying_type<ResourceStates>::type)b)); }
+
+
     struct LUZ_API BufferDesc
     {
         uint64_t Alignment;
