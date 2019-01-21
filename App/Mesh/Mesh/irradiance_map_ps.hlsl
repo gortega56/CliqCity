@@ -12,7 +12,6 @@ SamplerState cube_sampler : register(s0);
 
 float4 main(PS_Input input) : SV_TARGET
 {
-    float4 color = cube_texture.Sample(cube_sampler, normalize(input.UV));
-    color.xyz = Linear_to_Gamma(color.xyz);
-    return color;
+    float3 irradiance = Environment_Irradiance(cube_texture, cube_sampler, normalize(input.UV));
+    return float4(irradiance, 1);
 }

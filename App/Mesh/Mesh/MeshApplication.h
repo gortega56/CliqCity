@@ -129,11 +129,19 @@ public:
 
     static constexpr u32 s_nFrameResources = s_nSwapChainTargets * 2;
 
-    std::shared_ptr<Window> m_window;
+    FrameConstants m_frameConsts[s_nFrameResources];
+
+    u32 m_frameIndex;
 
     Luz::CameraController m_cameraController;
 
     range3 m_sceneBounds;
+
+    std::vector<MaterialConstants> m_materialConstants;
+    std::vector<i32> m_materialIndices;
+    std::vector<Surface> m_surfaces;
+
+    std::shared_ptr<Window> m_window;
 
     Graphics::CommandStream m_commandStream;
 
@@ -143,30 +151,26 @@ public:
     Graphics::ShaderHandle m_fs_ps;
     Graphics::ShaderHandle m_cube_map_vs;
     Graphics::ShaderHandle m_cube_map_ps;
+    Graphics::ShaderHandle m_irradiance_map_ps;
+    Graphics::ShaderHandle m_radiance_map_ps;
+    Graphics::ShaderHandle m_brdf_map_ps;
 
-    Graphics::IndexBufferHandle m_fs_ib;
-    
     Graphics::VertexBufferHandle m_cube_map_vb_handle;
     Graphics::IndexBufferHandle m_cube_map_ib_handle;
-    Graphics::TextureHandle m_cube_map_texture_handle;
+    Graphics::IndexBufferHandle m_fs_ib;
 
+    Graphics::TextureHandle m_cube_map_texture_handle;
     Graphics::TextureHandle m_environment_cube_map_handle;
-    Graphics::TextureHandle m_environment_lut_handle;
+    Graphics::TextureHandle m_environment_brdf_map_handle;
+
+    Graphics::ConstantBufferHandle m_baseDescriptorHandle;
+
+    Graphics::DepthStencilHandle m_shadowTexture;
 
     Graphics::PipelineStateHandle m_opaquePipeline;
     Graphics::PipelineStateHandle m_shadowPipeline;
     Graphics::PipelineStateHandle m_fullScreenPipeline;
     Graphics::PipelineStateHandle m_cubemapPipeline;
-
-    Graphics::ConstantBufferHandle m_baseDescriptorHandle;
-    Graphics::DepthStencilHandle m_shadowTexture;
-
-    std::vector<MaterialConstants> m_materialConstants;
-    std::vector<i32> m_materialIndices;
-    std::vector<Surface> m_surfaces;
-
-    FrameConstants m_frameConsts[s_nFrameResources];
-    u32 m_frameIndex;
 
     MeshApplication();
     ~MeshApplication();

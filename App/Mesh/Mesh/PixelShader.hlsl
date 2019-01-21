@@ -59,14 +59,13 @@ struct Material
 ConstantBuffer<Material> materials[] : register(b3);
 
 Texture2D textures[] : register(t0, space0);
-
 Texture2D shadow : register(t0, space1);
+Texture2D environment_brdf_texture : register(t0, space2);
+TextureCube environment_texture : register(t0, space3);
 
-SamplerState default_sampler : register(s0);
-
-SamplerState bump_sampler : register(s2);
-
-SamplerComparisonState shadow_sampler : register(s1);
+SamplerState linear_wrap_sampler : register(s0);
+SamplerState aniso_wrap_sampler : register(s1);
+SamplerComparisonState point_border_sampler : register(s2);
 
 struct PS_Input
 {
@@ -111,12 +110,12 @@ float3 GetNormal(ShadingFrame frame, int iBump, int iNormal, uint mode)
 
     if (mode == 0 && iBump != -1)
     {
-        N = SobelFilter(textures[iBump], bump_sampler, frame.UV, 1.0f);
+        N = SobelFilter(textures[iBump], linear_wrap_sampler, frame.UV, 1.0f);
         N = normalize(mul(N, tbn));
     }
     else if (mode == 1 && iNormal != -1)
     {
-        N = textures[iNormal].Sample(default_sampler, frame.UV).xyz;
+        N = textures[iNormal].Sample(linear_wrap_sampler, frame.UV).xyz;
         N = N * 2.0 - 1.0;
         N = normalize(mul(N, tbn));
     }
@@ -136,7 +135,7 @@ float GetShadow(ShadingFrame frame)
 
     float4x4 VPT = mul(mul(shadowView, shadowProj), T);
     float4 Lp = mul(float4(frame.P, 1), VPT);
-    return Shadow_Factor(shadow, shadow_sampler, Lp.xy, Lp.z);
+    return Shadow_Factor(shadow, point_border_sampler, Lp.xy, Lp.z);
 }
 
 float4 Shade_Blinn_Phong(ShadingFrame frame)
@@ -155,7 +154,7 @@ float4 Shade_Blinn_Phong(ShadingFrame frame)
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
         {
-            base = textures[iDiffuse].Sample(default_sampler, frame.UV);
+            base = textures[iDiffuse].Sample(linear_wrap_sampler, frame.UV);
             clip(base.a - 0.001f);
             base.xyz = SRGB_to_Linear(base.xyz);
         }
@@ -185,7 +184,7 @@ float4 Shade_Blinn_Phong(ShadingFrame frame)
         bool specEnabled = SpecEnabled && (iSpec != -1);
         if (specEnabled)
         {
-            specular = textures[iSpec].Sample(default_sampler, frame.UV).xyz;
+            specular = textures[iSpec].Sample(linear_wrap_sampler, frame.UV).xyz;
             if (!all(specular))
             {
                 specular = specular.xxx;
@@ -226,7 +225,7 @@ float4 Shade_Blinn_Phong_BRDF(ShadingFrame frame)
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
         {
-            base = textures[iDiffuse].Sample(default_sampler, frame.UV);
+            base = textures[iDiffuse].Sample(linear_wrap_sampler, frame.UV);
             clip(base.a - 0.1f);
             base.xyz = SRGB_to_Linear(base.xyz);
         }
@@ -248,7 +247,7 @@ float4 Shade_Blinn_Phong_BRDF(ShadingFrame frame)
         int iMetal = materials[iMaterial].iMetal;
         if (iMetal != -1)
         {
-            metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
+            metallic = textures[iMetal].Sample(linear_wrap_sampler, frame.UV).x;
         }
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
@@ -277,7 +276,7 @@ float4 Shade_Blinn_Phong_BRDF(ShadingFrame frame)
                 F = F_Schlick(F0, F90, LoH);
             }
 
-            float roughness = textures[iRough].Sample(default_sampler, frame.UV).x;
+            float roughness = textures[iRough].Sample(linear_wrap_sampler, frame.UV).x;
             roughness = pow(8192.0, roughness);
             roughness = 2.0 / (roughness * roughness) - 2.0;
             roughness = roughness * roughness;
@@ -331,7 +330,7 @@ float4 Shade_Beckmann(ShadingFrame frame)
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
         {
-            base = textures[iDiffuse].Sample(default_sampler, frame.UV);
+            base = textures[iDiffuse].Sample(linear_wrap_sampler, frame.UV);
             clip(base.a - 0.1f);
             base.xyz = SRGB_to_Linear(base.xyz);
         }
@@ -353,7 +352,7 @@ float4 Shade_Beckmann(ShadingFrame frame)
         int iMetal = materials[iMaterial].iMetal;
         if (iMetal != -1)
         {
-            metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
+            metallic = textures[iMetal].Sample(linear_wrap_sampler, frame.UV).x;
         }
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
@@ -382,7 +381,7 @@ float4 Shade_Beckmann(ShadingFrame frame)
                 F = F_Schlick(F0, F90, LoH);
             }
 
-            float roughness = textures[iRough].Sample(default_sampler, frame.UV).x;
+            float roughness = textures[iRough].Sample(linear_wrap_sampler, frame.UV).x;
             roughness = pow(8192.0, roughness);
             roughness = 2.0 / (roughness * roughness) - 2.0;
             roughness = roughness * roughness;
@@ -432,19 +431,15 @@ float4 Shade_GGX(ShadingFrame frame)
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
         float metallic = 0;
+        float roughness = 0;
 
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
         {
-            base = textures[iDiffuse].Sample(default_sampler, frame.UV);
+            base = textures[iDiffuse].Sample(aniso_wrap_sampler, frame.UV);
             clip(base.a - 0.1f);
-            base.xyz = SRGB_to_Linear(base.xyz);
-        }
-
-        // Unlit
-        if (AmbientEnabled)
-        {
-            ambient = base.xyz * 0.1f;
+            //base.xyz = SRGB_to_Linear(base.xyz);
+            base.xyz = Gamma_to_Linear(base.xyz);
         }
 
         int iBump = materials[iMaterial].iBump;
@@ -458,8 +453,15 @@ float4 Shade_GGX(ShadingFrame frame)
         int iMetal = materials[iMaterial].iMetal;
         if (iMetal != -1)
         {
-            metallic = textures[iMetal].Sample(default_sampler, frame.UV).x;
+            metallic = textures[iMetal].Sample(linear_wrap_sampler, frame.UV).x;
         }
+
+        int iRough = materials[iMaterial].iRough;
+        if (iRough != -1)
+        {
+            roughness = textures[iRough].Sample(linear_wrap_sampler, frame.UV).x;
+        }
+
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
         float NoL = saturate(dot(N, frame.L));
@@ -467,14 +469,46 @@ float4 Shade_GGX(ShadingFrame frame)
         float VoH = saturate(dot(frame.V, frame.H));
         float LoH = saturate(dot(frame.L, frame.H));
 
+        // Unlit
+        if (AmbientEnabled)
+        {
+
+            
+            // Indirect diffuse;
+            const float environmentMipLevels = 6.0;
+            const float irradianceMipLevel = environmentMipLevels - 1.0;
+            const float maxRadianceMipLevel = irradianceMipLevel - 1.0;
+
+            float3 irradiance = environment_texture.SampleLevel(linear_wrap_sampler, N, irradianceMipLevel).xyz;
+            float3 d = (base.xyz * irradiance);
+
+            // Indirect spec
+            float roughE = roughness * roughness;
+            float F0d = 0.04;
+
+            float3 F90 = float3(1, 1, 1);
+            float3 F0 = lerp(F0d.xxx, base.xyz, metallic);
+            float3 F = F_Schlick(F0, F90, NoV, roughE);
+
+            //float3 DFG = DFG_Env_Karis(F0, NoV, roughE);
+
+            float2 brdf = environment_brdf_texture.Sample(linear_wrap_sampler, float2(NoV, roughness)).xy;
+            float3 DFG = F0 * brdf.x + brdf.y;
+
+            float3 radiance = environment_texture.SampleLevel(linear_wrap_sampler, reflect(-frame.V, N), roughness * maxRadianceMipLevel).xyz;
+            
+            float3 s = radiance * DFG;
+            
+            ambient = (F90 - F) * d + s;
+        }
+
         bool diffuseEnabled = DiffuseEnabled && (iDiffuse != -1);
         if (diffuseEnabled)
         {
             diffuse = base.xyz * (1.0 - metallic) * Fd_Lambert();
         }
 
-        int iRough = materials[iMaterial].iRough;
-        bool specEnabled = SpecEnabled && (iRough != -1);
+        bool specEnabled = SpecEnabled;
         if (specEnabled)
         {
             float3 F90 = float3(1, 1, 1);
@@ -486,20 +520,20 @@ float4 Shade_GGX(ShadingFrame frame)
             {
                 F = F_Schlick(F0, F90, LoH);
             }
-
-            float roughness = textures[iRough].Sample(default_sampler, frame.UV).x;
-            roughness = roughness * roughness;
+ 
+            float k = (roughness + 1) * 0.5f;
+            float a = k * k;
 
             float D = 1.0f;
             if (MicrofacetEnabled)
             {
-                D = D_GGX(NoH, roughness);
+                D = D_GGX(NoH, a);
             }
 
             float G = 1.0f;
             if (MaskingEnabled)
             {
-                G = G_Smith_GGX(NoV, NoL, roughness);
+                G = G_Smith_GGX(NoV, NoL, a);
             }
 
             diffuse = (F90 - F) * diffuse;
@@ -513,7 +547,7 @@ float4 Shade_GGX(ShadingFrame frame)
         }
 
         float illuminance = NoL * frame.Lx;
-        float3 unlit = ambient * frame.Lc * max(0.1f, Sf);
+        float3 unlit = ambient /** frame.Lc*/ * max(0.1f, Sf);
         float3 lit = unlit + (diffuse + specular) * frame.Lc * illuminance;
         output.xyz = lerp(unlit, lit, Sf);
     }
@@ -559,8 +593,9 @@ float4 main(PS_Input input) : SV_TARGET
     }
 
     output.xyz *= Exposure;
-    output.xyz = Reinhard_Luma(output.xyz);
-    output.xyz = Linear_to_SRGB(output.xyz);
+    output.xyz = ACES_Film(output.xyz);
+   // output.xyz = Linear_to_SRGB(output.xyz);
+    output.xyz = Linear_to_Gamma(output.xyz);
 
     return output;
 }

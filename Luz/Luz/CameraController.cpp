@@ -11,7 +11,7 @@ namespace Luz
 
     CameraController::CameraController()
         : m_camera()
-        , m_movementSpeed(1.0f)
+        , m_movementSpeed(5.0f)
         , m_horizontalTurnSpeed(1.0f)
         , m_verticalTurnSpeed(1.0f)
         , m_mouseX(1.0f)

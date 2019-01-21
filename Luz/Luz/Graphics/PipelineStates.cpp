@@ -11,6 +11,18 @@ namespace Graphics
         COMPARISON_TYPE_ALWAYS
     };
 
+    DepthStencilState DepthStencilState::Disabled =
+    {
+        GFX_DEPTH_WRITE_MASK_ALL,
+        COMPARISON_TYPE_ALWAYS,
+        false,
+        0xff,
+        0xff,
+        StencilState::KeepAlways,
+        StencilState::KeepAlways,
+        false
+    };
+
     DepthStencilState DepthStencilState::DepthCompareLessWriteAll_StencilOff =
     {
         GFX_DEPTH_WRITE_MASK_ALL,

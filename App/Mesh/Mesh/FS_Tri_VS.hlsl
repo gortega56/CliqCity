@@ -8,13 +8,7 @@ struct VS_Output
 VS_Output main(uint id : SV_VERTEXID)
 {
     VS_Output output;
-    output.Pos.x = (float)(id / 2) * 4.0 - 1.0;
-    output.Pos.y = (float)(id % 2) * 4.0 - 1.0;
-    output.Pos.z = 0.0;
-    output.Pos.w = 1.0;
-
-    output.UV.x = (float)(id / 2) * 2.0;
-    output.UV.y = 1.0 - (float)(id % 2) * 2.0;
-
+    output.UV = float2((id << 1) & 2, id & 2);
+    output.Pos = float4(output.UV * float2(2, -2) + float2(-1, 1), 0, 1);
     return output;
 }

@@ -71,9 +71,13 @@ namespace Graphics
             }
         }
 
-        DepthStencil& ds = s_depthStencilCollection.GetData(dsHandle);
+        D3D12_CPU_DESCRIPTOR_HANDLE* pDsHandle = nullptr;
+        if (dsHandle)
+        {
+            pDsHandle = &s_depthStencilCollection.GetData(dsHandle).DsvHandle.CpuHandle;
+        }
 
-        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, &ds.DsvHandle.CpuHandle);
+        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, pDsHandle);
     }
 
     void CommandStream::SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle)
@@ -86,9 +90,13 @@ namespace Graphics
             pHandles[i] = s_renderTargetCollection.GetData(pRtHandles[i]).CpuHandle;
         }
 
-        DepthStencil& ds = s_depthStencilCollection.GetData(dsHandle);
+        D3D12_CPU_DESCRIPTOR_HANDLE* pDsHandle = nullptr;
+        if (dsHandle)
+        {
+            pDsHandle = &s_depthStencilCollection.GetData(dsHandle).DsvHandle.CpuHandle;
+        }
 
-        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, &ds.DsvHandle.CpuHandle);
+        cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, pDsHandle);
     }
 
     void CommandStream::SetRenderTargets()
@@ -118,6 +126,21 @@ namespace Graphics
         cl.pGraphicsCommandList->RSSetViewports(1, &vp);
     }
 
+    void CommandStream::SetViewport(const float topLeftX, const float topLeftY, const float width, const float height, const float minDepth, const float maxDepth)
+    {
+        D3D12_VIEWPORT vp;
+        ZeroMemory(&vp, sizeof(D3D12_VIEWPORT));
+        vp.TopLeftX = static_cast<FLOAT>(topLeftX);
+        vp.TopLeftY = static_cast<FLOAT>(topLeftY);
+        vp.Width = static_cast<FLOAT>(width);
+        vp.Height = static_cast<FLOAT>(height);
+        vp.MinDepth = static_cast<FLOAT>(minDepth);
+        vp.MaxDepth = static_cast<FLOAT>(maxDepth);
+
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        cl.pGraphicsCommandList->RSSetViewports(1, &vp);
+    }
+
     void CommandStream::SetScissorRect(const Rect& rect)
     {
         D3D12_RECT scissor;
@@ -126,6 +149,19 @@ namespace Graphics
         scissor.top = static_cast<LONG>(rect.Top);
         scissor.right = static_cast<LONG>(rect.Right);
         scissor.bottom = static_cast<LONG>(rect.Bottom);
+
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        cl.pGraphicsCommandList->RSSetScissorRects(1, &scissor);
+    }
+
+    void CommandStream::SetScissorRect(const u32 left, const u32 top, const u32 right, const u32 bottom)
+    {
+        D3D12_RECT scissor;
+        ZeroMemory(&scissor, sizeof(D3D12_RECT));
+        scissor.left = static_cast<LONG>(left);
+        scissor.top = static_cast<LONG>(top);
+        scissor.right = static_cast<LONG>(right);
+        scissor.bottom = static_cast<LONG>(bottom);
 
         CommandList& cl = s_commandListCollection.GetData(m_handle);
         cl.pGraphicsCommandList->RSSetScissorRects(1, &scissor);

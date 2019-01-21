@@ -9,5 +9,5 @@ SamplerState samp : register(s0);
 
 float4 main(PS_Input input) : SV_TARGET
 {
-    return Tex.Sample(samp, input.UV);
+    return float4(Tex.Sample(samp, input.UV).xy, 0, 1);
 }

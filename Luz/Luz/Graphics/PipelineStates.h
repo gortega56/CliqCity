@@ -183,7 +183,7 @@ namespace Graphics
             Type Kind;
         };
 
-        const static u8 MaxRanges = 4;
+        const static u8 MaxRanges = 6;
         u8 NumRanges = 0;
         Range DescriptorRanges[MaxRanges];
     };
@@ -381,6 +381,8 @@ namespace Graphics
         StencilState FrontFace;
         StencilState BackFace;
         bool StencilEnable = true;
+
+        static DepthStencilState Disabled;
 
         static DepthStencilState DepthCompareLessWriteAll_StencilOff;
 

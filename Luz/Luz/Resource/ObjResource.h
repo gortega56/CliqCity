@@ -185,7 +185,7 @@ namespace Resource
 
             StructuredSurface<VertexType, IndexType> desc = { 0 };
             desc.Name = m_objectNames[surface.ObjectHandle].c_str();
-            desc.GroupName = m_groupNames[surface.GroupHandle].c_str();
+            //desc.GroupName = m_groupNames[surface.GroupHandle].c_str();
             desc.MaterialName = m_materialNames[surface.MaterialHandle].c_str();
             desc.MaterialHandle = surface.MaterialHandle;
             desc.VerticesPtr = mesh.Vertices.data();

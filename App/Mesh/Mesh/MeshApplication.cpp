@@ -22,8 +22,11 @@
 #define DABROVIC_SPONZA_OBJ_PATH  ".\\Assets\\dabrovic_sponza\\sponza.obj"
 #define DABROVIC_SPONZA_TEXTURE_DIRECTORY DABROVIC_SPONZA_DIRECTORY
 
-#define CUBE_MAP_PATH ".\\Assets\\skybox.dds"
+#define CUBE_MAP_PATH ".\\Assets\\spruit_sunrise.dds"
 
+#define GUN_DIRECTORY ".\\Assets\\"
+#define GUN_OBJ_PATH ".\\Assets\\gun.obj"
+#define GUN_TEXTURE_DIRECTORY ".\\Assets\\gun_TEXTURES1\\"
 using namespace Luz;
 using namespace lina;
 
@@ -316,6 +319,9 @@ bool MeshApplication::Initialize()
     desc.Filename = CRYTEK_SPONZA_OBJ_PATH;
     desc.Directory = CRYTEK_SPONZA_DIRECTORY;
     desc.TextureDirectory = CRYTEK_SPONZA_DIRECTORY;
+    //desc.Filename = GUN_OBJ_PATH;
+    //desc.Directory = GUN_DIRECTORY;
+    //desc.TextureDirectory = GUN_TEXTURE_DIRECTORY;
     desc.InvertUVs = true;
     auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
 
@@ -379,6 +385,10 @@ bool MeshApplication::Initialize()
 
     m_cube_map_vs = Graphics::CreateVertexShader("cube_map_vs.hlsl");
     m_cube_map_ps = Graphics::CreatePixelShader("cube_map_ps.hlsl");
+
+    m_radiance_map_ps = Graphics::CreatePixelShader("radiance_map_ps.hlsl");
+    m_irradiance_map_ps = Graphics::CreatePixelShader("irradiance_map_ps.hlsl");
+    m_brdf_map_ps = Graphics::CreatePixelShader("brdf_integration_ps.hlsl");
 
     std::vector<Graphics::Mesh<Vertex, u32>> meshes;
     std::vector<std::string> textureNames;
@@ -506,28 +516,46 @@ bool MeshApplication::Initialize()
     ds.Height = 2048;
     m_shadowTexture = Graphics::CreateDepthStencil(ds);
 
-    Graphics::TextureFileDesc fd;
-    fd.Filename = CUBE_MAP_PATH;
-    fd.GenMips = false;
-    m_cube_map_texture_handle = Graphics::CreateTexture(fd);
+    // Environment brdf
+    {        
+        Graphics::TextureDesc td;
+        td.Width = 512;
+        td.Height = 512;
+        td.MipLevels = 1;
+        td.Depth = 1;
+        td.SampleCount = 1;
+        td.SampleQuality = 0;
+        td.Format = Graphics::GFX_FORMAT_R16G16_FLOAT;
+        td.Dimension = Graphics::GFX_RESOURCE_DIMENSION_TEXTURE2D;
+        td.Flags = Graphics::GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        td.bIsCube = false;
+        m_environment_brdf_map_handle = Graphics::CreateTexture(td);
+    }
 
-    Graphics::TextureDesc td;
-    td.Width = 256;
-    td.Height = 256;
-    td.Depth = 6;
-    td.MipLevels = 2;
-    td.SampleCount = 1;
-    td.SampleQuality = 0;
-    td.Format = Graphics::GFX_FORMAT_R8G8B8A8_UNORM;
-    td.Dimension = Graphics::GFX_RESOURCE_DIMENSION_TEXTURE2D;
-    td.Flags = Graphics::GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    td.bIsCube = true;
-    m_environment_cube_map_handle = Graphics::CreateTexture(td);
+    // Environment cube
+    {
+        Graphics::TextureDesc td;
+        td.Width = 256;
+        td.Height = 256;
+        td.Depth = 6;
+        td.MipLevels = 6;
+        td.SampleCount = 1;
+        td.SampleQuality = 0;
+        td.Format = Graphics::GFX_FORMAT_R8G8B8A8_UNORM;
+        td.Dimension = Graphics::GFX_RESOURCE_DIMENSION_TEXTURE2D;
+        td.Flags = Graphics::GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        td.bIsCube = true;
+        m_environment_cube_map_handle = Graphics::CreateTexture(td);
+    }
+    
+    // Sky box
+    {
+        Graphics::TextureFileDesc fd;
+        fd.Filename = CUBE_MAP_PATH;
+        fd.GenMips = false;
+        m_cube_map_texture_handle = Graphics::CreateTexture(fd);
+    }
 
-    td.MipLevels = 1;
-    td.Depth = 1;
-    td.bIsCube = false;
-    m_environment_lut_handle = Graphics::CreateTexture(td);
 
     // Opaque pipeline
 
@@ -544,9 +572,11 @@ bool MeshApplication::Initialize()
         .AppendDescriptorTableRange(3, static_cast<u32>(m_materialConstants.size()), 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
         .AppendDescriptorTableRange(3, static_cast<u32>(textureNames.size()), 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
         .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendAnisotropicWrapSampler(0)
-        .AppendComparisonPointBorderSampler(1)
-        .AppendWrapSampler(2, Graphics::GFX_FILTER_MIN_MAG_LINEAR_MIP_POINT);
+        .AppendDescriptorTableRange(3, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendDescriptorTableRange(3, 1, 0, 3, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendLinearWrapSampler(0)
+        .AppendAnisotropicWrapSampler(1)
+        .AppendComparisonPointBorderSampler(2);
     pd.InputLayout.AppendFloat4("TANGENT")
         .AppendPosition3F()
         .AppendNormal3F()
@@ -616,7 +646,7 @@ bool MeshApplication::Initialize()
         .AppendConstantView(0)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
         .AppendDescriptorTableRange(1, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendAnisotropicWrapSampler(0);
+        .AppendLinearWrapSampler(0);
     skyboxPipe.InputLayout.AppendPosition3F();
     skyboxPipe.VertexShaderHandle = m_cube_map_vs;
     skyboxPipe.PixelShaderHandle = m_cube_map_ps;
@@ -635,40 +665,219 @@ bool MeshApplication::Initialize()
 
     m_cubemapPipeline = Graphics::CreateGraphicsPipelineState(skyboxPipe);
 
-    Graphics::CommandStreamDesc csd;
-    csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
-    Graphics::CreateCommandStream(csd, &m_commandStream);
-
-    m_commandStream.SetPipeline(m_opaquePipeline);
-
-    float4 cc[12] =
     {
-        {0, 0, 0, 1},
-        {0, 0, 1, 1},
-        {0, 1, 0, 1},
-        {0, 1, 1, 1},
-        {1, 0, 0, 1},
-        {1, 0, 1, 1},
-        {1, 1, 0, 1},
-        {1, 1, 1, 1},
-        {0, 0, 0, 1},
-        {0, 0, 1, 1},
-        {0, 1, 0, 1},
-        {0, 1, 1, 1}
-    };
+        Graphics::PipelineDesc radiancePipe;
+        radiancePipe.Signature.SetName("Radiance")
+            .AllowInputLayout()
+            .DenyHS()
+            .DenyDS()
+            .DenyGS()
+            .AppendConstantView(0)
+            .AppendConstantView(1)
+            .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+            .AppendDescriptorTableRange(2, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+            .AppendLinearWrapSampler(0);
+        radiancePipe.InputLayout.AppendPosition3F();
+        radiancePipe.VertexShaderHandle = m_cube_map_vs;
+        radiancePipe.PixelShaderHandle = m_radiance_map_ps;
+        radiancePipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        radiancePipe.SampleCount = 1;
+        radiancePipe.SampleQuality = 0;
+        radiancePipe.SampleMask = 0xffffffff;
 
-    m_commandStream.TransitionTexture(m_environment_cube_map_handle, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+        radiancePipe.DepthStencil = Graphics::DepthStencilState::Disabled;
+        radiancePipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+        radiancePipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+        radiancePipe.Blend.AlphaToCoverageEnable = false;
+        radiancePipe.Blend.IndependentBlendEnable = false;
 
-    for (int i = 0; i < 2; ++i)
-    {
-        for (int j = 0; j < 6; ++j)
+        radiancePipe.NumRenderTargets = 1;
+        radiancePipe.pRenderTargets = &m_environment_cube_map_handle;
+        radiancePipe.DsHandle = 0;
+
+        Graphics::PipelineStateHandle hRadiance = Graphics::CreateGraphicsPipelineState(radiancePipe);
+
+        Graphics::PipelineDesc irradiancePipe;
+        irradiancePipe.Signature.SetName("Irradiance")
+            .AllowInputLayout()
+            .DenyHS()
+            .DenyDS()
+            .DenyGS()
+            .AppendConstantView(0)
+            .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+            .AppendDescriptorTableRange(1, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+            .AppendLinearWrapSampler(0);
+        irradiancePipe.InputLayout.AppendPosition3F();
+        irradiancePipe.VertexShaderHandle = m_cube_map_vs;
+        irradiancePipe.PixelShaderHandle = m_irradiance_map_ps;
+        irradiancePipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        irradiancePipe.SampleCount = 1;
+        irradiancePipe.SampleQuality = 0;
+        irradiancePipe.SampleMask = 0xffffffff;
+
+        irradiancePipe.DepthStencil = Graphics::DepthStencilState::Disabled;
+        irradiancePipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+        irradiancePipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+        irradiancePipe.Blend.AlphaToCoverageEnable = false;
+        irradiancePipe.Blend.IndependentBlendEnable = false;
+
+        irradiancePipe.NumRenderTargets = 1;
+        irradiancePipe.pRenderTargets = &m_environment_cube_map_handle;
+        irradiancePipe.DsHandle = 0;
+
+        Graphics::PipelineStateHandle hIrradiance = Graphics::CreateGraphicsPipelineState(irradiancePipe);
+
+        Graphics::PipelineDesc brdfPipe;
+        brdfPipe.Signature.SetName("BRDF Integration")
+            .DenyHS()
+            .DenyDS()
+            .DenyGS();
+        brdfPipe.VertexShaderHandle = m_fs_vs;
+        brdfPipe.PixelShaderHandle = m_brdf_map_ps;
+        brdfPipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        brdfPipe.SampleCount = 1;
+        brdfPipe.SampleQuality = 0;
+        brdfPipe.SampleMask = 0xffffffff;
+
+        brdfPipe.DepthStencil = Graphics::DepthStencilState::Disabled;
+        brdfPipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+        brdfPipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+        brdfPipe.Blend.AlphaToCoverageEnable = false;
+        brdfPipe.Blend.IndependentBlendEnable = false;
+        
+        brdfPipe.NumRenderTargets = 1;
+        brdfPipe.pRenderTargets = &m_environment_brdf_map_handle;
+        brdfPipe.DsHandle = 0;
+
+        Graphics::PipelineStateHandle hBrdf = Graphics::CreateGraphicsPipelineState(brdfPipe);
+
+        float4x4 proj = float4x4::normalized_perspective_lh(3.14f * 0.5f, m_window->AspectRatio(), 0.1f, 100.0f);
+        float4x4 views[6] =
         {
-            m_commandStream.ClearRenderTarget(cc[i * 2 + j].p_cols, m_environment_cube_map_handle, i, j);
-        }
-    }
-    m_commandStream.TransitionTexture(m_environment_cube_map_handle, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            float4x4::look_at_lh(float3(+1.0f, 0.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
+            float4x4::look_at_lh(float3(-1.0f, 0.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
+            float4x4::look_at_lh(float3(0.0f, +1.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, -1.0)),
+            float4x4::look_at_lh(float3(0.0f, -1.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, +1.0)),
+            float4x4::look_at_lh(float3(0.0f, 0.0f, +1.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
+            float4x4::look_at_lh(float3(0.0f, 0.0f, -1.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0))
+        };
 
-    Graphics::SubmitCommandStream(&m_commandStream, true);
+        Graphics::ConstantBufferHandle hCameras[6];
+        cbd.Alignment = 0;
+        cbd.SizeInBytes = sizeof(CameraConstants);
+        cbd.StrideInBytes = sizeof(CameraConstants);
+        cbd.AllocHeap = false;
+
+        for (int i = 0; i < 6; ++i)
+        {
+            CameraConstants camera;
+            camera.Proj = proj.transpose();
+            camera.View = views[i].transpose();
+            camera.InverseProj = proj.inverse().transpose();
+            camera.InverseView = views[i].inverse().transpose();
+            cbd.pData = &camera;
+            hCameras[i] = Graphics::CreateConstantBuffer(cbd);
+        }
+
+        float4 roughness[5];
+        Graphics::ConstantBufferHandle hRoughness[5];
+        cbd.SizeInBytes = sizeof(float4);
+        cbd.StrideInBytes = sizeof(float4);
+        cbd.AllocHeap = false;
+
+        for (int i = 0; i < 5; ++i)
+        {
+            roughness[i].x = (float)i / 4.0f;
+            cbd.pData = &roughness[i];
+            hRoughness[i] = Graphics::CreateConstantBuffer(cbd);
+        }
+
+        Graphics::CommandStreamDesc csd;
+        csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
+        Graphics::CreateCommandStream(csd, &m_commandStream);
+
+        m_commandStream.SetPipeline(hRadiance);
+        m_commandStream.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        m_commandStream.TransitionTexture(m_environment_cube_map_handle, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+
+        for (u32 mip = 0; mip < 5; ++mip)
+        {
+            for (u32 face = 0; face < 6; ++face)
+            {
+                float w = 256.0f * powf(0.5f, (float)mip);
+                float h = 256.0f * powf(0.5f, (float)mip);
+
+                m_commandStream.SetRenderTargets(1, &m_environment_cube_map_handle, &mip, &face, 0);
+                m_commandStream.SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
+                m_commandStream.SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
+                m_commandStream.SetConstantBuffer(0, hCameras[face]);
+                m_commandStream.SetConstantBuffer(1, hRoughness[mip]);
+                m_commandStream.SetDescriptorTable(2, m_cube_map_texture_handle);
+
+                m_commandStream.SetVertexBuffer(m_cube_map_vb_handle);
+                m_commandStream.SetIndexBuffer(m_cube_map_ib_handle);
+                m_commandStream.DrawInstanceIndexed(m_cube_map_ib_handle);
+            }
+        }
+
+        m_commandStream.SetPipeline(hIrradiance);
+        m_commandStream.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        u32 irradianceMip = 5;
+        for (u32 face = 0; face < 6; ++face)
+        {
+            float w = 256.0f * powf(0.5f, (float)irradianceMip);
+            float h = 256.0f * powf(0.5f, (float)irradianceMip);
+
+            m_commandStream.SetRenderTargets(1, &m_environment_cube_map_handle, &irradianceMip, &face, 0);
+            m_commandStream.SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
+            m_commandStream.SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
+            m_commandStream.SetConstantBuffer(0, hCameras[face]);
+            m_commandStream.SetDescriptorTable(1, m_cube_map_texture_handle);
+
+            m_commandStream.SetVertexBuffer(m_cube_map_vb_handle);
+            m_commandStream.SetIndexBuffer(m_cube_map_ib_handle);
+            m_commandStream.DrawInstanceIndexed(m_cube_map_ib_handle);
+        }
+
+        m_commandStream.TransitionTexture(m_environment_cube_map_handle, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        
+
+        // brdf integration
+        m_commandStream.TransitionTexture(m_environment_brdf_map_handle, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+
+        m_commandStream.SetPipeline(hBrdf);
+        m_commandStream.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        m_commandStream.SetRenderTargets(1, &m_environment_brdf_map_handle, nullptr, nullptr, 0);
+        m_commandStream.SetViewport(0.0f, 0.0f, 512.0, 512.0, 0.0, 1.0);
+        m_commandStream.SetScissorRect(0, 0, 512, 512);
+        m_commandStream.SetVertexBuffer(0);
+        m_commandStream.SetIndexBuffer(m_fs_ib);
+        m_commandStream.DrawInstanceIndexed(m_fs_ib);
+
+        m_commandStream.TransitionTexture(m_environment_brdf_map_handle, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+        Graphics::SubmitCommandStream(&m_commandStream, true);
+
+        Graphics::ReleasePipeline(hRadiance);
+        Graphics::ReleasePipeline(hIrradiance);
+        Graphics::ReleasePipeline(hBrdf);
+
+        for (int i = 0; i < 5; ++i)
+        {
+            Graphics::ReleaseConstantBuffer(hRoughness[i]);
+        }
+        for (int i = 0; i < 6; ++i)
+        {
+            Graphics::ReleaseConstantBuffer(hCameras[i]);
+        }
+
+        Graphics::ReleaseShader(m_radiance_map_ps);
+        Graphics::ReleaseShader(m_irradiance_map_ps);
+        Graphics::ReleaseShader(m_brdf_map_ps);
+    }
+
     s_loading.store(false);
 
     return true;
@@ -780,20 +989,20 @@ void MeshApplication::Update(double dt)
     if (s_shadowFullScreen)
     {
         auto& cs = m_commandStream;
-        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+       // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         cs.SetPipeline(m_fullScreenPipeline);
         cs.SetRenderTargets();
         cs.ClearRenderTarget(clear);
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        cs.SetDescriptorTable(0, m_shadowTexture);
+        cs.SetDescriptorTable(0, m_environment_brdf_map_handle);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         cs.SetVertexBuffer(0);
         cs.SetIndexBuffer(m_fs_ib);
         cs.DrawInstanceIndexed(m_fs_ib);
-        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
+       // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
 
         Graphics::SubmitCommandStream(&cs, false);
     }
@@ -831,8 +1040,9 @@ void MeshApplication::Update(double dt)
         // Draw cube map
         cs.SetPipeline(m_cubemapPipeline);
         cs.SetConstantBuffer(0, pConsts->hCamera);
-        cs.SetDescriptorTable(1, m_environment_cube_map_handle);
+        cs.SetDescriptorTable(1, m_cube_map_texture_handle);
 
+        cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         cs.SetVertexBuffer(m_cube_map_vb_handle);
         cs.SetIndexBuffer(m_cube_map_ib_handle);
         cs.DrawInstanceIndexed(m_cube_map_ib_handle);
@@ -853,6 +1063,8 @@ void MeshApplication::Update(double dt)
     if (Platform::GetKey(Platform::KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
     if (Platform::GetKey(Platform::KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
     if (Platform::GetKey(Platform::KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
+
+
 
     if (Platform::GetKeyUp(Platform::KEYCODE_RETURN)) s_consoleWritten.store(true);
 }

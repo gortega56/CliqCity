@@ -29,7 +29,11 @@ namespace Graphics
 
         void SetViewport(const Viewport& viewport);
 
+        void SetViewport(const float topLeftX, const float topLeftY, const float width, const float height, const float minDepth, const float maxDepth);
+
         void SetScissorRect(const Rect& rect);
+
+        void SetScissorRect(const u32 left, const u32 top, const u32 right, const u32 bottom);
 
         void ClearRenderTarget(const float* pColor, const TextureHandle handle, const u32 mipSlice = 0, const u32 arraySlice = 0);
 
