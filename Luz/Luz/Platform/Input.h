@@ -20,6 +20,9 @@ namespace Platform
 		ScreenPoint mousePosition;
 		ScreenPoint prevMousePosition;
 		ScreenPoint delta;
+        float mouseWheel;
+        float prevMouseWheel;
+        float mouseWheelDelta;
 
 		Input();
 		~Input();
@@ -47,6 +50,7 @@ namespace Platform
         void OnMouseDown(MouseButton button, WPARAM wparam, LPARAM lparam);
         void OnMouseUp(MouseButton button, WPARAM wparam, LPARAM lparam);
         void OnMouseMove(WPARAM wparam, LPARAM lparam);
+        void OnMouseWheel(WPARAM wparam, LPARAM lparam);
 
     private:
         short mCurrMouseState;

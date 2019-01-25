@@ -22,7 +22,7 @@
 #define DABROVIC_SPONZA_OBJ_PATH  ".\\Assets\\dabrovic_sponza\\sponza.obj"
 #define DABROVIC_SPONZA_TEXTURE_DIRECTORY DABROVIC_SPONZA_DIRECTORY
 
-#define CUBE_MAP_PATH ".\\Assets\\spruit_sunrise.dds"
+#define CUBE_MAP_PATH ".\\Assets\\satara_night.dds"
 
 #define GUN_DIRECTORY ".\\Assets\\"
 #define GUN_OBJ_PATH ".\\Assets\\gun.obj"

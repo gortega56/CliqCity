@@ -51,6 +51,8 @@ namespace Platform
         case WM_SYSKEYUP: // key up if alt key is pressed
             OnKeyUp(wm.wparam, wm.lparam);
             break;
+        case WM_MOUSEWHEEL:
+            OnMouseWheel(wm.wparam, wm.lparam);
         default:
             break;
         }
@@ -137,6 +139,11 @@ namespace Platform
         mousePosition.y = GET_Y_LPARAM(lParam);
     }
 
+    void Input::OnMouseWheel(WPARAM wparam, LPARAM lparam)
+    {
+        mouseWheel += (float)GET_WHEEL_DELTA_WPARAM(wparam);
+    }
+
     Input::Input()
         : mCurrMouseState(0)
         , mPrevMouseState(0)
@@ -176,6 +183,8 @@ namespace Platform
         // Key Up
         messageCenter->GetEvent(WM_KEYUP)->Bind<Input, &Input::OnWindowsMessage>(this);
         messageCenter->GetEvent(WM_SYSKEYUP)->Bind<Input, &Input::OnWindowsMessage>(this);
+
+        messageCenter->GetEvent(WM_MOUSEWHEEL)->Bind<Input, &Input::OnWindowsMessage>(this);
 
         return 1;
     }
@@ -494,6 +503,9 @@ namespace Platform
         delta.y = mousePosition.y - prevMousePosition.y;
         prevMousePosition = mousePosition;
         mPrevMouseState = mCurrMouseState;
+
+        mouseWheelDelta = (mouseWheel - prevMouseWheel) / (float)WHEEL_DELTA;
+        prevMouseWheel = mouseWheel;
 
         // copy current joypad state
         for (auto i = 0; i < XUSER_MAX_COUNT; i++)

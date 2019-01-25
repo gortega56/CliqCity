@@ -72,6 +72,8 @@ namespace Platform
 
     LUZ_API bool GetKey(KeyCode key);
 
+    LUZ_API float GetMouseWheelDelta();
+
     LUZ_API bool GetMouseButtonDown(MouseButton button);
 
     LUZ_API bool GetMouseButtonUp(MouseButton button);

@@ -216,6 +216,11 @@ namespace Platform
         return s_input.GetKey(key);
     }
 
+    float GetMouseWheelDelta()
+    {
+        return s_input.mouseWheelDelta;
+    }
+
     bool GetMouseButtonDown(MouseButton button)
     {
         return s_input.GetMouseButtonDown(button);

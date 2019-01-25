@@ -11,7 +11,7 @@ namespace Luz
 
     CameraController::CameraController()
         : m_camera()
-        , m_movementSpeed(5.0f)
+        , m_movementSpeed(0.1f)
         , m_horizontalTurnSpeed(1.0f)
         , m_verticalTurnSpeed(1.0f)
         , m_mouseX(1.0f)
@@ -39,6 +39,10 @@ namespace Luz
 
         m_mouseX = mouseX;
         m_mouseY = mouseY;
+
+        float moveSpeed = std::clamp(m_movementSpeed + Platform::GetMouseWheelDelta() * 0.1f, 0.001f, 5.0f);
+        m_movementSpeed = moveSpeed;
+       
 
         float3 position = pTransform->GetPosition();
         if (Platform::GetKey(Platform::KEYCODE_W))
