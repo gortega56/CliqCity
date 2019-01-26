@@ -87,6 +87,11 @@ namespace Graphics
         IDXGIFactory3* pFactory3;
         IDXGIFactory4* pFactory4;
 
+        IDXGIAdapter* pAdapter;
+        IDXGIAdapter1* pAdapter1;
+        IDXGIAdapter2* pAdapter2;
+        IDXGIAdapter3* pAdapter3;
+
         ID3D12Device* pDevice;
         ID3D12Device1* pDevice1;
     };

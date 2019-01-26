@@ -331,14 +331,13 @@ namespace Graphics
         if (FAILED(hr)) return false;
 
         // Create device
-        IDXGIAdapter1* pAdapter;
         bool adapterFound = false;
         int adapterIdx = 0;
 
-        while (s_device.pFactory4->EnumAdapters1(adapterIdx, &pAdapter) != DXGI_ERROR_NOT_FOUND)
+        while (s_device.pFactory4->EnumAdapters1(adapterIdx, &s_device.pAdapter1) != DXGI_ERROR_NOT_FOUND)
         {
             DXGI_ADAPTER_DESC1 desc;
-            pAdapter->GetDesc1(&desc);
+            s_device.pAdapter1->GetDesc1(&desc);
 
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
             {
@@ -346,7 +345,7 @@ namespace Graphics
                 continue;
             }
 
-            hr = D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&s_device.pDevice));
+            hr = D3D12CreateDevice(s_device.pAdapter1, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&s_device.pDevice));
             if (SUCCEEDED(hr))
             {
                 adapterFound = true;
@@ -599,8 +598,10 @@ namespace Graphics
         SAFE_RELEASE(s_swapChain.pRenderTargetDescriptorHeap);
         SAFE_RELEASE(s_swapChain.pDepthStencilDescriptorHeap);
         SAFE_RELEASE(s_swapChain.pDepthStencilResource);
+        SAFE_RELEASE(s_swapChain.pSwapChain);
+        SAFE_RELEASE(s_swapChain.pSwapChain1);
+        SAFE_RELEASE(s_swapChain.pSwapChain2);
         SAFE_RELEASE(s_swapChain.pSwapChain3);
-        SAFE_RELEASE(s_device.pFactory4);
 
 #ifdef DX_DEBUG
         s_device.pDevice->QueryInterface(IID_PPV_ARGS(&s_pDebugDevice));
@@ -614,6 +615,19 @@ namespace Graphics
 #endif
 
         SAFE_RELEASE(s_device.pDevice);
+        SAFE_RELEASE(s_device.pDevice1);
+
+        SAFE_RELEASE(s_device.pAdapter);
+        SAFE_RELEASE(s_device.pAdapter1);
+        SAFE_RELEASE(s_device.pAdapter2);
+        SAFE_RELEASE(s_device.pAdapter3);
+
+        SAFE_RELEASE(s_device.pFactory);
+        SAFE_RELEASE(s_device.pFactory1);
+        SAFE_RELEASE(s_device.pFactory2);
+        SAFE_RELEASE(s_device.pFactory3);
+        SAFE_RELEASE(s_device.pFactory4);
+
     }
 
     Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
@@ -1405,7 +1419,7 @@ namespace Graphics
                 CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
                 s_coInitialized = true;
             }
-
+            
             std::wstring filename = Internal::ConvertCString(desc.Filename);
             LPCWSTR extension = PathFindExtension(filename.c_str());
             DirectX::ScratchImage image;
@@ -1509,7 +1523,7 @@ namespace Graphics
 
     void ReleaseRenderTarget(const RenderTargetHandle handle)
     {
-        RenderTarget rt = s_renderTargetCollection.GetData(handle);
+        RenderTarget& rt = s_renderTargetCollection.GetData(handle);
         rt.CpuHandle.ptr = 0;
         SAFE_RELEASE(rt.pResource);
         s_renderTargetCollection.FreeHandle(handle);
@@ -1517,7 +1531,7 @@ namespace Graphics
 
     void ReleaseDepthStencil(const DepthStencilHandle handle)
     {
-        DepthStencil ds = s_depthStencilCollection.GetData(handle);
+        DepthStencil& ds = s_depthStencilCollection.GetData(handle);
         ds.DsvHandle.CpuHandle.ptr = 0;
         ds.DsvHandle.GpuHandle.ptr = 0;
         ds.SrvHandle.CpuHandle.ptr = 0;
@@ -1528,7 +1542,7 @@ namespace Graphics
 
     void ReleaseVertexBuffer(const VertexBufferHandle handle)
     {
-        VertexBuffer vb = s_vertexBufferCollection.GetData(handle);
+        VertexBuffer& vb = s_vertexBufferCollection.GetData(handle);
         vb.View.BufferLocation = 0;
         vb.View.SizeInBytes = 0;
         vb.View.StrideInBytes = 0;
@@ -1538,7 +1552,7 @@ namespace Graphics
 
     void ReleaseIndexBuffer(const IndexBufferHandle handle)
     {
-        IndexBuffer ib = s_indexBufferCollection.GetData(handle);
+        IndexBuffer& ib = s_indexBufferCollection.GetData(handle);
         ib.View.BufferLocation = 0;
         ib.View.SizeInBytes = 0;
         ib.View.Format = DXGI_FORMAT_UNKNOWN;
@@ -1548,7 +1562,7 @@ namespace Graphics
 
     void ReleaseConstantBuffer(const ConstantBufferHandle handle)
     {
-        ConstantBuffer cb = s_constantBufferCollection.GetData(handle);
+        ConstantBuffer& cb = s_constantBufferCollection.GetData(handle);
         cb.CbvHandle.CpuHandle.ptr = 0;
         cb.CbvHandle.GpuHandle.ptr = 0;
         SAFE_RELEASE(cb.pResource);
@@ -1557,7 +1571,7 @@ namespace Graphics
 
     void ReleaseTexture(const TextureHandle handle)
     {
-        Texture tex = s_textureCollection.GetData(handle);
+        Texture& tex = s_textureCollection.GetData(handle);
         tex.RtvHandle.CpuHandle.ptr = 0;
         tex.RtvHandle.GpuHandle.ptr = 0;
         tex.SrvHandle.CpuHandle.ptr = 0;
