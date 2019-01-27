@@ -776,7 +776,7 @@ namespace Graphics
                         UINT numDescriptors = static_cast<UINT>(range.NumDescriptors);
                         UINT baseRegister = static_cast<UINT>(range.BaseRegister);
                         UINT registerSpace = static_cast<UINT>(range.RegisterSpace);
-                        D3D12_DESCRIPTOR_RANGE_FLAG flags = 
+                        D3D12_DESCRIPTOR_RANGE_FLAGS flags =
                             (range.NumDescriptors == -1) 
                             ? D3D12_DESCRIPTOR_RANGE_FLAG_NONE 
                             : D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;

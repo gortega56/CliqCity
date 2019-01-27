@@ -108,16 +108,16 @@ namespace Graphics
     template<class VertexType, class IndexType>
     Mesh<VertexType, IndexType>& Mesh<VertexType, IndexType>::operator=(const Mesh<VertexType, IndexType>& o)
     {
-        m_vertices = other.m_vertices;
-        m_indices = other.m_indices;
+        m_vertices = o.m_vertices;
+        m_indices = o.m_indices;
         return *this;
     }
 
     template<class VertexType, class IndexType>
     Mesh<VertexType, IndexType>& Mesh<VertexType, IndexType>::operator=(Mesh<VertexType, IndexType>&& o)
     {
-        m_vertices = std::move(other.m_vertices);
-        m_indices = std::move(other.m_indices);
+        m_vertices = std::move(o.m_vertices);
+        m_indices = std::move(o.m_indices);
         return *this;
     }
 

@@ -10,6 +10,7 @@
 #include "Graphics.h"
 #include "CommandStream.h"
 #include "Platform\Input.h"
+#include "SceneResource.h"
 #include <codecvt>
 #include <iostream>
 #include <sstream>
@@ -1120,7 +1121,6 @@ void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene)
 
     for (auto& mesh : pScene->Meshes)
     {
-        auto& surface = pScene->Surfaces.emplace_back();
         Graphics::BufferDesc vbd;
         vbd.Alignment = 0;
         vbd.SizeInBytes = mesh.NumVertexBytes();

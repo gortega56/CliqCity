@@ -33,8 +33,11 @@
 #include "CommandStream.h"
 #endif
 
-#include "SceneResource.h"
+#ifndef MESH_H
+#include "Mesh.h"
+#endif
 
+class SceneResource;
 class Window;
 
 struct Vertex

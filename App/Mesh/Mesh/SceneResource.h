@@ -10,7 +10,7 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include "Luz.h"
+#include "LzAssert.h"
 
 class SceneResource
 {
@@ -38,7 +38,7 @@ public:
 
     const char* GetFile(unsigned int i) const;
 
-    static std::shared_ptr<SceneResource> Load(const char* filename);
+    static std::shared_ptr<const SceneResource> Load(const char* filename);
 
 private:
     std::vector<std::string> m_names;
@@ -72,7 +72,7 @@ const char* SceneResource::GetFile(unsigned int i) const
     return m_files[i].c_str();
 }
 
-std::shared_ptr<SceneResource> SceneResource::Load(const char* filename)
+std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
 {
     std::shared_ptr<SceneResource> pResource = nullptr;
 
@@ -101,7 +101,7 @@ std::shared_ptr<SceneResource> SceneResource::Load(const char* filename)
             fs >> names.emplace_back();
 
             pCurrentAsset = &assets.emplace_back();
-            pCurrentAsset->Name = names.size() - 1;
+            pCurrentAsset->Name = static_cast<unsigned int>(names.size()) - 1;
 
         }
         else if (cmd.compare("file"))

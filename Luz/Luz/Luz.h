@@ -6,18 +6,6 @@
 #include "Engine.h"
 #endif
 
-#ifndef INPUT_H
-#include "Input.h"
-#endif
-
-#ifndef RENDERABLE_H
-#include "Graphics\Renderable.h"
-#endif
-
-#ifndef MATERIAL_H
-#include "Graphics\Material.h"
-#endif
-
 #ifndef RESOURCEMANAGER_H
 #include "Resource\ResourceManager.h"
 #endif
