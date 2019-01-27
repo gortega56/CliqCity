@@ -303,6 +303,11 @@ namespace Graphics
         DepthStencilFlags Flags;
     };
 
+    struct LUZ_API DescriptorTableDesc
+    {
+
+    };
+
     typedef uint16_t GpuResourceHandle;
 
     typedef GpuResourceHandle VertexBufferHandle;
@@ -326,6 +331,8 @@ namespace Graphics
     typedef GpuResourceHandle CommandStreamHandle;
 
     typedef GpuResourceHandle DescriptorHandle;
+
+    typedef GpuResourceHandle DescriptorTableHandle;
 
     extern const Graphics::GpuResourceHandle GPU_RESOURCE_HANDLE_INVALID;
 
@@ -362,27 +369,6 @@ namespace Graphics
         u32 Top;
         u32 Right;
         u32 Bottom;
-    };
-
-    struct LUZ_API DescriptorTableBinding
-    {
-        union
-        {
-            ConstantBufferHandle* pCbHandle;
-            TextureHandle* pTextureHandle;
-        };
-
-        u32 Param;
-        u32 NumHandles;
-    };
-
-    struct LUZ_API DescriptorTableDesc
-    {
-        DescriptorTableBinding* pCbDescriptors;
-        DescriptorTableBinding* pTextureDescriptors;
-        
-        u32 NumCbBindings;
-        u32 NumTextureBindings;
     };
 }
 

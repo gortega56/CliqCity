@@ -382,7 +382,7 @@ namespace Graphics
         m_descriptorTable.NumRanges = 0;
     }
 
-    void Parameter::AppendDescriptorTableRange(const u32& numDescriptors, const u32& baseRegister, const u32& registerSpace, const DescriptorTable::Range::Type& type)
+    void Parameter::AppendDescriptorTableRange(const int numDescriptors, const int baseRegister, const int registerSpace, const DescriptorTable::Range::Type type)
     {
         LUZASSERT(m_descriptorTable.NumRanges < DescriptorTable::MaxRanges - 1);
 
@@ -469,9 +469,9 @@ namespace Graphics
         return *this;
     }
 
-    SignatureDesc& SignatureDesc::AppendDescriptorTableRange(const u32& paramIndex, const u32& numDescriptors, const u32& baseRegister, const u32& registerSpace, const DescriptorTable::Range::Type& type)
+    SignatureDesc& SignatureDesc::AppendDescriptorTableRange(const int paramIndex, const int numDescriptors, const int baseRegister, const int registerSpace, const DescriptorTable::Range::Type type)
     {
-        LUZASSERT(paramIndex < (u32)m_params.size());
+        LUZASSERT(paramIndex < (int)m_params.size());
         LUZASSERT(m_params[paramIndex].GetType() == Parameter::Type::PARAMETER_TYPE_DESCRIPTOR_TABLE);
 
         m_params[paramIndex].AppendDescriptorTableRange(numDescriptors, baseRegister, registerSpace, type);

@@ -177,9 +177,9 @@ namespace Graphics
                 DESCRIPTOR_TABLE_RANGE_TYPE_COUNT
             };
 
-            u32 NumDescriptors;
-            u32 BaseRegister;
-            u32 RegisterSpace;
+            int NumDescriptors;
+            int BaseRegister;
+            int RegisterSpace;
             Type Kind;
         };
 
@@ -232,7 +232,7 @@ namespace Graphics
         void InitializeShaderView(const u32& shaderRegister, const u32& registerSpace, const DataFlags& flags, const ShaderVisibility& visibility);
         void InitializeComputeView(const u32& shaderRegister, const u32& registerSpace, const DataFlags& flags, const ShaderVisibility& visibility);
         void InitializeDescriptorTable(const ShaderVisibility& visibility);
-        void AppendDescriptorTableRange(const u32& numDescriptors, const u32& baseRegister, const u32& registerSpace, const DescriptorTable::Range::Type& type);
+        void AppendDescriptorTableRange(const int numDescriptors, const int baseRegister, const int registerSpace, const DescriptorTable::Range::Type type);
 
     private:
         union
@@ -299,7 +299,7 @@ namespace Graphics
         LUZ_API SignatureDesc& AppendShaderView(const u32& shaderRegister, const u32 registerSpace = 0U, const Parameter::DataFlags flags = Parameter::DataFlags::PARAMETER_DATA_FLAG_NONE, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
         LUZ_API SignatureDesc& AppendComputeView(const u32& shaderRegister, const u32 registerSpace = 0U, const Parameter::DataFlags flags = Parameter::DataFlags::PARAMETER_DATA_FLAG_NONE, const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
         LUZ_API SignatureDesc& AppendDescriptorTable(const ShaderVisibility visibility = SHADER_VISIBILITY_ALL);
-        LUZ_API SignatureDesc& AppendDescriptorTableRange(const u32& paramIndex, const u32& numDescriptors, const u32& baseRegister, const u32& registerSpace, const DescriptorTable::Range::Type& type);
+        LUZ_API SignatureDesc& AppendDescriptorTableRange(const int paramIndex, const int numDescriptors, const int baseRegister, const int registerSpace, const DescriptorTable::Range::Type type);
 
         LUZ_API SignatureDesc& AppendAnisotropicWrapSampler(const u32& shaderRegister);
         LUZ_API SignatureDesc& AppendAnisotropicClampSampler(const u32& shaderRegister);
@@ -532,7 +532,7 @@ namespace Graphics
         u32 SampleMask = 0xffffffff;
         u32 NodeMask = 0;
         u8 NumRenderTargets = 0;
-        TextureHandle* pRenderTargets = nullptr;
+        TextureHandle pRenderTargets[8];
         DepthStencilHandle DsHandle = 0;
         bool UseSwapChain = false; // Ignores render target and depth stencil members and uses native swap chain
     };

@@ -3,12 +3,12 @@
 #endif
 
 #define NOMINMAX
-#include "MeshApplication.h"
+#include "SceneViewer.h"
 #include "Engine.h"
 
 #if _WIN64 || _WIN32
 #include <Windows.h>
-DECLARE_WINMAIN(MeshApplication)
+DECLARE_WINMAIN(SceneViewer)
 #elif __APPLE__
 DECLARE_APPLEMAIN(MeshApplication)
 #endif

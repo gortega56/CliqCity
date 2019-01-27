@@ -771,23 +771,31 @@ namespace Graphics
 
                     for (u32 j = 0; j < numRanges; ++j)
                     {
-                        ranges.emplace_back();
                         auto& range = param.GetDescriptorTableRange(j);
-                        auto rangeType = range.Kind;
 
-                        switch (rangeType)
+                        UINT numDescriptors = static_cast<UINT>(range.NumDescriptors);
+                        UINT baseRegister = static_cast<UINT>(range.BaseRegister);
+                        UINT registerSpace = static_cast<UINT>(range.RegisterSpace);
+                        D3D12_DESCRIPTOR_RANGE_FLAG flags = 
+                            (range.NumDescriptors == -1) 
+                            ? D3D12_DESCRIPTOR_RANGE_FLAG_NONE 
+                            : D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+                        ranges.emplace_back();
+
+                        switch (range.Kind)
                         {
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, range.NumDescriptors, range.BaseRegister, range.RegisterSpace, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, range.NumDescriptors, range.BaseRegister, range.RegisterSpace, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_COMPUTE_VIEW:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, range.NumDescriptors, range.BaseRegister, range.RegisterSpace, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_SAMPLER:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, range.NumDescriptors, range.BaseRegister, range.RegisterSpace, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         }
                     }
@@ -1502,6 +1510,11 @@ namespace Graphics
         }
 
         return handle;
+    }
+
+    LUZ_API DescriptorTableHandle CreateDescriptorTable(const DescriptorTableDesc& desc)
+    {
+        return 0;
     }
 
     void ReleaseShader(const ShaderHandle handle)

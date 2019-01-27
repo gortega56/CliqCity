@@ -57,6 +57,8 @@ namespace Graphics
 
     LUZ_API TextureHandle CreateTexture(const TextureFileDesc& desc);
 
+    LUZ_API DescriptorTableHandle CreateDescriptorTable(const DescriptorTableDesc& desc);
+
     LUZ_API void ReleaseShader(const ShaderHandle handle);
 
     LUZ_API void ReleasePipeline(const PipelineStateHandle handle);

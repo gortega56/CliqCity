@@ -1,6 +1,6 @@
 #pragma once
-#ifndef MESHAPPLICATION_H
-#define MESHAPPLICATION_H
+#ifndef SCENEVIEWER_H
+#define SCENEVIEWER_H
 #include <unordered_map>
 #include <unordered_set>
 #include <mutex>
@@ -33,6 +33,8 @@
 #include "CommandStream.h"
 #endif
 
+#include "SceneResource.h"
+
 class Window;
 
 struct Vertex
@@ -41,14 +43,10 @@ struct Vertex
     float3 Position;
     float3 Normal;
     float3 UV;
-    Vertex(float px, float py, float pz,
-        float nx, float ny, float nz,
-        float u, float v) :
-        Tangent(0.0f, 0.0f, 0.0f, 0.0f),
-        Position(px, py, pz),
-        Normal(nx, ny, nz),
-        UV(u, v, -1.0f) {}
-    Vertex() {}
+
+    Vertex(float px, float py, float pz, float nx, float ny, float nz, float u, float v);
+
+    Vertex() = default;
 };
 
 struct CameraConstants
@@ -119,8 +117,18 @@ struct FrameConstants
     Graphics::ConstantBufferHandle hLighting;
 };
 
-class MeshApplication :
-    public IApplication, public std::enable_shared_from_this<MeshApplication>
+struct Scene
+{
+    std::vector<Graphics::Mesh<Vertex, u32>> Meshes;
+    std::vector<MaterialConstants> Materials;
+    std::vector<Surface> Surfaces;
+    std::vector<Graphics::ConstantBufferHandle> Constants;
+    std::vector<Graphics::TextureHandle> Textures;
+    range3 Bounds;
+};
+
+class SceneViewer :
+    public IApplication, public std::enable_shared_from_this<SceneViewer>
 {
 public:
     using IApplication::IApplication;
@@ -134,12 +142,6 @@ public:
     u32 m_frameIndex;
 
     Luz::CameraController m_cameraController;
-
-    range3 m_sceneBounds;
-
-    std::vector<MaterialConstants> m_materialConstants;
-    std::vector<i32> m_materialIndices;
-    std::vector<Surface> m_surfaces;
 
     std::shared_ptr<Window> m_window;
 
@@ -163,8 +165,6 @@ public:
     Graphics::TextureHandle m_environment_cube_map_handle;
     Graphics::TextureHandle m_environment_brdf_map_handle;
 
-    Graphics::ConstantBufferHandle m_baseDescriptorHandle;
-
     Graphics::DepthStencilHandle m_shadowTexture;
 
     Graphics::PipelineStateHandle m_opaquePipeline;
@@ -172,14 +172,22 @@ public:
     Graphics::PipelineStateHandle m_fullScreenPipeline;
     Graphics::PipelineStateHandle m_cubemapPipeline;
 
-    MeshApplication();
-    ~MeshApplication();
+    SceneViewer();
+    ~SceneViewer();
 
     bool Initialize() override;
     int Shutdown() override;
 
     void Update(double delta) override;
     void FixedUpdate(double delta) override;
+
+    void LoadScene(const char* pFileName, const u32 threadID);
+    
+    std::mutex m_sceneMutex;
+    Scene m_scene;
+
+    std::mutex m_sceneQueueMutex;
+    std::vector<std::thread> m_loadingThreads;
 };
 
 #endif

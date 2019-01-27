@@ -1,0 +1,10 @@
+asset sponza
+	dir root crytek_sponza
+	dir textures textures
+	file sponza.obj
+	
+asset gun
+	file gun.obj
+	dir textures gun_TEXTURES1
+
+	
