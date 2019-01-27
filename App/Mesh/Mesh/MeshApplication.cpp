@@ -304,7 +304,7 @@ MeshApplication::~MeshApplication()
 
 bool MeshApplication::Initialize()
 {
-    s_consoleThread = std::thread(ConsoleThread);
+    //s_consoleThread = std::thread(ConsoleThread);
 
     m_window = Window::Create("Mesh Application", 1600, 900, false);
 
@@ -316,12 +316,12 @@ bool MeshApplication::Initialize()
     }
 
     Resource::Obj::Desc desc;
-    desc.Filename = CRYTEK_SPONZA_OBJ_PATH;
-    desc.Directory = CRYTEK_SPONZA_DIRECTORY;
-    desc.TextureDirectory = CRYTEK_SPONZA_DIRECTORY;
-    //desc.Filename = GUN_OBJ_PATH;
-    //desc.Directory = GUN_DIRECTORY;
-    //desc.TextureDirectory = GUN_TEXTURE_DIRECTORY;
+    //desc.Filename = CRYTEK_SPONZA_OBJ_PATH;
+    //desc.Directory = CRYTEK_SPONZA_DIRECTORY;
+    //desc.TextureDirectory = CRYTEK_SPONZA_DIRECTORY;
+    desc.Filename = GUN_OBJ_PATH;
+    desc.Directory = GUN_DIRECTORY;
+    desc.TextureDirectory = GUN_TEXTURE_DIRECTORY;
     desc.InvertUVs = true;
     auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
 
@@ -885,9 +885,47 @@ bool MeshApplication::Initialize()
 
 int MeshApplication::Shutdown()
 {
-    s_consoleThread.join();
+    for (u32 i = 0; i < s_nFrameResources; ++i)
+    {
+        Graphics::ReleaseConstantBuffer(m_frameConsts[i].hCamera);
+        Graphics::ReleaseConstantBuffer(m_frameConsts[i].hLighting);
+        Graphics::ReleaseConstantBuffer(m_frameConsts[i].hShadow);
+    }
+
+    Graphics::ReleaseConstantBuffer(m_baseDescriptorHandle);
+
+
+    for (u32 i = 0, n = static_cast<u32>(m_surfaces.size()); i < n; ++i)
+    {
+        Graphics::ReleaseVertexBuffer(m_surfaces[i].vb);
+        Graphics::ReleaseIndexBuffer(m_surfaces[i].ib);
+    }
+
+    Graphics::ReleaseVertexBuffer(m_cube_map_vb_handle);
+    Graphics::ReleaseIndexBuffer(m_cube_map_ib_handle);
+    Graphics::ReleaseIndexBuffer(m_fs_ib);
+
+    Graphics::ReleaseShader(m_vs);
+    Graphics::ReleaseShader(m_ps);
+    Graphics::ReleaseShader(m_fs_vs);
+    Graphics::ReleaseShader(m_fs_ps);
+    Graphics::ReleaseShader(m_cube_map_vs);
+    Graphics::ReleaseShader(m_cube_map_ps);
+
+    Graphics::ReleaseTexture(m_cube_map_texture_handle);
+    Graphics::ReleaseTexture(m_environment_cube_map_handle);
+    Graphics::ReleaseTexture(m_environment_brdf_map_handle);
+
+    Graphics::ReleaseDepthStencil(m_shadowTexture);
+
+    Graphics::ReleasePipeline(m_opaquePipeline);
+    Graphics::ReleasePipeline(m_shadowPipeline);
+    Graphics::ReleasePipeline(m_fullScreenPipeline);
+    Graphics::ReleasePipeline(m_cubemapPipeline);
+
     Graphics::ReleaseCommandStream(&m_commandStream);
     Graphics::Shutdown();
+   // s_consoleThread.join();
 
     return 0;
 }
