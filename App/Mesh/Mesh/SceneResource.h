@@ -17,11 +17,11 @@ class SceneResource
 public:
     struct Asset
     {
-        unsigned int Name;
-        unsigned int RootDir;
-        unsigned int TextureDir;
-        unsigned int nFiles = 0;
-        unsigned int pFiles[256];
+        int Name = -1;
+        int RootDir = -1;
+        int TextureDir = -1;
+        int nFiles = 0;
+        int pFiles[256];
     };
 
     SceneResource() = default;
@@ -30,13 +30,13 @@ public:
 
     unsigned int NumAssets() const;
 
-    const Asset& GetAsset(unsigned int i) const;
+    const Asset& GetAsset(int i) const;
 
-    const char* GetAssetName(unsigned int i) const;
+    const char* GetAssetName(int i) const;
 
-    const char* GetDirectory(unsigned int i) const;
+    const char* GetDirectory(int i) const;
 
-    const char* GetFile(unsigned int i) const;
+    const char* GetFile(int i) const;
 
     static std::shared_ptr<const SceneResource> Load(const char* filename);
 
@@ -52,24 +52,24 @@ unsigned int SceneResource::NumAssets() const
     return static_cast<unsigned int>(m_assets.size());
 }
 
-const SceneResource::Asset& SceneResource::GetAsset(unsigned int i) const
+const SceneResource::Asset& SceneResource::GetAsset(int i) const
 {
     return m_assets[i];
 }
 
-const char* SceneResource::GetAssetName(unsigned int i) const
+const char* SceneResource::GetAssetName(int i) const
 {
-    return m_names[i].c_str();
+    return (i != -1) ? m_names[i].c_str() : "";
 }
 
-const char* SceneResource::GetDirectory(unsigned int i) const
+const char* SceneResource::GetDirectory(int i) const
 {
-    return m_directories[i].c_str();
+    return (i != -1) ? m_directories[i].c_str() : "";
 }
 
-const char* SceneResource::GetFile(unsigned int i) const
+const char* SceneResource::GetFile(int i) const
 {
-    return m_files[i].c_str();
+    return (i != -1) ? m_files[i].c_str() : "";
 }
 
 std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
@@ -82,12 +82,12 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
         LUZASSERT(false);
     }
 
-    std::vector<std::string> names;
-    std::vector<std::string> files;
-    std::vector<std::string> directories;
+    pResource = std::make_shared<SceneResource>();
+    auto& names = pResource->m_names;
+    auto& directories = pResource->m_directories;
+    auto& files = pResource->m_files;
+    auto& assets = pResource->m_assets;
     
-    std::vector<Asset> assets;
-
     Asset* pCurrentAsset = nullptr;
 
     while (fs.good())
@@ -96,47 +96,37 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
 
         fs >> cmd;
 
-        if (cmd.compare("asset"))
+        if (cmd.compare("asset") == 0)
         {
             fs >> names.emplace_back();
 
             pCurrentAsset = &assets.emplace_back();
-            pCurrentAsset->Name = static_cast<unsigned int>(names.size()) - 1;
+            pCurrentAsset->Name = static_cast<int>(names.size()) - 1;
 
         }
-        else if (cmd.compare("file"))
+        else if (cmd.compare("file") == 0)
         {
             fs >> files.emplace_back();
 
-            pCurrentAsset->pFiles[pCurrentAsset->nFiles++] = files.size() - 1;
+            pCurrentAsset->pFiles[pCurrentAsset->nFiles++] = static_cast<int>(files.size()) - 1;
         }
-        else if (cmd.compare("dir"))
+        else if (cmd.compare("dir") == 0)
         {
             fs >> cmd;
+            fs >> directories.emplace_back();
 
-            if (cmd.compare("root"))
+            if (cmd.compare("root") == 0)
             {
-                fs >> directories.emplace_back();
-
-                pCurrentAsset->RootDir = directories.size() - 1;
+                pCurrentAsset->RootDir = static_cast<int>(directories.size()) - 1;
             }
-            else if (cmd.compare("textures"))
+            else if (cmd.compare("textures") == 0)
             {
-                pCurrentAsset->TextureDir = directories.size() - 1;
+                pCurrentAsset->TextureDir = static_cast<int>(directories.size()) - 1;
             }
         }
     }
 
     fs.close();
-
-    auto getExtension = [](const std::string& file) -> std::string
-    {
-        if (file.find_last_of(".") != std::string::npos)
-            return file.substr(file.find_last_of(".") + 1);
-        return "";
-    };
-
-
 
     return pResource;
 }

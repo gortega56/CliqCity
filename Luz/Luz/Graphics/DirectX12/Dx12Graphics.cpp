@@ -777,10 +777,10 @@ namespace Graphics
                         UINT baseRegister = static_cast<UINT>(range.BaseRegister);
                         UINT registerSpace = static_cast<UINT>(range.RegisterSpace);
                         D3D12_DESCRIPTOR_RANGE_FLAGS flags =
-                            (range.NumDescriptors == -1) 
-                            ? D3D12_DESCRIPTOR_RANGE_FLAG_NONE 
-                            : D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-
+                            (range.NumDescriptors == -1)
+                            ? D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE
+                            : D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+                        
                         ranges.emplace_back();
 
                         switch (range.Kind)
@@ -838,7 +838,11 @@ namespace Graphics
             ID3DBlob* pBlob;
             ID3DBlob* pErrorBlob;
             HRESULT hr = D3D12SerializeVersionedRootSignature(&rsd, &pBlob, &pErrorBlob);
-            LUZASSERT(SUCCEEDED(hr));
+            if (FAILED(hr))
+            {
+                OutputDebugStringA((LPCSTR)pErrorBlob->GetBufferPointer());
+                SAFE_RELEASE(pErrorBlob);
+            }
 
             hr = s_device.pDevice->CreateRootSignature(0, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&pipeline.pSignature));
             LUZASSERT(SUCCEEDED(hr));

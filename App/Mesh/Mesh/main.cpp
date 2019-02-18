@@ -10,5 +10,5 @@
 #include <Windows.h>
 DECLARE_WINMAIN(SceneViewer)
 #elif __APPLE__
-DECLARE_APPLEMAIN(MeshApplication)
+DECLARE_APPLEMAIN(SceneViewer)
 #endif

@@ -255,6 +255,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
         roughness[i].x = (float)i / 4.0f;
 
         Graphics::ConstantBufferDesc desc;
+        desc.Alignment = 0;
         desc.SizeInBytes = sizeof(float4);
         desc.StrideInBytes = sizeof(float4);
         desc.AllocHeap = false;
@@ -513,6 +514,8 @@ SceneViewer::~SceneViewer()
 
 }
 
+static std::atomic_bool s_bSceneLoaded = ATOMIC_VAR_INIT(0);
+
 bool SceneViewer::Initialize()
 {
     //s_consoleThread = std::thread(ConsoleThread);
@@ -526,7 +529,14 @@ bool SceneViewer::Initialize()
         return false;
     }
 
+    LoadScene(".\\Assets\\gun.scene", 0);
 
+    
+    bool bSceneLoaded = false;
+    do
+    {
+        bSceneLoaded = s_bSceneLoaded.load();
+    } while (!bSceneLoaded);
 
     Resource::Obj::Desc desc;
     //desc.Filename = CRYTEK_SPONZA_OBJ_PATH;
@@ -536,7 +546,7 @@ bool SceneViewer::Initialize()
     desc.Directory = GUN_DIRECTORY;
     desc.TextureDirectory = GUN_TEXTURE_DIRECTORY;
     desc.InvertUVs = true;
-    auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
+   // auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
 
     m_cameraController = CameraController();
 
@@ -734,10 +744,12 @@ bool SceneViewer::Initialize()
             .AppendConstantView(2)
             .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
             .AppendDescriptorTableRange(3, -1, 3, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW)   // Array of CBVs
-            .AppendDescriptorTableRange(3, -1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
-            .AppendDescriptorTableRange(3, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)      // Shadow
-            .AppendDescriptorTableRange(3, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)      // Env BRDF
-            .AppendDescriptorTableRange(3, 1, 0, 3, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)      // Env Cube
+            .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
+            .AppendDescriptorTableRange(4, -1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)     // Array of SRVs
+            .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_ALL)
+            .AppendDescriptorTableRange(5, 1, 0, 1, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)      // Shadow
+            .AppendDescriptorTableRange(5, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)      // Env BRDF
+            .AppendDescriptorTableRange(5, 1, 0, 3, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)      // Env Cube
             .AppendLinearWrapSampler(0)
             .AppendAnisotropicWrapSampler(1)
             .AppendComparisonPointBorderSampler(2);
@@ -856,6 +868,11 @@ bool SceneViewer::Initialize()
 
 int SceneViewer::Shutdown()
 {
+    for (auto& thread : m_loadingThreads)
+    {
+        if (thread.joinable()) thread.join();
+    }
+
     for (u32 i = 0; i < s_nFrameResources; ++i)
     {
         Graphics::ReleaseConstantBuffer(m_frameConsts[i].hCamera);
@@ -1001,7 +1018,7 @@ void SceneViewer::Update(double dt)
             cs.DrawInstanceIndexed(surface.ib);
         }
 
-        Graphics::SubmitCommandStream(&cs, false);
+        Graphics::SubmitCommandStream(&cs);
     }
     
     if (s_shadowFullScreen)
@@ -1022,7 +1039,7 @@ void SceneViewer::Update(double dt)
         cs.DrawInstanceIndexed(m_fs_ib);
        // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
 
-        Graphics::SubmitCommandStream(&cs, false);
+        Graphics::SubmitCommandStream(&cs);
     }
     else
     {
@@ -1064,7 +1081,7 @@ void SceneViewer::Update(double dt)
         cs.SetIndexBuffer(m_cube_map_ib_handle);
         cs.DrawInstanceIndexed(m_cube_map_ib_handle);
 
-        Graphics::SubmitCommandStream(&cs, false);
+        Graphics::SubmitCommandStream(&cs);
     }
         
     Graphics::Present();
@@ -1212,14 +1229,10 @@ void DestroyScene(const Scene* pScene)
 }
 
 void SceneViewer::LoadScene(const char* pFileName, const u32 threadID)
-{
-    char buffer[256];
-    strcpy_s(buffer, pFileName);
-    
-    std::weak_ptr<SceneViewer> pWeak = shared_from_this();
-    m_loadingThreads[threadID] = std::thread([buffer, pWeak]()
+{   
+    m_loadingThreads[threadID] = std::thread([&]()
     {
-        auto pScene = Resource::Async<SceneResource>::Load(buffer).Get();
+        auto pScene = Resource::Async<SceneResource>::Load(pFileName).Get();
         if (!pScene)
         {
             return;
@@ -1234,6 +1247,8 @@ void SceneViewer::LoadScene(const char* pFileName, const u32 threadID)
                 {
                     return &file[i + 1];
                 }
+
+                i -= 1;
             }
 
             return nullptr;
@@ -1258,20 +1273,33 @@ void SceneViewer::LoadScene(const char* pFileName, const u32 threadID)
                 const char* file = pScene->GetFile(asset.pFiles[iFile]);
                 const char* ext = getExtension(file);
                 
-                char buffer[256];
-                strcpy_s(buffer, ".\\Assets\\");
-                strcat_s(buffer, rootDir);
-                strcat_s(buffer, file);
+                const char* assetDir = ".\\Assets\\";
+                
+                char relativePath[256];
+                strcpy_s(relativePath, assetDir);
+                strcat_s(relativePath, rootDir);
+                strcat_s(relativePath, "\\");
 
-                if (strcmp(ext, "obj"))
+                char texturePath[256];
+                strcpy_s(texturePath, relativePath);
+                strcat_s(texturePath, textureDir);
+                strcat_s(texturePath, "\\");
+
+                char filePath[256];
+                strcpy_s(filePath, relativePath);
+                strcat_s(filePath, file);
+
+                if (strcmp(ext, "obj") == 0)
                 {
                     Resource::Obj::Desc desc;
-                    desc.Filename = std::string(buffer);
+                    desc.Filename = std::string(filePath);
+                    desc.Directory = std::string(relativePath);
+                    desc.TextureDirectory = std::string(texturePath);
                     loadingObjs.push_back(Resource::Async<Resource::Obj>::Load(desc));
                 }
-                else if (strcmp(ext, "fbx"))
+                else if (strcmp(ext, "fbx") == 0)
                 {
-                    loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(std::string(buffer)));
+                    //loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(std::string(buffer)));
                 }
             }
         }
@@ -1295,16 +1323,17 @@ void SceneViewer::LoadScene(const char* pFileName, const u32 threadID)
             // UpdateScene(fbxs.back(), &scene);
         }
 
-        if (auto pShared = pWeak.lock())
         {
-            std::lock_guard<std::mutex> lock(pShared->m_sceneQueueMutex);
-            pShared->m_scene.Bounds = scene.Bounds;
-            pShared->m_scene.Meshes = scene.Meshes;
-            pShared->m_scene.Materials = scene.Materials;
-            pShared->m_scene.Constants = scene.Constants;
-            pShared->m_scene.Surfaces = scene.Surfaces;
-            pShared->m_scene.Textures = scene.Textures;
+            std::lock_guard<std::mutex> lock(m_sceneQueueMutex);
+            m_scene.Bounds = scene.Bounds;
+            m_scene.Meshes = scene.Meshes;
+            m_scene.Materials = scene.Materials;
+            m_scene.Constants = scene.Constants;
+            m_scene.Surfaces = scene.Surfaces;
+            m_scene.Textures = scene.Textures;
         }
+
+        s_bSceneLoaded.store(true);
     });
 }
 
