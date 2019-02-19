@@ -387,12 +387,12 @@ namespace Graphics
         DescriptorAllocator* pHeapAllocator = nullptr;
         pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
         pHeapAllocator->m_type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;// D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         pHeapAllocator->m_descriptorHandleIncrementSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER];
         pHeapAllocator->m_type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        pHeapAllocator->m_flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;// D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         pHeapAllocator->m_descriptorHandleIncrementSize = s_device.pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
         pHeapAllocator = &s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_RTV];
@@ -781,21 +781,19 @@ namespace Graphics
                             ? D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE
                             : D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
                         
-                        ranges.emplace_back();
-
                         switch (range.Kind)
                         {
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_CONSTANT_VIEW:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.emplace_back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.emplace_back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_COMPUTE_VIEW:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.emplace_back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         case DescriptorTable::Range::Type::DESCRIPTOR_TABLE_RANGE_TYPE_SAMPLER:
-                            ranges.back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+                            ranges.emplace_back().Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, numDescriptors, baseRegister, registerSpace, flags, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
                             break;
                         }
                     }
@@ -1625,6 +1623,7 @@ namespace Graphics
 
         ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(eQueueType);
         cl.pGraphicsCommandList->Reset(pCommandAllocator, nullptr);
+        cl.iDescriptorHeap = (cl.iDescriptorHeap + 1) % CommandList::s_nDescriptorHeaps;
 
         if (wait)
         {
@@ -1635,10 +1634,13 @@ namespace Graphics
     void Present(bool wait /*= false*/)
     {
         ID3D12CommandAllocator* pCommandAllocator = AllocateCommandAllocator(GFX_COMMAND_QUEUE_TYPE_DRAW);
+
         if (!s_swapChain.pGraphicsCommandList)
         {
             HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr, IID_PPV_ARGS(&s_swapChain.pGraphicsCommandList));
             LUZASSERT(SUCCEEDED(hr));
+        
+            s_swapChain.pGraphicsCommandList->SetName(L"SwapChain Graphics Command List");
         }
         else
         {
@@ -1672,8 +1674,6 @@ namespace Graphics
         }
 
         s_swapChain.FrameIndex = s_swapChain.pSwapChain3->GetCurrentBackBufferIndex();
-
-
     }
 
 
@@ -1701,6 +1701,27 @@ namespace Graphics
         {
             HRESULT hr = cl.pGraphicsCommandList->Reset(pCommandAllocator, pPipelineState);
             LUZASSERT(SUCCEEDED(hr));
+        }
+
+        if (cl.ppDescriptorHeap[0])
+        {
+
+        }
+        else
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc;
+            ZeroMemory(&desc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            desc.NumDescriptors = 256;
+
+            for (unsigned i = 0; i < CommandList::s_nDescriptorHeaps; ++i)
+            {
+                HRESULT hr = s_device.pDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&cl.ppDescriptorHeap[i]));
+                LUZASSERT(SUCCEEDED(hr));
+            }
+
+            cl.iDescriptorHeap = 0;
         }
 
         return handle;

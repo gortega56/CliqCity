@@ -103,11 +103,10 @@ namespace Graphics
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
 
-        ID3D12Resource* pResource = nullptr;
-        HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
-        LUZASSERT(SUCCEEDED(hr));
+        //ID3D12Resource* pResource = nullptr;
+        //HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
+        //LUZASSERT(SUCCEEDED(hr));
 
-        cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
         cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], TRUE, &s_swapChain.DepthStencilViewHandle);
     }
 
@@ -263,6 +262,82 @@ namespace Graphics
         cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(param), descriptor.GpuHandle);
     }
 
+    void CommandStream::SetDescriptorTable(const u32 param, const GpuResourceHandle* pHandles, const u32 nHandles)
+    {
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+
+        ID3D12DescriptorHeap* pDescriptorHeap = cl.ppDescriptorHeap[cl.iDescriptorHeap];
+        D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        UINT incrementSize = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].m_descriptorHandleIncrementSize;
+
+        for (u32 i = 0; i < nHandles; ++i)
+        {
+            auto handle = pHandles[i];
+            auto eHandleType = static_cast<DescriptorHandleType>(HandleEncoder<GpuResourceHandle>::DecodeHandleValue(handle, s_nDescriptorTypeBits));
+        
+            D3D12_CPU_DESCRIPTOR_HANDLE dstHandle;
+            switch (eHandleType)
+            {
+            case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: dstHandle = s_constantBufferCollection.GetData(handle).CbvHandle.CpuHandle; break;
+            case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: dstHandle = s_textureCollection.GetData(handle).SrvHandle.CpuHandle; break;
+            case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
+            case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: dstHandle = s_depthStencilCollection.GetData(handle).SrvHandle.CpuHandle; break;
+            case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
+            default: LUZASSERT(false); break;
+            }
+
+            s_device.pDevice->CopyDescriptorsSimple(1, CD3DX12_CPU_DESCRIPTOR_HANDLE(srcHandle, i, incrementSize), dstHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        }
+
+        cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pDescriptorHeap);
+        cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(param, pDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    }
+
+    void CommandStream::SetDescriptorTable(const DescriptorTableRange* pDescriptorTableRanges, const u32 nDescriptorTableRanges)
+    {
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        
+        ID3D12DescriptorHeap* pDescriptorHeap = cl.ppDescriptorHeap[cl.iDescriptorHeap];
+        cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pDescriptorHeap);
+
+        UINT incrementSize = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].m_descriptorHandleIncrementSize;
+        UINT cpuOffset = 0;
+        UINT gpuOffset = 0;
+
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = pDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+
+        for (u32 i = 0; i < nDescriptorTableRanges; ++i)
+        {
+            const DescriptorTableRange& range = pDescriptorTableRanges[i];
+
+            for (u32 j = 0; j < range.nHandles; ++j)
+            {
+                GpuResourceHandle handle = range.pHandles[j];
+                DescriptorHandleType eHandleType = static_cast<DescriptorHandleType>(HandleEncoder<GpuResourceHandle>::DecodeHandleValue(handle, s_nDescriptorTypeBits));
+            
+                D3D12_CPU_DESCRIPTOR_HANDLE dstHandle;
+                switch (eHandleType)
+                {
+                case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: dstHandle = s_constantBufferCollection.GetData(handle).CbvHandle.CpuHandle; break;
+                case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: dstHandle = s_textureCollection.GetData(handle).SrvHandle.CpuHandle; break;
+                case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
+                case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: dstHandle = s_depthStencilCollection.GetData(handle).SrvHandle.CpuHandle; break;
+                case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
+                default: LUZASSERT(false); break;
+                }
+
+                s_device.pDevice->CopyDescriptorsSimple(1, CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuHandle, cpuOffset), dstHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            
+                cpuOffset += incrementSize;
+            }
+
+            cl.pGraphicsCommandList->SetGraphicsRootDescriptorTable(range.Register, CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuHandle, gpuOffset));
+
+            gpuOffset = cpuOffset;
+        }
+    }
+
     void CommandStream::TransitionDepthStencil(const DepthStencilHandle handle, const ResourceStates before, const ResourceStates after)
     {
         DepthStencil& ds = s_depthStencilCollection.GetData(handle);
@@ -279,6 +354,19 @@ namespace Graphics
         D3D12_RESOURCE_STATES b = GetD3D12ResourceState(before);
         D3D12_RESOURCE_STATES a = GetD3D12ResourceState(after);
         TransitionResource(cl.pGraphicsCommandList, rt.pResource, b, a);
+    }
+
+    void CommandStream::TransitionRenderTarget(const ResourceStates before, const ResourceStates after)
+    {
+        ID3D12Resource* pResource = nullptr;
+        HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
+        LUZASSERT(SUCCEEDED(hr));
+
+        //cl.pGraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+        CommandList& cl = s_commandListCollection.GetData(m_handle);
+        D3D12_RESOURCE_STATES b = GetD3D12ResourceState(before);
+        D3D12_RESOURCE_STATES a = GetD3D12ResourceState(after);
+        TransitionResource(cl.pGraphicsCommandList, pResource, b, a);
     }
 
     void CommandStream::TransitionTexture(const TextureHandle handle, const ResourceStates before, const ResourceStates after)

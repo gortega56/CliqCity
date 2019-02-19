@@ -8,6 +8,17 @@
 
 namespace Graphics
 {
+    struct DescriptorTableRange
+    {
+        static constexpr unsigned int s_max_constants = 14;
+        static constexpr unsigned int s_max_textures = 128;
+        static constexpr unsigned int s_max_resources = s_max_constants + s_max_textures;
+
+        unsigned int Register;
+        unsigned int nHandles;
+        GpuResourceHandle pHandles[s_max_resources];
+    };
+
     class LUZ_API CommandStream
     {
     public:
@@ -55,9 +66,15 @@ namespace Graphics
 
         void SetDescriptorTable(const u32 param, const GpuResourceHandle baseHandle);
 
+        void SetDescriptorTable(const u32 param, const GpuResourceHandle* pHandles, const u32 nHandles);
+
+        void SetDescriptorTable(const DescriptorTableRange* pDescriptorTableRanges, const u32 nDescriptorTableRanges);
+
         void TransitionDepthStencil(const DepthStencilHandle handle, const ResourceStates before, const ResourceStates after);
 
         void TransitionRenderTarget(const RenderTargetHandle handle, const ResourceStates before, const ResourceStates after);
+
+        void CommandStream::TransitionRenderTarget(const ResourceStates before, const ResourceStates after);
 
         void TransitionTexture(const TextureHandle handle, const ResourceStates before, const ResourceStates after);
 

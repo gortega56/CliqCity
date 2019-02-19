@@ -351,6 +351,8 @@ namespace Graphics
         CommandQueueType QueueType;
         CommandQueueHandle QueueHandle;
         PipelineStateHandle PipelineHandle;
+        ConstantBufferHandle pConstants[16];
+        TextureHandle pTextures[32];
     };
 
     struct LUZ_API Viewport

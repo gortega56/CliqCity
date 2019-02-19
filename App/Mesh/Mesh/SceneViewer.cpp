@@ -32,6 +32,9 @@
 using namespace Luz;
 using namespace lina;
 
+static int s_window_width = 1600;
+static int s_window_height = 900;
+
 Vertex::Vertex(
     float px, float py, float pz,
     float nx, float ny, float nz,
@@ -139,7 +142,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
         .AppendConstantView(0)
         .AppendConstantView(1)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-        .AppendDescriptorTableRange(2, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendDescriptorTableRange(2, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
         .AppendLinearWrapSampler(0);
     radiancePipe.InputLayout.AppendPosition3F();
     radiancePipe.VertexShaderHandle = params.hCubeVertexShader;
@@ -169,7 +172,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
         .DenyGS()
         .AppendConstantView(0)
         .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-        .AppendDescriptorTableRange(1, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendDescriptorTableRange(1, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
         .AppendLinearWrapSampler(0);
     irradiancePipe.InputLayout.AppendPosition3F();
     irradiancePipe.VertexShaderHandle = params.hCubeVertexShader;
@@ -268,6 +271,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
     pCommandStream->SetPipeline(hRadiance);
     pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+    pCommandStream->SetDescriptorTable(2, &params.hCubeTexture, 1);
 
     for (u32 mip = 0; mip < 5; ++mip)
     {
@@ -281,7 +285,6 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
             pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
             pCommandStream->SetConstantBuffer(0, hCameras[face]);
             pCommandStream->SetConstantBuffer(1, hRoughness[mip]);
-            pCommandStream->SetDescriptorTable(2, params.hCubeTexture);
 
             pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
             pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
@@ -289,8 +292,11 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
         }
     }
 
+    Graphics::SubmitCommandStream(pCommandStream);
+
     pCommandStream->SetPipeline(hIrradiance);
     pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pCommandStream->SetDescriptorTable(1, &params.hCubeTexture, 1);
 
     u32 irradianceMip = 5;
     for (u32 face = 0; face < 6; ++face)
@@ -302,12 +308,13 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
         pCommandStream->SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
         pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
         pCommandStream->SetConstantBuffer(0, hCameras[face]);
-        pCommandStream->SetDescriptorTable(1, params.hCubeTexture);
 
         pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
         pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
         pCommandStream->DrawInstanceIndexed(params.hCubeIndexBuffer);
     }
+
+    Graphics::SubmitCommandStream(pCommandStream);
 
     pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -520,7 +527,7 @@ bool SceneViewer::Initialize()
 {
     //s_consoleThread = std::thread(ConsoleThread);
 
-    m_window = Window::Create("Scene Viewer", 1600, 900, false);
+    m_window = Window::Create("Scene Viewer", s_window_width, s_window_height, false);
 
     m_frameIndex = 0;
 
@@ -529,7 +536,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 
-    LoadScene(".\\Assets\\gun.scene", 0);
+    LoadScene(".\\Assets\\sponza.scene", 0);
 
     
     bool bSceneLoaded = false;
@@ -820,7 +827,7 @@ bool SceneViewer::Initialize()
             .DenyGS()
             .AppendConstantView(0)
             .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-            .AppendDescriptorTableRange(1, 1, 0, 2, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+            .AppendDescriptorTableRange(1, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
             .AppendLinearWrapSampler(0);
         skyboxPipe.InputLayout.AppendPosition3F();
         skyboxPipe.VertexShaderHandle = m_cube_map_vs;
@@ -969,8 +976,8 @@ void SceneViewer::Update(double dt)
     pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
     pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
 
-    static const Graphics::Viewport vp = { 0.0f, 0.0f, 1600.0f, 900.0f, 0.0f, 1.0f };
-    static const Graphics::Rect scissor = { 0, 0, 1600, 900 };
+    static const Graphics::Viewport vp = { 0.0f, 0.0f, static_cast<float>(s_window_width), static_cast<float>(s_window_height), 0.0f, 1.0f };
+    static const Graphics::Rect scissor = { 0, 0, static_cast<u32>(s_window_width), static_cast<u32>(s_window_height) };
     float clear[4] =
     {
         shaderOptions.LightColor.x,
@@ -1031,7 +1038,7 @@ void SceneViewer::Update(double dt)
         cs.ClearDepthStencil(1.0f, 0);
         cs.SetViewport(vp);
         cs.SetScissorRect(scissor);
-        cs.SetDescriptorTable(0, m_environment_brdf_map_handle);
+        cs.SetDescriptorTable(0, &m_environment_brdf_map_handle, 1);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         cs.SetVertexBuffer(0);
@@ -1043,11 +1050,30 @@ void SceneViewer::Update(double dt)
     }
     else
     {
+        unsigned int nConstants = static_cast<unsigned int>(m_scene.Constants.size());
+        unsigned int nTextures = static_cast<unsigned int>(m_scene.Textures.size());
+        size_t szConstants = sizeof(Graphics::GpuResourceHandle) * nConstants;
+        size_t szTextures = sizeof(Graphics::GpuResourceHandle) * nTextures;
+
+        Graphics::DescriptorTableRange pRanges[3];
+        pRanges[0].Register = 3;
+        pRanges[0].nHandles = nConstants;
+        pRanges[1].Register = 4;
+        pRanges[1].nHandles = nTextures;
+        pRanges[2].Register = 5;
+        pRanges[2].nHandles = 3;
+        pRanges[2].pHandles[0] = m_shadowTexture;
+        pRanges[2].pHandles[1] = m_environment_brdf_map_handle;
+        pRanges[2].pHandles[2] = m_environment_cube_map_handle;
+        memcpy_s(pRanges[0].pHandles, szConstants, m_scene.Constants.data(), szConstants);
+        memcpy_s(pRanges[1].pHandles, szTextures, m_scene.Textures.data(), szTextures);
+
         // Main visual
         Graphics::UpdateConstantBuffer(&pConsts->CameraConsts, sizeof(CameraConstants), pConsts->hCamera);
         Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
 
         auto& cs = m_commandStream;
+        cs.TransitionRenderTarget(Graphics::GFX_RESOURCE_STATE_PRESENT, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
         cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         cs.SetPipeline(m_opaquePipeline);
         cs.SetRenderTargets();
@@ -1058,7 +1084,7 @@ void SceneViewer::Update(double dt)
         cs.SetConstantBuffer(0, pConsts->hCamera);
         cs.SetConstantBuffer(1, pConsts->hShadow);
         cs.SetConstantBuffer(2, pConsts->hLighting);
-        cs.SetDescriptorTable(3, hDescriptor);
+        cs.SetDescriptorTable(pRanges, 3);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         for (u32 i = 0; i < nSurfaces; ++i)
@@ -1070,11 +1096,15 @@ void SceneViewer::Update(double dt)
         }
 
         cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
+        Graphics::SubmitCommandStream(&cs);
 
         // Draw cube map
         cs.SetPipeline(m_cubemapPipeline);
+        cs.SetRenderTargets();
+        cs.SetViewport(vp);
+        cs.SetScissorRect(scissor);
         cs.SetConstantBuffer(0, pConsts->hCamera);
-        cs.SetDescriptorTable(1, m_cube_map_texture_handle);
+        cs.SetDescriptorTable(1, &m_cube_map_texture_handle, 1);
 
         cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         cs.SetVertexBuffer(m_cube_map_vb_handle);
@@ -1084,7 +1114,7 @@ void SceneViewer::Update(double dt)
         Graphics::SubmitCommandStream(&cs);
     }
         
-    Graphics::Present();
+    Graphics::Present(true);
 
     m_frameIndex = (m_frameIndex + 1) % s_nFrameResources;
 
@@ -1198,7 +1228,7 @@ void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene)
     }
 
     // Create TextureHandles
-    pScene->Constants.reserve(pScene->Textures.size() + textures.size());
+    pScene->Textures.reserve(pScene->Textures.size() + textures.size());
 
     for (auto& texture : textures)
     {
@@ -1268,7 +1298,7 @@ void SceneViewer::LoadScene(const char* pFileName, const u32 threadID)
             const char* rootDir = pScene->GetDirectory(asset.RootDir);
             const char* textureDir = pScene->GetDirectory(asset.TextureDir);
 
-            for (u32 iFile = 0; iFile < asset.nFiles; ++iFile)
+            for (int iFile = 0; iFile < asset.nFiles; ++iFile)
             {
                 const char* file = pScene->GetFile(asset.pFiles[iFile]);
                 const char* ext = getExtension(file);

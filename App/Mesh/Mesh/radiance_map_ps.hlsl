@@ -11,7 +11,7 @@ cbuffer Constants : register(b1)
     float4 s_roughness;
 };
 
-TextureCube cube_texture : register(t0, space2);
+TextureCube cube_texture : register(t0);
 
 SamplerState cube_sampler : register(s0);
 

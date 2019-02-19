@@ -6,7 +6,7 @@ struct PS_Input
     float3 UV : TEXCOORD;
 };
 
-TextureCube cube_texture : register(t0, space2);
+TextureCube cube_texture : register(t0);
 
 SamplerState cube_sampler : register(s0);
 

@@ -197,6 +197,10 @@ namespace Graphics
             ID3D12CommandList* pCommandList;
             ID3D12GraphicsCommandList* pGraphicsCommandList;
         };
+
+        static constexpr unsigned int s_nDescriptorHeaps = 10;
+        ID3D12DescriptorHeap* ppDescriptorHeap[s_nDescriptorHeaps];
+        unsigned int iDescriptorHeap = 0;
     };
 
     struct CommandQueue
