@@ -19,10 +19,6 @@
 
 class Window;
 
-/* TODO: 
-    1. Integrate shadow maps in pixel shader.
-    2. Remove the hacks for finding a descriptor by a handle. 
-*/
 namespace Graphics
 {
     class CommandStream;
@@ -57,8 +53,6 @@ namespace Graphics
 
     LUZ_API TextureHandle CreateTexture(const TextureFileDesc& desc);
 
-    LUZ_API DescriptorTableHandle CreateDescriptorTable(const DescriptorTableDesc& desc);
-
     LUZ_API void ReleaseShader(const ShaderHandle handle);
 
     LUZ_API void ReleasePipeline(const PipelineStateHandle handle);
@@ -79,7 +73,7 @@ namespace Graphics
 
     LUZ_API void SubmitCommandStream(const CommandStream* pCommandStream, bool wait = false);
 
-    LUZ_API void Present(bool wait = false);
+    LUZ_API void Present();
 
     LUZ_API void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream);
 

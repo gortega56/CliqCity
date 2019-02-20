@@ -19,10 +19,6 @@
 #define CRYTEK_SPONZA_OBJ_PATH  ".\\Assets\\crytek_sponza\\sponza.obj"
 #define CRYTEK_SPONZA_TEXTURE_DIRECTORY ".\\Assets\\crytek_sponza\\textures"
 
-#define DABROVIC_SPONZA_DIRECTORY ".\\Assets\\dabrovic_sponza\\"
-#define DABROVIC_SPONZA_OBJ_PATH  ".\\Assets\\dabrovic_sponza\\sponza.obj"
-#define DABROVIC_SPONZA_TEXTURE_DIRECTORY DABROVIC_SPONZA_DIRECTORY
-
 #define CUBE_MAP_PATH ".\\Assets\\satara_night.dds"
 
 #define GUN_DIRECTORY ".\\Assets\\"
@@ -31,9 +27,6 @@
 
 using namespace Luz;
 using namespace lina;
-
-static int s_window_width = 1600;
-static int s_window_height = 900;
 
 Vertex::Vertex(
     float px, float py, float pz,
@@ -74,6 +67,34 @@ struct ShaderOptions
 };
 // Daylight rgb(1.0f, 0.96, 0.95)
 // Sky rgb((0.753f, 0.82f, 1.0f)
+
+struct EnvironmentParameters
+{
+    Graphics::CommandStream* pCommandStream;
+    Graphics::VertexBufferHandle hCubeVertexBuffer;
+    Graphics::IndexBufferHandle hCubeIndexBuffer;
+    Graphics::IndexBufferHandle hTriIndexBuffer;
+    Graphics::TextureHandle hCubeTexture;
+    Graphics::TextureHandle hRenderTarget;
+    Graphics::TextureHandle hDfgRenderTarget;
+    Graphics::ShaderHandle hCubeVertexShader;
+    Graphics::ShaderHandle hTriVertexShader;
+    Graphics::ShaderHandle hRadiancePixelShader;
+    Graphics::ShaderHandle hIrradiancePixelShader;
+    Graphics::ShaderHandle hDfgPixelShader;
+    float AspectRatio;
+};
+
+static int s_window_width = 1600;
+
+static int s_window_height = 900;
+
+static float s_lightMoveSpeed = 0.2f;
+
+static bool s_shadowFullScreen = false;
+
+static bool s_bDebugConsole = true;
+
 static ShaderOptions s_shaderOptions =
 {
     float3(1.0f, 0.96f, 0.95f),
@@ -94,410 +115,21 @@ static ShaderOptions s_shaderOptions =
 
 static std::mutex s_shaderOptionMutex;
 
+static std::atomic_bool s_loading = ATOMIC_VAR_INIT(0);
+
 static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f, 3000.0f);
 
-static float s_lightMoveSpeed = 0.2f;
-
-static bool s_shadowFullScreen = false;
-
-static std::thread s_consoleThread;
-
-static std::atomic_bool s_loading = ATOMIC_VAR_INIT(1);
-
-static std::atomic_bool s_consoleWritten = ATOMIC_VAR_INIT(0);
+static SceneViewer* s_pSceneViewer = nullptr;
 
 static void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene);
 
 static void DestroyScene(const Scene* pScene);
 
-struct EnvironmentParameters
-{
-    Graphics::CommandStream* pCommandStream;
-    Graphics::VertexBufferHandle hCubeVertexBuffer;
-    Graphics::IndexBufferHandle hCubeIndexBuffer;
-    Graphics::IndexBufferHandle hTriIndexBuffer;
-    Graphics::TextureHandle hCubeTexture;
-    Graphics::TextureHandle hRenderTarget;
-    Graphics::TextureHandle hDfgRenderTarget;
-    Graphics::ShaderHandle hCubeVertexShader;
-    Graphics::ShaderHandle hTriVertexShader;
-    Graphics::ShaderHandle hRadiancePixelShader;
-    Graphics::ShaderHandle hIrradiancePixelShader;
-    Graphics::ShaderHandle hDfgPixelShader;
-    float AspectRatio;
-};
-
 static void ProcessEnvironmentLighting(const EnvironmentParameters& params);
 
 static int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName);
 
-void ProcessEnvironmentLighting(const EnvironmentParameters& params)
-{
-    Graphics::PipelineDesc radiancePipe;
-    radiancePipe.Signature.SetName("Radiance")
-        .AllowInputLayout()
-        .DenyHS()
-        .DenyDS()
-        .DenyGS()
-        .AppendConstantView(0)
-        .AppendConstantView(1)
-        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-        .AppendDescriptorTableRange(2, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendLinearWrapSampler(0);
-    radiancePipe.InputLayout.AppendPosition3F();
-    radiancePipe.VertexShaderHandle = params.hCubeVertexShader;
-    radiancePipe.PixelShaderHandle = params.hRadiancePixelShader;
-    radiancePipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    radiancePipe.SampleCount = 1;
-    radiancePipe.SampleQuality = 0;
-    radiancePipe.SampleMask = 0xffffffff;
-
-    radiancePipe.DepthStencil = Graphics::DepthStencilState::Disabled;
-    radiancePipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
-    radiancePipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
-    radiancePipe.Blend.AlphaToCoverageEnable = false;
-    radiancePipe.Blend.IndependentBlendEnable = false;
-
-    radiancePipe.NumRenderTargets = 1;
-    radiancePipe.pRenderTargets[0] = params.hRenderTarget;
-    radiancePipe.DsHandle = 0;
-
-    Graphics::PipelineStateHandle hRadiance = Graphics::CreateGraphicsPipelineState(radiancePipe);
-
-    Graphics::PipelineDesc irradiancePipe;
-    irradiancePipe.Signature.SetName("Irradiance")
-        .AllowInputLayout()
-        .DenyHS()
-        .DenyDS()
-        .DenyGS()
-        .AppendConstantView(0)
-        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
-        .AppendDescriptorTableRange(1, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
-        .AppendLinearWrapSampler(0);
-    irradiancePipe.InputLayout.AppendPosition3F();
-    irradiancePipe.VertexShaderHandle = params.hCubeVertexShader;
-    irradiancePipe.PixelShaderHandle = params.hIrradiancePixelShader;
-    irradiancePipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    irradiancePipe.SampleCount = 1;
-    irradiancePipe.SampleQuality = 0;
-    irradiancePipe.SampleMask = 0xffffffff;
-
-    irradiancePipe.DepthStencil = Graphics::DepthStencilState::Disabled;
-    irradiancePipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
-    irradiancePipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
-    irradiancePipe.Blend.AlphaToCoverageEnable = false;
-    irradiancePipe.Blend.IndependentBlendEnable = false;
-
-    irradiancePipe.NumRenderTargets = 1;
-    irradiancePipe.pRenderTargets[0] = params.hRenderTarget;
-    irradiancePipe.DsHandle = 0;
-
-    Graphics::PipelineStateHandle hIrradiance = Graphics::CreateGraphicsPipelineState(irradiancePipe);
-
-    Graphics::PipelineDesc brdfPipe;
-    brdfPipe.Signature.SetName("BRDF Integration")
-        .DenyHS()
-        .DenyDS()
-        .DenyGS();
-    brdfPipe.VertexShaderHandle = params.hTriVertexShader;
-    brdfPipe.PixelShaderHandle = params.hDfgPixelShader;
-    brdfPipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    brdfPipe.SampleCount = 1;
-    brdfPipe.SampleQuality = 0;
-    brdfPipe.SampleMask = 0xffffffff;
-
-    brdfPipe.DepthStencil = Graphics::DepthStencilState::Disabled;
-    brdfPipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
-    brdfPipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
-    brdfPipe.Blend.AlphaToCoverageEnable = false;
-    brdfPipe.Blend.IndependentBlendEnable = false;
-
-    brdfPipe.NumRenderTargets = 1;
-    brdfPipe.pRenderTargets[0] = params.hDfgRenderTarget;
-    brdfPipe.DsHandle = 0;
-
-    Graphics::PipelineStateHandle hBrdf = Graphics::CreateGraphicsPipelineState(brdfPipe);
-
-    float4x4 proj = float4x4::normalized_perspective_lh(3.14f * 0.5f, params.AspectRatio, 0.1f, 100.0f);
-    float4x4 views[6] =
-    {
-        float4x4::look_at_lh(float3(+1.0f, 0.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
-        float4x4::look_at_lh(float3(-1.0f, 0.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
-        float4x4::look_at_lh(float3(0.0f, +1.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, -1.0)),
-        float4x4::look_at_lh(float3(0.0f, -1.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, +1.0)),
-        float4x4::look_at_lh(float3(0.0f, 0.0f, +1.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
-        float4x4::look_at_lh(float3(0.0f, 0.0f, -1.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0))
-    };
-
-    Graphics::ConstantBufferHandle hCameras[6];
-
-    for (int i = 0; i < 6; ++i)
-    {
-        CameraConstants camera;
-        camera.Proj = proj.transpose();
-        camera.View = views[i].transpose();
-        camera.InverseProj = proj.inverse().transpose();
-        camera.InverseView = views[i].inverse().transpose();
-
-        Graphics::ConstantBufferDesc desc;
-        desc.Alignment = 0;
-        desc.SizeInBytes = sizeof(CameraConstants);
-        desc.StrideInBytes = sizeof(CameraConstants);
-        desc.AllocHeap = false;
-        desc.pData = &camera;
-
-        hCameras[i] = Graphics::CreateConstantBuffer(desc);
-    }
-
-    float4 roughness[5];
-
-    Graphics::ConstantBufferHandle hRoughness[5];
-
-    for (int i = 0; i < 5; ++i)
-    {
-        roughness[i].x = (float)i / 4.0f;
-
-        Graphics::ConstantBufferDesc desc;
-        desc.Alignment = 0;
-        desc.SizeInBytes = sizeof(float4);
-        desc.StrideInBytes = sizeof(float4);
-        desc.AllocHeap = false;
-        desc.pData = &roughness[i];
-        hRoughness[i] = Graphics::CreateConstantBuffer(desc);
-    }
-
-    Graphics::CommandStream* pCommandStream = params.pCommandStream;
-
-    pCommandStream->SetPipeline(hRadiance);
-    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
-    pCommandStream->SetDescriptorTable(2, &params.hCubeTexture, 1);
-
-    for (u32 mip = 0; mip < 5; ++mip)
-    {
-        for (u32 face = 0; face < 6; ++face)
-        {
-            float w = 256.0f * powf(0.5f, (float)mip);
-            float h = 256.0f * powf(0.5f, (float)mip);
-
-            pCommandStream->SetRenderTargets(1, &params.hRenderTarget, &mip, &face, 0);
-            pCommandStream->SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
-            pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
-            pCommandStream->SetConstantBuffer(0, hCameras[face]);
-            pCommandStream->SetConstantBuffer(1, hRoughness[mip]);
-
-            pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
-            pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
-            pCommandStream->DrawInstanceIndexed(params.hCubeIndexBuffer);
-        }
-    }
-
-    Graphics::SubmitCommandStream(pCommandStream);
-
-    pCommandStream->SetPipeline(hIrradiance);
-    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pCommandStream->SetDescriptorTable(1, &params.hCubeTexture, 1);
-
-    u32 irradianceMip = 5;
-    for (u32 face = 0; face < 6; ++face)
-    {
-        float w = 256.0f * powf(0.5f, (float)irradianceMip);
-        float h = 256.0f * powf(0.5f, (float)irradianceMip);
-
-        pCommandStream->SetRenderTargets(1, &params.hRenderTarget, &irradianceMip, &face, 0);
-        pCommandStream->SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
-        pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
-        pCommandStream->SetConstantBuffer(0, hCameras[face]);
-
-        pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
-        pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
-        pCommandStream->DrawInstanceIndexed(params.hCubeIndexBuffer);
-    }
-
-    Graphics::SubmitCommandStream(pCommandStream);
-
-    pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-    // brdf integration
-    pCommandStream->TransitionTexture(params.hDfgRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
-
-    pCommandStream->SetPipeline(hBrdf);
-    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pCommandStream->SetRenderTargets(1, &params.hDfgRenderTarget, nullptr, nullptr, 0);
-    pCommandStream->SetViewport(0.0f, 0.0f, 512.0, 512.0, 0.0, 1.0);
-    pCommandStream->SetScissorRect(0, 0, 512, 512);
-    pCommandStream->SetVertexBuffer(0);
-    pCommandStream->SetIndexBuffer(params.hTriIndexBuffer);
-    pCommandStream->DrawInstanceIndexed(params.hTriIndexBuffer);
-
-    pCommandStream->TransitionTexture(params.hDfgRenderTarget, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-    Graphics::SubmitCommandStream(pCommandStream, true);
-
-    Graphics::ReleasePipeline(hRadiance);
-    Graphics::ReleasePipeline(hIrradiance);
-    Graphics::ReleasePipeline(hBrdf);
-
-    for (int i = 0; i < 5; ++i)
-    {
-        Graphics::ReleaseConstantBuffer(hRoughness[i]);
-    }
-    for (int i = 0; i < 6; ++i)
-    {
-        Graphics::ReleaseConstantBuffer(hCameras[i]);
-    }
-}
-
-int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName)
-{
-    auto iter = std::find(textureNames.begin(), textureNames.end(), textureName);
-    if (iter == textureNames.end())
-    {
-        textureNames.push_back(textureName);
-        return (int)textureNames.size() - 1;
-    }
-
-    return (int)(iter - textureNames.begin());
-}
-
-static void ConsoleThread()
-{
-    Platform::CreateConsole();
-
-    ShaderOptions shaderOptions = s_shaderOptions;
-
-    int iter = 0, nDots = 3;
-    while (s_loading.load())
-    {
-        Platform::ClearConsole();
-        iter = (iter + 1) % nDots;
-
-        switch (iter)
-        {
-        case 0: std::cout << "Loading." << std::endl; break;
-        case 1: std::cout << "Loading.." << std::endl; break;
-        case 2: std::cout << "Loading..." << std::endl; break;
-        default: LUZASSERT(false);
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    while (Platform::Running())
-    {
-        std::cout << ">: ";
-       
-        std::string input;
-        getline(std::cin, input);
-
-        std::stringstream ss = std::stringstream(input);
-        
-        std::string cmd;
-        ss >> cmd;
-        if (strcmp(cmd.c_str(), "exit") == 0)
-        {
-            break;
-        }
-        else if (strcmp(cmd.c_str(), "set_light") == 0)
-        {
-            ss >> shaderOptions.LightColor.x >> shaderOptions.LightColor.y >> shaderOptions.LightColor.z;
-        }
-        else if (strcmp(cmd.c_str(), "set_exposure") == 0)
-        {
-            ss >> shaderOptions.Exposure;
-        } 
-        else if (strcmp(cmd.c_str(), "set_ambient") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.x;
-        }
-        else if (strcmp(cmd.c_str(), "set_diffuse") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.y;
-        }
-        else if (strcmp(cmd.c_str(), "set_spec") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.z;
-        }
-        else if (strcmp(cmd.c_str(), "set_lx") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.w;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_ambient") == 0)
-        {
-            shaderOptions.AmbientEnabled = !shaderOptions.AmbientEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_diffuse") == 0)
-        {
-            shaderOptions.DiffuseEnabled = !shaderOptions.DiffuseEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_spec") == 0)
-        {
-            shaderOptions.SpecEnabled = !shaderOptions.SpecEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_shadow") == 0)
-        {
-            shaderOptions.ShadowEnabled = !shaderOptions.ShadowEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_bump") == 0)
-        {
-            shaderOptions.BumpEnabled = !shaderOptions.BumpEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_micro") == 0)
-        {
-            shaderOptions.MicrofacetEnabled = !shaderOptions.MicrofacetEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_masking") == 0)
-        {
-            shaderOptions.MaskingEnabled = !shaderOptions.MaskingEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggle_fresnel") == 0)
-        {
-            shaderOptions.FresnelEnabled = !shaderOptions.FresnelEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "set_mode_npbr") == 0)
-        {
-            shaderOptions.LightingMode = 0;
-        }
-        else if (strcmp(cmd.c_str(), "set_mode_bp") == 0)
-        {
-            shaderOptions.LightingMode = 1;
-        }
-        else if (strcmp(cmd.c_str(), "set_mode_beckmann") == 0)
-        {
-            shaderOptions.LightingMode = 2;
-        }
-        else if (strcmp(cmd.c_str(), "set_mode_ggx") == 0)
-        {
-            shaderOptions.LightingMode = 3;
-        }
-        else if (strcmp(cmd.c_str(), "set_bump_h") == 0)
-        {
-            shaderOptions.BumpMode = 0;
-        }
-        else if (strcmp(cmd.c_str(), "set_bump_n") == 0)
-        {
-            shaderOptions.BumpMode = 1;
-        }
-        else if (strcmp(cmd.c_str(), "reset") == 0)
-        {
-            shaderOptions.AmbientEnabled = true;
-            shaderOptions.DiffuseEnabled = true;
-            shaderOptions.SpecEnabled = true;
-            shaderOptions.BumpEnabled = true;
-            shaderOptions.ShadowEnabled = true;
-            shaderOptions.MaskingEnabled = true;
-            shaderOptions.MicrofacetEnabled = true;
-            shaderOptions.FresnelEnabled = true;
-        }
-        else
-        {
-            continue;
-        }
-
-        std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-        s_shaderOptions = shaderOptions;
-    }
-}
+static void ConsoleThread();
 
 SceneViewer::SceneViewer()
     : m_window(nullptr)
@@ -511,6 +143,7 @@ SceneViewer::SceneViewer()
     , m_fullScreenPipeline(0)
     , m_frameIndex(0)
 {
+    s_pSceneViewer = this;
     auto nThreads = std::thread::hardware_concurrency() - 1;
     LUZASSERT(nThreads > 0);
     m_loadingThreads.resize(nThreads);
@@ -521,39 +154,16 @@ SceneViewer::~SceneViewer()
 
 }
 
-static std::atomic_bool s_bSceneLoaded = ATOMIC_VAR_INIT(0);
-
 bool SceneViewer::Initialize()
 {
-    //s_consoleThread = std::thread(ConsoleThread);
-
     m_window = Window::Create("Scene Viewer", s_window_width, s_window_height, false);
-
-    m_frameIndex = 0;
 
     if (!Graphics::Initialize(m_window.get(), s_nSwapChainTargets))
     {
         return false;
     }
 
-    LoadScene(".\\Assets\\sponza.scene", 0);
-
-    
-    bool bSceneLoaded = false;
-    do
-    {
-        bSceneLoaded = s_bSceneLoaded.load();
-    } while (!bSceneLoaded);
-
-    Resource::Obj::Desc desc;
-    //desc.Filename = CRYTEK_SPONZA_OBJ_PATH;
-    //desc.Directory = CRYTEK_SPONZA_DIRECTORY;
-    //desc.TextureDirectory = CRYTEK_SPONZA_DIRECTORY;
-    desc.Filename = GUN_OBJ_PATH;
-    desc.Directory = GUN_DIRECTORY;
-    desc.TextureDirectory = GUN_TEXTURE_DIRECTORY;
-    desc.InvertUVs = true;
-   // auto loadingObj = Resource::Async<Resource::Obj>::Load(desc);
+    LoadScene("sponza.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -563,28 +173,6 @@ bool SceneViewer::Initialize()
     pCamera->SetAspectRatio(m_window->AspectRatio());
     pCamera->SetNear(0.1f);
     pCamera->SetFar(3000.0f);
-
-    //rm.LoadResource<Resource::Fbx>(FBX_PATH1, [weakRenderable](std::shared_ptr<const Resource::Fbx> pFbx)
-    //{
-    //    if (!pFbx) return;
-
-    //    if (auto sharedRenderable = weakRenderable.lock())
-    //    {
-    //        Mesh<Vertex, u32> mesh;
-    //        pFbx->WriteVertices<Vertex>(mesh.Vertices(), [](Vertex& vertex, const Resource::Fbx::Vertex& fbx)
-    //        {
-    //            vertex.Position = *reinterpret_cast<const float3*>(&fbx.Position[0]);
-    //            vertex.Normal = *reinterpret_cast<const float3*>(&fbx.Normal[0]);
-    //            vertex.UV = *reinterpret_cast<const float2*>(&fbx.UV[0]);
-    //        });
-
-    //        mesh.SetIndices(pFbx->GetIndices());
-    //        mesh.GenerateTangents();
-
-    //        sharedRenderable->LoadMesh(&mesh);
-    //        sharedRenderable->m_isRenderable.store(true);
-    //    }
-    //});
 
     // Shaders
     {
@@ -868,7 +456,10 @@ bool SceneViewer::Initialize()
     params.pCommandStream = &m_commandStream;
     ProcessEnvironmentLighting(params);
 
-    s_loading.store(false);
+    if (s_bDebugConsole)
+    {
+        std::thread(ConsoleThread).detach();
+    }
 
     return true;
 }
@@ -887,7 +478,7 @@ int SceneViewer::Shutdown()
         Graphics::ReleaseConstantBuffer(m_frameConsts[i].hShadow);
     }
 
-    DestroyScene(&m_scene);
+    DestroyScene(m_pScene.get());
 
     Graphics::ReleaseVertexBuffer(m_cube_map_vb_handle);
     Graphics::ReleaseIndexBuffer(m_cube_map_ib_handle);
@@ -986,156 +577,489 @@ void SceneViewer::Update(double dt)
         1.0f,
     };
 
-
-    Graphics::ConstantBufferHandle hDescriptor;
-    Surface pSurfaces[1024];
-    uint32_t nSurfaces;
-    size_t szSurfaces;
+    std::shared_ptr<Scene> pScene;
     {
         std::lock_guard<std::mutex> lock(m_sceneMutex);
-        LUZASSERT(m_scene.Surfaces.size() <= 1024);
-        hDescriptor = m_scene.Constants.front();
-        nSurfaces = static_cast<uint32_t>(m_scene.Surfaces.size());
-        szSurfaces = m_scene.Surfaces.size() * sizeof(Surface);
-        memcpy_s(pSurfaces, szSurfaces, m_scene.Surfaces.data(), szSurfaces);
+        pScene = m_pScene;
     }
 
-    // Shadow 
-    if (shaderOptions.ShadowEnabled)
+    if (pScene)
     {
-        static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
-        static const Graphics::Rect s_shadow_scissor = { 0, 0, 2048, 2048 };
-
-        Graphics::UpdateConstantBuffer(&pConsts->ShadowConsts, sizeof(CameraConstants), pConsts->hShadow);
-
-        auto& cs = m_commandStream;
-        cs.SetPipeline(m_shadowPipeline);
-        cs.SetRenderTargets(0, nullptr, m_shadowTexture);
-        cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
-        cs.SetViewport(s_shadow_vp);
-        cs.SetScissorRect(s_shadow_scissor);
-        cs.SetConstantBuffer(0, pConsts->hShadow);
-
-        cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        for (u32 i = 0; i < nSurfaces; ++i)
+        if (shaderOptions.ShadowEnabled)
         {
-            auto& surface = pSurfaces[i];
-            cs.SetVertexBuffer(surface.vb);
-            cs.SetIndexBuffer(surface.ib);
-            cs.DrawInstanceIndexed(surface.ib);
+            static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
+            static const Graphics::Rect s_shadow_scissor = { 0, 0, 2048, 2048 };
+
+            Graphics::UpdateConstantBuffer(&pConsts->ShadowConsts, sizeof(CameraConstants), pConsts->hShadow);
+
+            auto& cs = m_commandStream;
+            cs.SetPipeline(m_shadowPipeline);
+            cs.SetRenderTargets(0, nullptr, m_shadowTexture);
+            cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
+            cs.SetViewport(s_shadow_vp);
+            cs.SetScissorRect(s_shadow_scissor);
+            cs.SetConstantBuffer(0, pConsts->hShadow);
+
+            cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            for (auto& surface : pScene->Surfaces)
+            {
+                cs.SetVertexBuffer(surface.vb);
+                cs.SetIndexBuffer(surface.ib);
+                cs.DrawInstanceIndexed(surface.ib);
+            }
+
+            Graphics::SubmitCommandStream(&cs);
         }
 
-        Graphics::SubmitCommandStream(&cs);
-    }
-    
-    if (s_shadowFullScreen)
-    {
-        auto& cs = m_commandStream;
-       // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        cs.SetPipeline(m_fullScreenPipeline);
-        cs.SetRenderTargets();
-        cs.ClearRenderTarget(clear);
-        cs.ClearDepthStencil(1.0f, 0);
-        cs.SetViewport(vp);
-        cs.SetScissorRect(scissor);
-        cs.SetDescriptorTable(0, &m_environment_brdf_map_handle, 1);
-
-        cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        cs.SetVertexBuffer(0);
-        cs.SetIndexBuffer(m_fs_ib);
-        cs.DrawInstanceIndexed(m_fs_ib);
-       // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
-
-        Graphics::SubmitCommandStream(&cs);
-    }
-    else
-    {
-        unsigned int nConstants = static_cast<unsigned int>(m_scene.Constants.size());
-        unsigned int nTextures = static_cast<unsigned int>(m_scene.Textures.size());
-        size_t szConstants = sizeof(Graphics::GpuResourceHandle) * nConstants;
-        size_t szTextures = sizeof(Graphics::GpuResourceHandle) * nTextures;
-
-        Graphics::DescriptorTableRange pRanges[3];
-        pRanges[0].Register = 3;
-        pRanges[0].nHandles = nConstants;
-        pRanges[1].Register = 4;
-        pRanges[1].nHandles = nTextures;
-        pRanges[2].Register = 5;
-        pRanges[2].nHandles = 3;
-        pRanges[2].pHandles[0] = m_shadowTexture;
-        pRanges[2].pHandles[1] = m_environment_brdf_map_handle;
-        pRanges[2].pHandles[2] = m_environment_cube_map_handle;
-        memcpy_s(pRanges[0].pHandles, szConstants, m_scene.Constants.data(), szConstants);
-        memcpy_s(pRanges[1].pHandles, szTextures, m_scene.Textures.data(), szTextures);
-
-        // Main visual
-        Graphics::UpdateConstantBuffer(&pConsts->CameraConsts, sizeof(CameraConstants), pConsts->hCamera);
-        Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
-
-        auto& cs = m_commandStream;
-        cs.TransitionRenderTarget(Graphics::GFX_RESOURCE_STATE_PRESENT, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
-        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        cs.SetPipeline(m_opaquePipeline);
-        cs.SetRenderTargets();
-        cs.ClearRenderTarget(clear);
-        cs.ClearDepthStencil(1.0f, 0);
-        cs.SetViewport(vp);
-        cs.SetScissorRect(scissor);
-        cs.SetConstantBuffer(0, pConsts->hCamera);
-        cs.SetConstantBuffer(1, pConsts->hShadow);
-        cs.SetConstantBuffer(2, pConsts->hLighting);
-        cs.SetDescriptorTable(pRanges, 3);
-
-        cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        for (u32 i = 0; i < nSurfaces; ++i)
+        if (s_shadowFullScreen)
         {
-            auto& surface = pSurfaces[i];
-            cs.SetVertexBuffer(surface.vb);
-            cs.SetIndexBuffer(surface.ib);
-            cs.DrawInstanceIndexed(surface.ib);
+            auto& cs = m_commandStream;
+            // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            cs.SetPipeline(m_fullScreenPipeline);
+            cs.SetRenderTargets();
+            cs.ClearRenderTarget(clear);
+            cs.ClearDepthStencil(1.0f, 0);
+            cs.SetViewport(vp);
+            cs.SetScissorRect(scissor);
+            cs.SetDescriptorTable(0, &m_environment_brdf_map_handle, 1);
+
+            cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            cs.SetVertexBuffer(0);
+            cs.SetIndexBuffer(m_fs_ib);
+            cs.DrawInstanceIndexed(m_fs_ib);
+            // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
+
+            Graphics::SubmitCommandStream(&cs);
+        }
+        else
+        {
+            unsigned int nConstants = static_cast<unsigned int>(pScene->Constants.size());
+            unsigned int nTextures = static_cast<unsigned int>(pScene->Textures.size());
+            size_t szConstants = sizeof(Graphics::GpuResourceHandle) * nConstants;
+            size_t szTextures = sizeof(Graphics::GpuResourceHandle) * nTextures;
+
+            Graphics::DescriptorTableRange pRanges[3];
+            pRanges[0].Register = 3;
+            pRanges[0].nHandles = nConstants;
+            pRanges[1].Register = 4;
+            pRanges[1].nHandles = nTextures;
+            pRanges[2].Register = 5;
+            pRanges[2].nHandles = 3;
+            pRanges[2].pHandles[0] = m_shadowTexture;
+            pRanges[2].pHandles[1] = m_environment_brdf_map_handle;
+            pRanges[2].pHandles[2] = m_environment_cube_map_handle;
+            memcpy_s(pRanges[0].pHandles, szConstants, pScene->Constants.data(), szConstants);
+            memcpy_s(pRanges[1].pHandles, szTextures, pScene->Textures.data(), szTextures);
+
+            // Main visual
+            Graphics::UpdateConstantBuffer(&pConsts->CameraConsts, sizeof(CameraConstants), pConsts->hCamera);
+            Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
+
+            auto& cs = m_commandStream;
+            cs.TransitionRenderTarget(Graphics::GFX_RESOURCE_STATE_PRESENT, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+            cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            cs.SetPipeline(m_opaquePipeline);
+            cs.SetRenderTargets();
+            cs.ClearRenderTarget(clear);
+            cs.ClearDepthStencil(1.0f, 0);
+            cs.SetViewport(vp);
+            cs.SetScissorRect(scissor);
+            cs.SetConstantBuffer(0, pConsts->hCamera);
+            cs.SetConstantBuffer(1, pConsts->hShadow);
+            cs.SetConstantBuffer(2, pConsts->hLighting);
+            cs.SetDescriptorTable(pRanges, 3);
+
+            cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            for (auto& surface : pScene->Surfaces)
+            {
+                cs.SetVertexBuffer(surface.vb);
+                cs.SetIndexBuffer(surface.ib);
+                cs.DrawInstanceIndexed(surface.ib);
+            }
+
+            cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
+            Graphics::SubmitCommandStream(&cs);
+
+            // Draw cube map
+            cs.SetPipeline(m_cubemapPipeline);
+            cs.SetRenderTargets();
+            cs.SetViewport(vp);
+            cs.SetScissorRect(scissor);
+            cs.SetConstantBuffer(0, pConsts->hCamera);
+            cs.SetDescriptorTable(1, &m_cube_map_texture_handle, 1);
+
+            cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            cs.SetVertexBuffer(m_cube_map_vb_handle);
+            cs.SetIndexBuffer(m_cube_map_ib_handle);
+            cs.DrawInstanceIndexed(m_cube_map_ib_handle);
+
+            Graphics::SubmitCommandStream(&cs);
         }
 
-        cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
-        Graphics::SubmitCommandStream(&cs);
-
-        // Draw cube map
-        cs.SetPipeline(m_cubemapPipeline);
-        cs.SetRenderTargets();
-        cs.SetViewport(vp);
-        cs.SetScissorRect(scissor);
-        cs.SetConstantBuffer(0, pConsts->hCamera);
-        cs.SetDescriptorTable(1, &m_cube_map_texture_handle, 1);
-
-        cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        cs.SetVertexBuffer(m_cube_map_vb_handle);
-        cs.SetIndexBuffer(m_cube_map_ib_handle);
-        cs.DrawInstanceIndexed(m_cube_map_ib_handle);
-
-        Graphics::SubmitCommandStream(&cs);
+        Graphics::Present();
     }
         
-    Graphics::Present(true);
-
     m_frameIndex = (m_frameIndex + 1) % s_nFrameResources;
+}
 
-    if (Platform::GetKey(Platform::KEYCODE_I)) s_lighting.GetTransform()->MoveForward(1);
-    if (Platform::GetKey(Platform::KEYCODE_J)) s_lighting.GetTransform()->MoveRight(-1);
-    if (Platform::GetKey(Platform::KEYCODE_K)) s_lighting.GetTransform()->MoveRight(1);
-    if (Platform::GetKey(Platform::KEYCODE_L)) s_lighting.GetTransform()->MoveForward(-1);
+void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
+{
+    if (m_loadingThreads[threadID].joinable())
+    {
+        m_loadingThreads[threadID].join();
+    }
 
-    if (Platform::GetKey(Platform::KEYCODE_V)) s_lighting.SetWidth(s_lighting.GetWidth() + 1);
-    if (Platform::GetKey(Platform::KEYCODE_B)) s_lighting.SetWidth(s_lighting.GetWidth() - 1);
-    if (Platform::GetKey(Platform::KEYCODE_G)) s_lighting.SetHeight(s_lighting.GetHeight() + 1);
-    if (Platform::GetKey(Platform::KEYCODE_H)) s_lighting.SetHeight(s_lighting.GetHeight() - 1);
+    s_loading.store(true);
 
+    m_loadingThreads[threadID] = std::thread([&, filename]()
+    {
+        const char* assetDir = ".\\Assets\\";
 
+        char path[256];
+        strcpy_s(path, assetDir);
+        strcat_s(path, filename.c_str());
 
-    if (Platform::GetKeyUp(Platform::KEYCODE_RETURN)) s_consoleWritten.store(true);
+        auto pScene = Resource::Async<SceneResource>::Load(path).Get();
+        if (!pScene)
+        {
+            return;
+        }
+
+        auto getExtension = [](const char* file) -> const char*
+        {
+            int i = static_cast<int>(strlen(file)) - 1;
+            while (i > 0)
+            {
+                if (file[i] == '.')
+                {
+                    return &file[i + 1];
+                }
+
+                i -= 1;
+            }
+
+            return nullptr;
+        };
+
+        std::vector<Resource::Async<Resource::Obj>> loadingObjs;
+        std::vector<Resource::Async<Resource::Fbx>> loadingFbxs;
+
+        std::vector<std::shared_ptr<const Resource::Obj>> objs;
+        std::vector<std::shared_ptr<const Resource::Fbx>> fbxs;
+
+        u32 nAssets = pScene->NumAssets();
+
+        for (u32 iAsset = 0, nAssets = pScene->NumAssets(); iAsset < nAssets; ++iAsset)
+        {
+            const SceneResource::Asset& asset = pScene->GetAsset(iAsset);
+            const char* rootDir = pScene->GetDirectory(asset.RootDir);
+            const char* textureDir = pScene->GetDirectory(asset.TextureDir);
+
+            for (int iFile = 0; iFile < asset.nFiles; ++iFile)
+            {
+                const char* file = pScene->GetFile(asset.pFiles[iFile]);
+                const char* ext = getExtension(file);
+
+                char relativePath[256];
+                strcpy_s(relativePath, assetDir);
+                strcat_s(relativePath, rootDir);
+                strcat_s(relativePath, "\\");
+
+                char texturePath[256];
+                strcpy_s(texturePath, relativePath);
+                strcat_s(texturePath, textureDir);
+                strcat_s(texturePath, "\\");
+
+                char filePath[256];
+                strcpy_s(filePath, relativePath);
+                strcat_s(filePath, file);
+
+                if (strcmp(ext, "obj") == 0)
+                {
+                    Resource::Obj::Desc desc;
+                    desc.Filename = std::string(filePath);
+                    desc.Directory = std::string(relativePath);
+                    desc.TextureDirectory = std::string(texturePath);
+                    loadingObjs.push_back(Resource::Async<Resource::Obj>::Load(desc));
+                }
+                else if (strcmp(ext, "fbx") == 0)
+                {
+                    //loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(std::string(buffer)));
+                }
+            }
+        }
+
+        float max = (std::numeric_limits<float>::max)();
+        float min = (std::numeric_limits<float>::min)();
+
+        Scene scene;
+        scene.Bounds.max = { min, min, min };
+        scene.Bounds.min = { max, max, max };
+
+        for (auto& async : loadingObjs)
+        {
+            objs.push_back(async.Get());
+            UpdateScene(objs.back(), &scene);
+        }
+
+        for (auto& async : loadingFbxs)
+        {
+            fbxs.push_back(async.Get());
+            // UpdateScene(fbxs.back(), &scene);
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_sceneMutex);
+            if (m_pScene)
+            {
+                DestroyScene(m_pScene.get());
+            }
+
+            m_pScene = std::make_shared<Scene>();
+            m_pScene->Bounds = scene.Bounds;
+            m_pScene->Meshes = scene.Meshes;
+            m_pScene->Materials = scene.Materials;
+            m_pScene->Constants = scene.Constants;
+            m_pScene->Surfaces = scene.Surfaces;
+            m_pScene->Textures = scene.Textures;
+        }
+
+        s_loading.store(false);
+    });
 }
 
 void SceneViewer::FixedUpdate(double dt)
 {
 
+}
+
+void ProcessEnvironmentLighting(const EnvironmentParameters& params)
+{
+    Graphics::PipelineDesc radiancePipe;
+    radiancePipe.Signature.SetName("Radiance")
+        .AllowInputLayout()
+        .DenyHS()
+        .DenyDS()
+        .DenyGS()
+        .AppendConstantView(0)
+        .AppendConstantView(1)
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+        .AppendDescriptorTableRange(2, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendLinearWrapSampler(0);
+    radiancePipe.InputLayout.AppendPosition3F();
+    radiancePipe.VertexShaderHandle = params.hCubeVertexShader;
+    radiancePipe.PixelShaderHandle = params.hRadiancePixelShader;
+    radiancePipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    radiancePipe.SampleCount = 1;
+    radiancePipe.SampleQuality = 0;
+    radiancePipe.SampleMask = 0xffffffff;
+
+    radiancePipe.DepthStencil = Graphics::DepthStencilState::Disabled;
+    radiancePipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    radiancePipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+    radiancePipe.Blend.AlphaToCoverageEnable = false;
+    radiancePipe.Blend.IndependentBlendEnable = false;
+
+    radiancePipe.NumRenderTargets = 1;
+    radiancePipe.pRenderTargets[0] = params.hRenderTarget;
+    radiancePipe.DsHandle = 0;
+
+    Graphics::PipelineStateHandle hRadiance = Graphics::CreateGraphicsPipelineState(radiancePipe);
+
+    Graphics::PipelineDesc irradiancePipe;
+    irradiancePipe.Signature.SetName("Irradiance")
+        .AllowInputLayout()
+        .DenyHS()
+        .DenyDS()
+        .DenyGS()
+        .AppendConstantView(0)
+        .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
+        .AppendDescriptorTableRange(1, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
+        .AppendLinearWrapSampler(0);
+    irradiancePipe.InputLayout.AppendPosition3F();
+    irradiancePipe.VertexShaderHandle = params.hCubeVertexShader;
+    irradiancePipe.PixelShaderHandle = params.hIrradiancePixelShader;
+    irradiancePipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    irradiancePipe.SampleCount = 1;
+    irradiancePipe.SampleQuality = 0;
+    irradiancePipe.SampleMask = 0xffffffff;
+
+    irradiancePipe.DepthStencil = Graphics::DepthStencilState::Disabled;
+    irradiancePipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    irradiancePipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+    irradiancePipe.Blend.AlphaToCoverageEnable = false;
+    irradiancePipe.Blend.IndependentBlendEnable = false;
+
+    irradiancePipe.NumRenderTargets = 1;
+    irradiancePipe.pRenderTargets[0] = params.hRenderTarget;
+    irradiancePipe.DsHandle = 0;
+
+    Graphics::PipelineStateHandle hIrradiance = Graphics::CreateGraphicsPipelineState(irradiancePipe);
+
+    Graphics::PipelineDesc brdfPipe;
+    brdfPipe.Signature.SetName("BRDF Integration")
+        .DenyHS()
+        .DenyDS()
+        .DenyGS();
+    brdfPipe.VertexShaderHandle = params.hTriVertexShader;
+    brdfPipe.PixelShaderHandle = params.hDfgPixelShader;
+    brdfPipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    brdfPipe.SampleCount = 1;
+    brdfPipe.SampleQuality = 0;
+    brdfPipe.SampleMask = 0xffffffff;
+
+    brdfPipe.DepthStencil = Graphics::DepthStencilState::Disabled;
+    brdfPipe.Rasterizer = Graphics::RasterizerState::FillSolidCullCCW;
+    brdfPipe.Blend.BlendStates[0] = Graphics::RenderTargetBlendState::Replace;
+    brdfPipe.Blend.AlphaToCoverageEnable = false;
+    brdfPipe.Blend.IndependentBlendEnable = false;
+
+    brdfPipe.NumRenderTargets = 1;
+    brdfPipe.pRenderTargets[0] = params.hDfgRenderTarget;
+    brdfPipe.DsHandle = 0;
+
+    Graphics::PipelineStateHandle hBrdf = Graphics::CreateGraphicsPipelineState(brdfPipe);
+
+    float4x4 proj = float4x4::normalized_perspective_lh(3.14f * 0.5f, params.AspectRatio, 0.1f, 100.0f);
+    float4x4 views[6] =
+    {
+        float4x4::look_at_lh(float3(+1.0f, 0.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
+        float4x4::look_at_lh(float3(-1.0f, 0.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
+        float4x4::look_at_lh(float3(0.0f, +1.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, -1.0)),
+        float4x4::look_at_lh(float3(0.0f, -1.0f, 0.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, +1.0)),
+        float4x4::look_at_lh(float3(0.0f, 0.0f, +1.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0)),
+        float4x4::look_at_lh(float3(0.0f, 0.0f, -1.0), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0))
+    };
+
+    Graphics::ConstantBufferHandle hCameras[6];
+
+    for (int i = 0; i < 6; ++i)
+    {
+        CameraConstants camera;
+        camera.Proj = proj.transpose();
+        camera.View = views[i].transpose();
+        camera.InverseProj = proj.inverse().transpose();
+        camera.InverseView = views[i].inverse().transpose();
+
+        Graphics::ConstantBufferDesc desc;
+        desc.Alignment = 0;
+        desc.SizeInBytes = sizeof(CameraConstants);
+        desc.StrideInBytes = sizeof(CameraConstants);
+        desc.AllocHeap = false;
+        desc.pData = &camera;
+
+        hCameras[i] = Graphics::CreateConstantBuffer(desc);
+    }
+
+    float4 roughness[5];
+
+    Graphics::ConstantBufferHandle hRoughness[5];
+
+    for (int i = 0; i < 5; ++i)
+    {
+        roughness[i].x = (float)i / 4.0f;
+
+        Graphics::ConstantBufferDesc desc;
+        desc.Alignment = 0;
+        desc.SizeInBytes = sizeof(float4);
+        desc.StrideInBytes = sizeof(float4);
+        desc.AllocHeap = false;
+        desc.pData = &roughness[i];
+        hRoughness[i] = Graphics::CreateConstantBuffer(desc);
+    }
+
+    Graphics::CommandStream* pCommandStream = params.pCommandStream;
+
+    pCommandStream->SetPipeline(hRadiance);
+    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+    pCommandStream->SetDescriptorTable(2, &params.hCubeTexture, 1);
+
+    for (u32 mip = 0; mip < 5; ++mip)
+    {
+        for (u32 face = 0; face < 6; ++face)
+        {
+            float w = 256.0f * powf(0.5f, (float)mip);
+            float h = 256.0f * powf(0.5f, (float)mip);
+
+            pCommandStream->SetRenderTargets(1, &params.hRenderTarget, &mip, &face, 0);
+            pCommandStream->SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
+            pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
+            pCommandStream->SetConstantBuffer(0, hCameras[face]);
+            pCommandStream->SetConstantBuffer(1, hRoughness[mip]);
+
+            pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
+            pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
+            pCommandStream->DrawInstanceIndexed(params.hCubeIndexBuffer);
+        }
+    }
+
+    Graphics::SubmitCommandStream(pCommandStream);
+
+    pCommandStream->SetPipeline(hIrradiance);
+    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pCommandStream->SetDescriptorTable(1, &params.hCubeTexture, 1);
+
+    u32 irradianceMip = 5;
+    for (u32 face = 0; face < 6; ++face)
+    {
+        float w = 256.0f * powf(0.5f, (float)irradianceMip);
+        float h = 256.0f * powf(0.5f, (float)irradianceMip);
+
+        pCommandStream->SetRenderTargets(1, &params.hRenderTarget, &irradianceMip, &face, 0);
+        pCommandStream->SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
+        pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
+        pCommandStream->SetConstantBuffer(0, hCameras[face]);
+
+        pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
+        pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
+        pCommandStream->DrawInstanceIndexed(params.hCubeIndexBuffer);
+    }
+
+    Graphics::SubmitCommandStream(pCommandStream);
+
+    pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    // brdf integration
+    pCommandStream->TransitionTexture(params.hDfgRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
+
+    pCommandStream->SetPipeline(hBrdf);
+    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pCommandStream->SetRenderTargets(1, &params.hDfgRenderTarget, nullptr, nullptr, 0);
+    pCommandStream->SetViewport(0.0f, 0.0f, 512.0, 512.0, 0.0, 1.0);
+    pCommandStream->SetScissorRect(0, 0, 512, 512);
+    pCommandStream->SetVertexBuffer(0);
+    pCommandStream->SetIndexBuffer(params.hTriIndexBuffer);
+    pCommandStream->DrawInstanceIndexed(params.hTriIndexBuffer);
+
+    pCommandStream->TransitionTexture(params.hDfgRenderTarget, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    Graphics::SubmitCommandStream(pCommandStream, true);
+
+    Graphics::ReleasePipeline(hRadiance);
+    Graphics::ReleasePipeline(hIrradiance);
+    Graphics::ReleasePipeline(hBrdf);
+
+    for (int i = 0; i < 5; ++i)
+    {
+        Graphics::ReleaseConstantBuffer(hRoughness[i]);
+    }
+    for (int i = 0; i < 6; ++i)
+    {
+        Graphics::ReleaseConstantBuffer(hCameras[i]);
+    }
+}
+
+int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName)
+{
+    auto iter = std::find(textureNames.begin(), textureNames.end(), textureName);
+    if (iter == textureNames.end())
+    {
+        textureNames.push_back(textureName);
+        return (int)textureNames.size() - 1;
+    }
+
+    return (int)(iter - textureNames.begin());
 }
 
 void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene)
@@ -1241,6 +1165,8 @@ void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene)
 
 void DestroyScene(const Scene* pScene)
 {
+    if (!pScene) return;
+
     for (auto& surface : pScene->Surfaces)
     {
         Graphics::ReleaseVertexBuffer(surface.vb);
@@ -1258,112 +1184,154 @@ void DestroyScene(const Scene* pScene)
     }
 }
 
-void SceneViewer::LoadScene(const char* pFileName, const u32 threadID)
-{   
-    m_loadingThreads[threadID] = std::thread([&]()
+void ConsoleThread()
+{
+    Platform::CreateConsole();
+
+    ShaderOptions shaderOptions = s_shaderOptions;
+
+    while (Platform::Running())
     {
-        auto pScene = Resource::Async<SceneResource>::Load(pFileName).Get();
-        if (!pScene)
+        int iter = 0, nDots = 3;
+        while (s_loading.load())
         {
-            return;
-        }
+            Platform::ClearConsole();
+            iter = (iter + 1) % nDots;
 
-        auto getExtension = [](const char* file) -> const char*
-        {
-            int i = static_cast<int>(strlen(file)) - 1;
-            while (i > 0)
+            switch (iter)
             {
-                if (file[i] == '.')
-                {
-                    return &file[i + 1];
-                }
-
-                i -= 1;
+            case 0: std::cout << "Loading." << std::endl; break;
+            case 1: std::cout << "Loading.." << std::endl; break;
+            case 2: std::cout << "Loading..." << std::endl; break;
+            default: LUZASSERT(false);
             }
 
-            return nullptr;
-        };
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
 
-        std::vector<Resource::Async<Resource::Obj>> loadingObjs;
-        std::vector<Resource::Async<Resource::Fbx>> loadingFbxs;
+        std::cout << ">: ";
 
-        std::vector<std::shared_ptr<const Resource::Obj>> objs;
-        std::vector<std::shared_ptr<const Resource::Fbx>> fbxs;
+        std::string input;
+        getline(std::cin, input);
 
-        u32 nAssets = pScene->NumAssets();
-        
-        for (u32 iAsset = 0, nAssets = pScene->NumAssets(); iAsset < nAssets; ++iAsset)
+        std::stringstream ss = std::stringstream(input);
+
+        std::string cmd;
+        ss >> cmd;
+        if (strcmp(cmd.c_str(), "exit") == 0)
         {
-            const SceneResource::Asset& asset = pScene->GetAsset(iAsset);
-            const char* rootDir = pScene->GetDirectory(asset.RootDir);
-            const char* textureDir = pScene->GetDirectory(asset.TextureDir);
-
-            for (int iFile = 0; iFile < asset.nFiles; ++iFile)
+            break;
+        }
+        else if (strcmp(cmd.c_str(), "set_light") == 0)
+        {
+            ss >> shaderOptions.LightColor.x >> shaderOptions.LightColor.y >> shaderOptions.LightColor.z;
+        }
+        else if (strcmp(cmd.c_str(), "set_exposure") == 0)
+        {
+            ss >> shaderOptions.Exposure;
+        }
+        else if (strcmp(cmd.c_str(), "set_ambient") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.x;
+        }
+        else if (strcmp(cmd.c_str(), "set_diffuse") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.y;
+        }
+        else if (strcmp(cmd.c_str(), "set_spec") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.z;
+        }
+        else if (strcmp(cmd.c_str(), "set_lx") == 0)
+        {
+            ss >> shaderOptions.LightIntensity.w;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_ambient") == 0)
+        {
+            shaderOptions.AmbientEnabled = !shaderOptions.AmbientEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_diffuse") == 0)
+        {
+            shaderOptions.DiffuseEnabled = !shaderOptions.DiffuseEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_spec") == 0)
+        {
+            shaderOptions.SpecEnabled = !shaderOptions.SpecEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_shadow") == 0)
+        {
+            shaderOptions.ShadowEnabled = !shaderOptions.ShadowEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_bump") == 0)
+        {
+            shaderOptions.BumpEnabled = !shaderOptions.BumpEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_micro") == 0)
+        {
+            shaderOptions.MicrofacetEnabled = !shaderOptions.MicrofacetEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_masking") == 0)
+        {
+            shaderOptions.MaskingEnabled = !shaderOptions.MaskingEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "toggle_fresnel") == 0)
+        {
+            shaderOptions.FresnelEnabled = !shaderOptions.FresnelEnabled;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_npbr") == 0)
+        {
+            shaderOptions.LightingMode = 0;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_bp") == 0)
+        {
+            shaderOptions.LightingMode = 1;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_beckmann") == 0)
+        {
+            shaderOptions.LightingMode = 2;
+        }
+        else if (strcmp(cmd.c_str(), "set_mode_ggx") == 0)
+        {
+            shaderOptions.LightingMode = 3;
+        }
+        else if (strcmp(cmd.c_str(), "set_bump_h") == 0)
+        {
+            shaderOptions.BumpMode = 0;
+        }
+        else if (strcmp(cmd.c_str(), "set_bump_n") == 0)
+        {
+            shaderOptions.BumpMode = 1;
+        }
+        else if (strcmp(cmd.c_str(), "reset") == 0)
+        {
+            shaderOptions.AmbientEnabled = true;
+            shaderOptions.DiffuseEnabled = true;
+            shaderOptions.SpecEnabled = true;
+            shaderOptions.BumpEnabled = true;
+            shaderOptions.ShadowEnabled = true;
+            shaderOptions.MaskingEnabled = true;
+            shaderOptions.MicrofacetEnabled = true;
+            shaderOptions.FresnelEnabled = true;
+        }
+        else if (strcmp(cmd.c_str(), "load_scene") == 0)
+        {
+            if (!s_loading.load())
             {
-                const char* file = pScene->GetFile(asset.pFiles[iFile]);
-                const char* ext = getExtension(file);
-                
-                const char* assetDir = ".\\Assets\\";
-                
-                char relativePath[256];
-                strcpy_s(relativePath, assetDir);
-                strcat_s(relativePath, rootDir);
-                strcat_s(relativePath, "\\");
-
-                char texturePath[256];
-                strcpy_s(texturePath, relativePath);
-                strcat_s(texturePath, textureDir);
-                strcat_s(texturePath, "\\");
-
-                char filePath[256];
-                strcpy_s(filePath, relativePath);
-                strcat_s(filePath, file);
-
-                if (strcmp(ext, "obj") == 0)
-                {
-                    Resource::Obj::Desc desc;
-                    desc.Filename = std::string(filePath);
-                    desc.Directory = std::string(relativePath);
-                    desc.TextureDirectory = std::string(texturePath);
-                    loadingObjs.push_back(Resource::Async<Resource::Obj>::Load(desc));
-                }
-                else if (strcmp(ext, "fbx") == 0)
-                {
-                    //loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(std::string(buffer)));
-                }
+                std::string filename;
+                ss >> filename;
+                s_pSceneViewer->LoadScene(filename,0);
+            }
+            else
+            {
+                std::cout << "scene is already queued" << std::endl;
             }
         }
-
-        float max = (std::numeric_limits<float>::max)();
-        float min = (std::numeric_limits<float>::min)();
-
-        Scene scene;
-        scene.Bounds.max = { min, min, min };
-        scene.Bounds.min = { max, max, max };
-
-        for (auto& async : loadingObjs)
+        else
         {
-            objs.push_back(async.Get());
-            UpdateScene(objs.back(), &scene);
+            continue;
         }
 
-        for (auto& async : loadingFbxs)
-        {
-            fbxs.push_back(async.Get());
-            // UpdateScene(fbxs.back(), &scene);
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(m_sceneQueueMutex);
-            m_scene.Bounds = scene.Bounds;
-            m_scene.Meshes = scene.Meshes;
-            m_scene.Materials = scene.Materials;
-            m_scene.Constants = scene.Constants;
-            m_scene.Surfaces = scene.Surfaces;
-            m_scene.Textures = scene.Textures;
-        }
-
-        s_bSceneLoaded.store(true);
-    });
+        std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+        s_shaderOptions = shaderOptions;
+    }
 }
-

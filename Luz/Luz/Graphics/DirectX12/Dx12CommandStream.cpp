@@ -102,11 +102,7 @@ namespace Graphics
     void CommandStream::SetRenderTargets()
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
-
-        //ID3D12Resource* pResource = nullptr;
-        //HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(s_swapChain.FrameIndex, IID_PPV_ARGS(&pResource));
-        //LUZASSERT(SUCCEEDED(hr));
-
+        
         cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], TRUE, &s_swapChain.DepthStencilViewHandle);
     }
 
@@ -266,7 +262,7 @@ namespace Graphics
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
 
-        ID3D12DescriptorHeap* pDescriptorHeap = cl.ppDescriptorHeap[cl.iDescriptorHeap];
+        ID3D12DescriptorHeap* pDescriptorHeap = cl.pDescriptorHeap;
         D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         UINT incrementSize = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].m_descriptorHandleIncrementSize;
 
@@ -297,7 +293,7 @@ namespace Graphics
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
         
-        ID3D12DescriptorHeap* pDescriptorHeap = cl.ppDescriptorHeap[cl.iDescriptorHeap];
+        ID3D12DescriptorHeap* pDescriptorHeap = cl.pDescriptorHeap;
         cl.pGraphicsCommandList->SetDescriptorHeaps(1, &pDescriptorHeap);
 
         UINT incrementSize = s_descriptorAllocatorCollection[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].m_descriptorHandleIncrementSize;

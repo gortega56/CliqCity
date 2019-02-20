@@ -136,9 +136,9 @@ class SceneViewer :
 public:
     using IApplication::IApplication;
 
-    static constexpr u32 s_nSwapChainTargets = 2;
+    static constexpr u32 s_nSwapChainTargets = 3;
 
-    static constexpr u32 s_nFrameResources = s_nSwapChainTargets * 2;
+    static constexpr u32 s_nFrameResources = s_nSwapChainTargets;
 
     FrameConstants m_frameConsts[s_nFrameResources];
 
@@ -184,12 +184,11 @@ public:
     void Update(double delta) override;
     void FixedUpdate(double delta) override;
 
-    void LoadScene(const char* pFileName, const u32 threadID);
+    void LoadScene(const std::string filename, const u32 threadID);
     
     std::mutex m_sceneMutex;
-    Scene m_scene;
+    std::shared_ptr<Scene> m_pScene;
 
-    std::mutex m_sceneQueueMutex;
     std::vector<std::thread> m_loadingThreads;
 };
 

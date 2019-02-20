@@ -103,7 +103,7 @@ namespace Graphics
 
     struct SwapChainContext
     {
-        static constexpr u8 MaxBuffers = 4;
+        static constexpr u32 MaxBuffers = 4;
 
         IDXGISwapChain* pSwapChain;
         IDXGISwapChain1* pSwapChain1;
@@ -130,7 +130,7 @@ namespace Graphics
         u32 Height;
         u32 NumBuffers;
         u32 FrameIndex;
-
+        u64 Frames;
         bool FullScreen;
     };
 
@@ -198,24 +198,34 @@ namespace Graphics
             ID3D12GraphicsCommandList* pGraphicsCommandList;
         };
 
-        static constexpr unsigned int s_nDescriptorHeaps = 10;
-        ID3D12DescriptorHeap* ppDescriptorHeap[s_nDescriptorHeaps];
-        unsigned int iDescriptorHeap = 0;
+        ID3D12DescriptorHeap* pDescriptorHeap;
+        uint64_t Execution;
     };
 
     struct CommandQueue
     {
         ID3D12CommandQueue* pCommandQueue;
         ID3D12Fence1* pFence;
-        UINT64 ExecutionsCompleted;
+        std::atomic_uint64_t Executions = ATOMIC_VAR_INIT(0);
     };
 
-    struct CommandAllocatorPool
+    struct CommandContext
     {
-        static const uint8_t nAllocators = 64;
-        ID3D12CommandAllocator* ppCommandAllocators[nAllocators];
-        uint64_t pCommandAllocatorFrames[nAllocators];
-        std::atomic_uint8_t NextAllocator = 0;
+        ID3D12CommandAllocator* pCommandAllocator;
+        ID3D12DescriptorHeap* pDescriptorHeap;
+        uint64_t Execution;
+    };
+
+    struct CommandContextPool
+    {
+        static constexpr unsigned int DescriptorHeapCapacity = 256;
+        static constexpr unsigned int Capacity = 1024;
+        ID3D12CommandAllocator* ppCommandAllocators[Capacity];
+        ID3D12DescriptorHeap* ppDescriptorHeaps[Capacity];
+        uint64_t pCommandContextExecutions[Capacity];
+        uint64_t NextContext = 0;
+        uint64_t Allocations = 0;
+        std::mutex Mutex;
     };
 
     enum DescriptorHandleType
@@ -232,7 +242,7 @@ namespace Graphics
 
     extern SwapChainContext s_swapChain;
 
-    extern CommandAllocatorPool s_commandAllocatorPools[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
+    extern CommandContextPool s_commandContextPools[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
 
     extern ID3D12Debug* s_pDebug;
 
