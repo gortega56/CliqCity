@@ -203,6 +203,7 @@ float4 Shade_Blinn_Phong(ShadingFrame frame)
         }
 
         output.xyz = lerp(ambient, (ambient + diffuse + specular), Sf);
+        output = base;
     }
 
     return output;

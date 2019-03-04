@@ -71,15 +71,18 @@ namespace Graphics
 
     LUZ_API void UpdateConstantBuffer(const void* pData, const u64 sizeInBytes, const ConstantBufferHandle handle);
 
-    LUZ_API void SubmitCommandStream(const CommandStream* pCommandStream, bool wait = false);
+    LUZ_API void SubmitCommandStream(CommandStream* pCommandStream, bool wait = false);
 
     LUZ_API void Present();
+
+    LUZ_API void Flush();
 
     LUZ_API void CreateCommandStream(const CommandStreamDesc& desc, CommandStream* pCommandStream);
 
     //LUZ_API void ResetCommandStream(CommandStream* pCommandStream, const PipelineStateHandle pipelineHandle);
 
     LUZ_API void ReleaseCommandStream(CommandStream* pCommandStream);
+
 }
 
 #endif

@@ -101,7 +101,7 @@ static ShaderOptions s_shaderOptions =
     normalize(float3(0.0f, -0.5f, -0.1f)),
     float4(0.2f, 10.0f, 100.0f, 1.0f),
     10.0f,
-    SHADING_MODE_GGX,
+    SHADING_MODE_DEFAULT,
     1,
     true,
     true,
@@ -163,7 +163,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 
-    LoadScene("sponza.scene", 0);
+    LoadScene("sibenik.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -478,6 +478,7 @@ int SceneViewer::Shutdown()
         Graphics::ReleaseConstantBuffer(m_frameConsts[i].hShadow);
     }
 
+    DestroyScene(m_pStagingScene.get());
     DestroyScene(m_pScene.get());
 
     Graphics::ReleaseVertexBuffer(m_cube_map_vb_handle);
@@ -580,6 +581,17 @@ void SceneViewer::Update(double dt)
     std::shared_ptr<Scene> pScene;
     {
         std::lock_guard<std::mutex> lock(m_sceneMutex);
+
+        if (m_pStagingScene)
+        {
+            // wait for any command lists in flight
+            // before swapping scene
+            Graphics::Flush();
+            DestroyScene(m_pScene.get());
+            m_pScene = m_pStagingScene;
+            m_pStagingScene = nullptr;
+        }
+
         pScene = m_pScene;
     }
 
@@ -762,13 +774,19 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 
                 char relativePath[256];
                 strcpy_s(relativePath, assetDir);
-                strcat_s(relativePath, rootDir);
-                strcat_s(relativePath, "\\");
-
+                if (strlen(rootDir))
+                {
+                    strcat_s(relativePath, rootDir);
+                    strcat_s(relativePath, "\\");
+                }
+                
                 char texturePath[256];
                 strcpy_s(texturePath, relativePath);
-                strcat_s(texturePath, textureDir);
-                strcat_s(texturePath, "\\");
+                if (strlen(textureDir))
+                {
+                    strcat_s(texturePath, textureDir);
+                    strcat_s(texturePath, "\\");
+                }
 
                 char filePath[256];
                 strcpy_s(filePath, relativePath);
@@ -810,18 +828,18 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 
         {
             std::lock_guard<std::mutex> lock(m_sceneMutex);
-            if (m_pScene)
+            if (m_pStagingScene)
             {
-                DestroyScene(m_pScene.get());
+                DestroyScene(m_pStagingScene.get());
             }
 
-            m_pScene = std::make_shared<Scene>();
-            m_pScene->Bounds = scene.Bounds;
-            m_pScene->Meshes = scene.Meshes;
-            m_pScene->Materials = scene.Materials;
-            m_pScene->Constants = scene.Constants;
-            m_pScene->Surfaces = scene.Surfaces;
-            m_pScene->Textures = scene.Textures;
+            m_pStagingScene = std::make_shared<Scene>();
+            m_pStagingScene->Bounds = scene.Bounds;
+            m_pStagingScene->Meshes = scene.Meshes;
+            m_pStagingScene->Materials = scene.Materials;
+            m_pStagingScene->Constants = scene.Constants;
+            m_pStagingScene->Surfaces = scene.Surfaces;
+            m_pStagingScene->Textures = scene.Textures;
         }
 
         s_loading.store(false);

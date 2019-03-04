@@ -65,13 +65,13 @@
 
 #define DEPTH_STENCIL_MAX 1024
 
-#define VERTEX_BUFFER_MAX 1024
+#define VERTEX_BUFFER_MAX 2048
 
-#define INDEX_BUFFER_MAX 1024
+#define INDEX_BUFFER_MAX 2048
 
-#define CONSTANT_BUFFER_MAX 1024
+#define CONSTANT_BUFFER_MAX 2048
 
-#define TEXTURE_MAX 1024
+#define TEXTURE_MAX 2048
 
 #define COMMAND_LIST_MAX 64
 
@@ -150,6 +150,7 @@ namespace Graphics
     {
         ID3D12Resource* pResource;
         D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle;
+        uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
     };
 
     struct DepthStencil
@@ -159,12 +160,14 @@ namespace Graphics
         D3D12_DEPTH_STENCIL_VIEW_DESC DsvDesc;
         Descriptor DsvHandle;
         Descriptor SrvHandle;
+        uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
     };
 
     struct VertexBuffer
     {
         ID3D12Resource* pResource;
         D3D12_VERTEX_BUFFER_VIEW View;
+        uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
     };
 
     struct IndexBuffer
@@ -172,6 +175,7 @@ namespace Graphics
         ID3D12Resource* pResource;
         D3D12_INDEX_BUFFER_VIEW View;
         u32 NumIndices;
+        uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
     };
 
     struct ConstantBuffer
@@ -179,6 +183,7 @@ namespace Graphics
         ID3D12Resource* pResource;
         D3D12_GPU_VIRTUAL_ADDRESS GpuVirtualAddress;
         Descriptor CbvHandle;
+        uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
     };
 
     struct Texture
@@ -188,6 +193,14 @@ namespace Graphics
         Descriptor SrvHandle;
         Descriptor RtvHandle;
         Descriptor UavHandle;
+        uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
+    };
+
+    struct CommandContext
+    {
+        ID3D12CommandAllocator* pCommandAllocator;
+        ID3D12DescriptorHeap* pDescriptorHeap;
+        std::atomic_uint64_t* pExecution;
     };
 
     struct CommandList
@@ -199,7 +212,8 @@ namespace Graphics
         };
 
         ID3D12DescriptorHeap* pDescriptorHeap;
-        uint64_t Execution;
+        std::atomic_uint64_t* pExecution;
+        CommandQueueType eType;
     };
 
     struct CommandQueue
@@ -209,23 +223,15 @@ namespace Graphics
         std::atomic_uint64_t Executions = ATOMIC_VAR_INIT(0);
     };
 
-    struct CommandContext
-    {
-        ID3D12CommandAllocator* pCommandAllocator;
-        ID3D12DescriptorHeap* pDescriptorHeap;
-        uint64_t Execution;
-    };
-
     struct CommandContextPool
     {
-        static constexpr unsigned int DescriptorHeapCapacity = 256;
-        static constexpr unsigned int Capacity = 1024;
+        static constexpr uint16_t DescriptorHeapCapacity = 256;
+        static constexpr uint16_t Capacity = 16;
+        std::atomic_uint64_t pCommandContextExecutions[Capacity];
         ID3D12CommandAllocator* ppCommandAllocators[Capacity];
         ID3D12DescriptorHeap* ppDescriptorHeaps[Capacity];
-        uint64_t pCommandContextExecutions[Capacity];
-        uint64_t NextContext = 0;
-        uint64_t Allocations = 0;
-        std::mutex Mutex;
+        std::atomic_uint16_t NextContext = 0;
+        std::atomic_flag Lock = ATOMIC_FLAG_INIT;
     };
 
     enum DescriptorHandleType

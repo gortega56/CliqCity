@@ -188,6 +188,7 @@ public:
     
     std::mutex m_sceneMutex;
     std::shared_ptr<Scene> m_pScene;
+    std::shared_ptr<Scene> m_pStagingScene;
 
     std::vector<std::thread> m_loadingThreads;
 };

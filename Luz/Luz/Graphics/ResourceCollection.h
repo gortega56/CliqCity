@@ -93,7 +93,6 @@ namespace Graphics
 
             for (j = 0; j < 32; j++)
             {
-                bool cas_success = false;
                 do
                 {
                     success = (current & (1 << j)) == 0;
@@ -101,8 +100,7 @@ namespace Graphics
 
                     // Found Free handle.. enter cas loop
                     updated = current | (1 << j);
-                    cas_success = m_proxy[i].compare_exchange_strong(current, updated);
-                } while (!cas_success);
+                } while (!m_proxy[i].compare_exchange_strong(current, updated));
 
                 // break inner
                 if (success) break;
@@ -112,6 +110,7 @@ namespace Graphics
             if (success) break;
         }
 
+        LUZASSERT(success);
         return (success) ? HandleType(i * 32 + j) : HandleType(0);
     }
 
