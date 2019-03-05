@@ -83,8 +83,6 @@ namespace Internal
     }
 
     static std::wstring ConvertCString(const char* cstr);
-
-    static void EnableDebugLayer(ID3D12Debug** ppDebug);
     
     static void ConfigureDebugLayer(ID3D12Device* pDevice);
 
@@ -106,13 +104,6 @@ namespace Internal
         MultiByteToWideChar(CP_UTF8, 0, cstr, -1, ws.data(), static_cast<int>(ws.size()));
 
         return ws;
-    }
-
-    void EnableDebugLayer(ID3D12Debug** ppDebug)
-    {
-        HRESULT hr = D3D12GetDebugInterface(IID_PPV_ARGS(ppDebug));
-        LUZASSERT(SUCCEEDED(hr));
-        (*ppDebug)->EnableDebugLayer();
     }
 
     void ConfigureDebugLayer(ID3D12Device* pDevice)
@@ -279,10 +270,6 @@ namespace Graphics
     CommandQueue s_commandQueues[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
 
     CommandContextPool s_commandContextPools[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
-
-    ID3D12Debug* s_pDebug = nullptr;
-    
-    ID3D12DebugDevice* s_pDebugDevice = nullptr;
 
     ShaderCollection s_shaderCollection;
     
@@ -480,7 +467,8 @@ namespace Graphics
     bool Initialize(Window* pWindow, u32 numBackBuffers)
     {
 #ifdef DX_DEBUG
-        Internal::EnableDebugLayer(&s_pDebug);
+        LUZASSERT(SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&s_device.pDebug))));
+        s_device.pDebug->EnableDebugLayer();
 #endif
 
         auto pPlatformWindow = dynamic_cast<Platform::Window*>(pWindow);
@@ -693,21 +681,7 @@ namespace Graphics
 
     void Shutdown()
     {
-        // wait for the gpu to finish all frames
-        for (uint32_t i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
-        {
-            WaitOnFence(s_commandQueues[i].pFence, s_commandQueues[i].Executions.load());
-        }
-
-        for (u32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-        {
-            for (auto& heap : s_descriptorAllocatorCollection[i].m_descriptorHeaps)
-            {
-                SAFE_RELEASE(heap.pHeap);
-            }
-
-            s_descriptorAllocatorCollection[i].m_descriptorHeaps.clear();
-        }
+        Flush();
 
         for (u32 i = 0; i < PIPELINE_MAX; ++i)
         {
@@ -752,7 +726,9 @@ namespace Graphics
 
         for (u32 i = 0; i < COMMAND_LIST_MAX; ++i)
         {
-            SAFE_RELEASE(s_commandListCollection.GetData(static_cast<CommandStreamHandle>(i)).pCommandList);
+            ID3D12GraphicsCommandList* pGraphicsCommandList = s_commandListCollection.GetData(static_cast<CommandStreamHandle>(i)).pGraphicsCommandList;
+            if (pGraphicsCommandList)pGraphicsCommandList->ClearState(0);
+            SAFE_RELEASE(s_commandListCollection.GetData(static_cast<CommandStreamHandle>(i)).pGraphicsCommandList);
         }
 
         for (u32 i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
@@ -762,9 +738,28 @@ namespace Graphics
 
             for (u32 j = 0; j < CommandContextPool::Capacity; ++j)
             {
+                s_commandContextPools[i].ppCommandAllocators[j]->Reset();
                 SAFE_RELEASE(s_commandContextPools[i].ppCommandAllocators[j]);
                 SAFE_RELEASE(s_commandContextPools[i].ppDescriptorHeaps[j]);
             }
+        }
+
+        for (u32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+        {
+            for (auto& heap : s_descriptorAllocatorCollection[i].m_descriptorHeaps)
+            {
+                SAFE_RELEASE(heap.pHeap);
+            }
+
+            s_descriptorAllocatorCollection[i].m_descriptorHeaps.clear();
+        }
+
+        for (u32 i = 0; i < s_swapChain.NumBuffers; ++i)
+        {
+            ID3D12Resource* pResource = nullptr;
+            HRESULT hr = s_swapChain.pSwapChain3->GetBuffer(i, IID_PPV_ARGS(&pResource));
+            LUZASSERT(SUCCEEDED(hr));
+            SAFE_RELEASE(pResource);
         }
 
         SAFE_RELEASE(s_swapChain.pGraphicsCommandList);
@@ -776,20 +771,6 @@ namespace Graphics
         SAFE_RELEASE(s_swapChain.pSwapChain2);
         SAFE_RELEASE(s_swapChain.pSwapChain3);
 
-#ifdef DX_DEBUG
-        s_device.pDevice->QueryInterface(IID_PPV_ARGS(&s_pDebugDevice));
-        if (s_pDebugDevice)
-        {
-           s_pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
-        }
-
-        SAFE_RELEASE(s_pDebug);
-        SAFE_RELEASE(s_pDebugDevice);
-#endif
-
-        SAFE_RELEASE(s_device.pDevice);
-        SAFE_RELEASE(s_device.pDevice1);
-
         SAFE_RELEASE(s_device.pAdapter);
         SAFE_RELEASE(s_device.pAdapter1);
         SAFE_RELEASE(s_device.pAdapter2);
@@ -800,6 +781,19 @@ namespace Graphics
         SAFE_RELEASE(s_device.pFactory2);
         SAFE_RELEASE(s_device.pFactory3);
         SAFE_RELEASE(s_device.pFactory4);
+        
+#ifdef DX_DEBUG
+        HRESULT hr = s_device.pDevice->QueryInterface(IID_PPV_ARGS(&s_device.pDebugDevice1));
+        LUZASSERT(SUCCEEDED(hr));
+        s_device.pDebugDevice1->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+
+        SAFE_RELEASE(s_device.pDebugDevice1);
+        SAFE_RELEASE(s_device.pDebugDevice);
+        SAFE_RELEASE(s_device.pDebug);
+#endif
+
+        SAFE_RELEASE(s_device.pDevice);
+        SAFE_RELEASE(s_device.pDevice1);
     }
 
     ShaderHandle CreateVertexShader(const char* filename) { return CreateShader(filename, "main", "vs_5_1"); }
@@ -1740,7 +1734,8 @@ namespace Graphics
     {
         for (unsigned int i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
         {
-            WaitOnFence(s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW].pFence, s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW].Executions.load());
+            uint64_t execution = s_commandQueues[i].Executions.fetch_add(1ULL) + 1ULL;
+            SignalQueue((CommandQueueType)i, execution, true);
         }
     }
 
@@ -1795,7 +1790,8 @@ namespace Graphics
     void ReleaseCommandStream(CommandStream* pCommandStream)
     {
         CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
-        SAFE_RELEASE(cl.pCommandList);
+        cl.pGraphicsCommandList->ClearState(nullptr);
+        SAFE_RELEASE(cl.pGraphicsCommandList);
 
         s_commandListCollection.FreeHandle(pCommandStream->GetHandle());
     }

@@ -94,6 +94,10 @@ namespace Graphics
 
         ID3D12Device* pDevice;
         ID3D12Device1* pDevice1;
+
+        ID3D12Debug* pDebug;
+        ID3D12DebugDevice* pDebugDevice;
+        ID3D12DebugDevice1* pDebugDevice1;
     };
 
     struct SwapChain
@@ -249,10 +253,6 @@ namespace Graphics
     extern SwapChainContext s_swapChain;
 
     extern CommandContextPool s_commandContextPools[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
-
-    extern ID3D12Debug* s_pDebug;
-
-    extern ID3D12DebugDevice* s_pDebugDevice;
 
     typedef ResourceCollection<PipelineStateHandle, Pipeline, PIPELINE_MAX> PipelineCollection;
 

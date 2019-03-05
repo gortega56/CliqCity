@@ -101,7 +101,7 @@ static ShaderOptions s_shaderOptions =
     normalize(float3(0.0f, -0.5f, -0.1f)),
     float4(0.2f, 10.0f, 100.0f, 1.0f),
     10.0f,
-    SHADING_MODE_DEFAULT,
+    SHADING_MODE_GGX,
     1,
     true,
     true,
@@ -163,7 +163,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 
-    LoadScene("sibenik.scene", 0);
+    LoadScene("sponza.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -481,10 +481,6 @@ int SceneViewer::Shutdown()
     DestroyScene(m_pStagingScene.get());
     DestroyScene(m_pScene.get());
 
-    Graphics::ReleaseVertexBuffer(m_cube_map_vb_handle);
-    Graphics::ReleaseIndexBuffer(m_cube_map_ib_handle);
-    Graphics::ReleaseIndexBuffer(m_fs_ib);
-
     Graphics::ReleaseShader(m_vs);
     Graphics::ReleaseShader(m_ps);
     Graphics::ReleaseShader(m_fs_vs);
@@ -494,6 +490,10 @@ int SceneViewer::Shutdown()
     Graphics::ReleaseShader(m_radiance_map_ps);
     Graphics::ReleaseShader(m_irradiance_map_ps);
     Graphics::ReleaseShader(m_brdf_map_ps);
+
+    Graphics::ReleaseVertexBuffer(m_cube_map_vb_handle);
+    Graphics::ReleaseIndexBuffer(m_cube_map_ib_handle);
+    Graphics::ReleaseIndexBuffer(m_fs_ib);
 
     Graphics::ReleaseTexture(m_cube_map_texture_handle);
     Graphics::ReleaseTexture(m_environment_cube_map_handle);
