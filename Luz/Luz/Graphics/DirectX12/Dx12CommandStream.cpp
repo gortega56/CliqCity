@@ -29,7 +29,7 @@ namespace Graphics
 
     CommandStream::~CommandStream()
     {
-        ReleaseCommandStream(this);
+
     }
 
     //void CommandStream::Reset(const PipelineStateHandle handle)

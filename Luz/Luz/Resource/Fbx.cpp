@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Fbx.h"
-#include "lina.h"
+//#include "lina.h"
 #include <fbxsdk.h>
 #include <fstream>
 
@@ -13,7 +13,7 @@
 #define FBX_DEFAULT_AXIS FbxAxisSystem::EPreDefinedAxisSystem::OpenGL
 #endif
 
-using namespace lina;
+//using namespace lina;
 
 namespace Resource
 {
@@ -32,301 +32,42 @@ namespace Resource
     static bool g_convertCoordinate = false;
     static bool g_reverseWindingOrder = false;
 
-    static void GetNodeAttributes(Fbx* pResource, FbxNode* pNode);
-    static void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode);
-    static void GetMeshAttributes(Fbx* pResource, FbxNode* pNode);
+    static constexpr size_t s_szPosition = sizeof(float) * 3;
+    static constexpr size_t s_szNormal = sizeof(float) * 3;
+    static constexpr size_t s_szUV = sizeof(float) * 2;
 
-    static void TriangulatePolygonAdditive(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices);
-    static void TriangulatePolygon(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices);
-
-    static bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3]);
-    static bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3]);
-    static bool TryGetVertexUV(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, float(&outUV)[2]);
-    static void GetVertexAttributes(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, FbxVector4& outPosition, FbxVector4& outNormal, FbxVector2& outTexCoord);
-    static void CreateVertex(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, Fbx::Vertex& outVertex);
+    struct FbxContext
+    {
+        std::vector<Fbx::Position>* pPositions;
+        std::vector<Fbx::Normal>* pNormals;
+        std::vector<Fbx::UV>* pUVs;
+        std::vector<Fbx::Triangle>* pTris;
+        std::vector<Fbx::Surface>* pSurfaces;
+    };
 
     static void ConvertCoordinateSystem(FbxVector4& vector);
+
     static void ConvertCoordinateSystem(FbxVector2& vector);
+
     static void ConvertCoordinateSystem(FbxAMatrix& matrix);
 
     template<typename ... Args> static std::string string_format(const std::string& format, Args ... args);
+    
     static std::string ToString(FbxVector4& vector);
+    
     static std::string ToString(FbxVector2& vector);
+    
     static std::string ToString(float(&vector)[4]);
+    
     static std::string ToString(float(&vector)[3]);
+    
     static std::string ToString(float(&vector)[2]);
 
-    template<i32 T0, i32 T1> static void ExtractFloat(double(&in)[T0], float(&out)[T1]);
-    template<i32 T> static void ExtractFloat(double(&in)[T], float(&out)[T]);
+    static void GetNodeAttributes(FbxNode* pNode, FbxContext* pContext);
 
-    void GetNodeAttributes(Fbx* pResource, FbxNode* pNode)
-    {
-        LUZASSERT(pResource && pNode);
+    static void GetNodeAttributesRecursively(FbxNode* pNode, FbxContext* pContext);
 
-        for (int i = 0, n = pNode->GetNodeAttributeCount(); i < n; ++i)
-        {
-            if (FbxNodeAttribute* pNodeAttribute = pNode->GetNodeAttributeByIndex(i))
-            {
-                FbxNodeAttribute::EType type = pNodeAttribute->GetAttributeType();
-                switch (type) {
-                case FbxNodeAttribute::eUnknown:
-                case FbxNodeAttribute::eNull:
-                case FbxNodeAttribute::eMarker:
-                case FbxNodeAttribute::eSkeleton:
-                    break;
-                case FbxNodeAttribute::eMesh:
-                    GetMeshAttributes(pResource, pNode);
-                    break;
-                case FbxNodeAttribute::eNurbs:
-                case FbxNodeAttribute::ePatch:
-                case FbxNodeAttribute::eCamera:
-                case FbxNodeAttribute::eCameraStereo:
-                case FbxNodeAttribute::eCameraSwitcher:
-                case FbxNodeAttribute::eLight:
-                case FbxNodeAttribute::eOpticalReference:
-                case FbxNodeAttribute::eOpticalMarker:
-                case FbxNodeAttribute::eNurbsCurve:
-                case FbxNodeAttribute::eTrimNurbsSurface:
-                case FbxNodeAttribute::eBoundary:
-                case FbxNodeAttribute::eNurbsSurface:
-                case FbxNodeAttribute::eShape:
-                case FbxNodeAttribute::eLODGroup:
-                case FbxNodeAttribute::eSubDiv:
-                default:
-                    break;
-                }
-            }
-        }
-    }
-
-    void GetNodeAttributesRecursively(Fbx* pResource, FbxNode* pNode)
-    {
-        LUZASSERT(pResource);
-        if (pNode)
-        {
-            GetNodeAttributes(pResource, pNode);
-
-            for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
-            {
-                GetNodeAttributesRecursively(pResource, pNode->GetChild(i));
-            }
-        }
-    }
-
-    void GetMeshAttributes(Fbx* pResource, FbxNode* pNode)
-    {
-        auto pMesh = pNode->GetMesh();
-        if (!pMesh) return;
-
-        bool isTri = pMesh->IsTriangleMesh();
-
-        FbxStringList uvSetNames;
-        pMesh->GetUVSetNames(uvSetNames);
-        bool hasUV = uvSetNames.GetCount() != 0;
-
-        for (int polygon = 0, numPoly = pMesh->GetPolygonCount(); polygon < numPoly; ++polygon)
-        {
-            int numPolygonVertices = pMesh->GetPolygonSize(polygon);
-
-            if (numPolygonVertices > 3)
-            {
-                // TODO: Figure out when it would be better to add a vertex to avoid degenerate triangles...
-                //TriangulatePolygonAdditive(pMesh, pResource, uvSetNames, polygon, numPolygonVertices);
-                TriangulatePolygon(pMesh, pResource, uvSetNames, polygon, numPolygonVertices);
-            }
-            else
-            {
-                int polygonVertexBegin, polygonVertexEnd, polygonVertexIncr;
-                if (g_reverseWindingOrder)
-                {
-                    polygonVertexBegin = numPolygonVertices - 1;
-                    polygonVertexEnd = -1;
-                    polygonVertexIncr = -1;
-                }
-                else
-                {
-                    polygonVertexBegin = 0;
-                    polygonVertexEnd = numPolygonVertices;
-                    polygonVertexIncr = 1;
-                }
-
-                int polygonVertex = polygonVertexBegin;
-                while (polygonVertex != polygonVertexEnd)
-                {
-                    FbxVector4 position = FbxVector4(0.0, 0.0, 0.0);
-                    FbxVector4 normal = FbxVector4(0.0, 0.0, 0.0);
-                    FbxVector2 uv = FbxVector2(0.0, 0.0);
-
-                    GetVertexAttributes(pMesh, polygon, polygonVertex, uvSetNames, position, normal, uv);
-                    u32 index = pResource->AddVertex(position.mData, normal.mData, uv.mData);
-                    pResource->AddIndex(index);
-
-                    polygonVertex += polygonVertexIncr;
-                }
-            }
-        }
-    }
-
-    void TriangulatePolygonAdditive(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices)
-    {
-        std::vector<u32> polygonVertexIndices;
-        polygonVertexIndices.reserve(static_cast<size_t>(numPolygonVertices));
-
-        // Triangulate
-        float position[3] = { 0.0f, 0.0f, 0.0f };
-        float normal[3] = { 0.0f, 0.0f, 0.0f };
-        float uv[2] = { 0.0f, 0.0f };
-
-        for (int polygonVertex = 0; polygonVertex < numPolygonVertices; ++polygonVertex)
-        {
-            u32 polygonIndex = pResource->AddVertex();
-            auto vertex = pResource->GetVertex(polygonIndex);
-            CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
-            polygonVertexIndices.push_back(polygonIndex);
-
-            position[0] += vertex->Position[0]; position[1] += vertex->Position[1]; position[2] += vertex->Position[2];
-
-            normal[0] += vertex->Normal[0]; normal[1] += vertex->Normal[1]; normal[2] += vertex->Normal[2];
-
-            uv[0] += vertex->UV[0]; uv[1] += vertex->UV[1];
-        }
-
-        float inv = 1.0f / numPolygonVertices;
-        
-        position[0] *= inv; position[1] *= inv; position[2] *= inv;
-
-        normal[0] *= inv; normal[1] *= inv; normal[2] *= inv;
-
-        uv[0] *= inv; uv[1] *= inv;
-
-        auto index = pResource->AddVertex(position, normal, uv);
-
-        for (int polygonVertexIndex = 0, numPolygonVertexIndices = (int)polygonVertexIndices.size(); polygonVertexIndex < numPolygonVertexIndices; ++polygonVertexIndex)
-        {
-            u32 currentIndex = polygonVertexIndices[polygonVertexIndex];
-            u32 nextIndex = (polygonVertexIndex == numPolygonVertexIndices - 1) ? polygonVertexIndices[0] : polygonVertexIndices[polygonVertexIndex + 1];
-
-            if (g_reverseWindingOrder)
-            {
-                pResource->AddIndex(nextIndex);
-                pResource->AddIndex(currentIndex);
-                pResource->AddIndex(index);
-            }
-            else
-            {
-                pResource->AddIndex(index);
-                pResource->AddIndex(currentIndex);
-                pResource->AddIndex(nextIndex);
-
-                /*          std::cout << index << ": " << ToString(pResource->GetVertex(index)->Position) << std::endl;
-                std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
-                std::cout << nextIndex << ": " << ToString(pResource->GetVertex(nextIndex)->Position) << std::endl;*/
-            }
-        }
-    }
-
-    void TriangulatePolygon(FbxMesh* pMesh, Fbx* pResource, const FbxStringList& uvSetNames, int polygon, int numPolygonVertices)
-    {
-        std::vector<u32> polygonVertexIndices;
-        polygonVertexIndices.reserve(static_cast<size_t>(numPolygonVertices));
-
-        for (int polygonVertex = 0; polygonVertex < numPolygonVertices; ++polygonVertex)
-        {
-            u32 polygonIndex = pResource->AddVertex();
-            auto vertex = pResource->GetVertex(polygonIndex);
-            CreateVertex(pMesh, polygon, polygonVertex, uvSetNames, *vertex);
-            polygonVertexIndices.push_back(polygonIndex);
-        }
-
-        // TODO: Pick best starting vertex (for now picking vertex @ first index)
-        u32 index = polygonVertexIndices[0];
-
-        for (int polygonVertexIndex = 1, numPolygonVertexIndices = static_cast<int>(polygonVertexIndices.size()) - 1; polygonVertexIndex < numPolygonVertexIndices; ++polygonVertexIndex)
-        {
-            u32 currentIndex = polygonVertexIndices[polygonVertexIndex];
-            u32 nextIndex = polygonVertexIndices[polygonVertexIndex + 1];
-
-            if (g_reverseWindingOrder)
-            {
-                pResource->AddIndex(nextIndex);
-                pResource->AddIndex(currentIndex);
-                pResource->AddIndex(index);
-            }
-            else
-            {
-
-                pResource->AddIndex(index);
-                pResource->AddIndex(currentIndex);
-                pResource->AddIndex(nextIndex);
-
-                //std::cout << nextIndex << ": " << ToString(pResource->GetVertex(nextIndex)->Position) << std::endl;
-                //std::cout << currentIndex << ": " << ToString(pResource->GetVertex(currentIndex)->Position) << std::endl;
-                //std::cout << index << ": " << ToString(pResource->GetVertex(index)->Position) << std::endl;
-            }
-        }
-    }
-
-    bool TryGetVertexPosition(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outPosition)[3])
-    {
-        int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
-        FbxVector4 position = pMesh->GetControlPointAt(controlPoint);
-        ExtractFloat<4, 3>(position.mData, outPosition);
-        return controlPoint != -1;
-    }
-
-    bool TryGetVertexNormal(FbxMesh* pMesh, int polygon, int polygonVertex, float(&outNormal)[3])
-    {
-        FbxVector4 normal;
-        bool success = pMesh->GetPolygonVertexNormal(polygon, polygonVertex, normal);
-        if (success)
-        {
-            ExtractFloat<4, 3>(normal.mData, outNormal);
-        }
-
-        return success;
-    }
-
-    bool TryGetVertexUV(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, float(&outUV)[2])
-    {
-        FbxVector2 uv;
-        bool unmapped;
-        bool success = (pMesh->GetPolygonVertexUV(polygon, polygonVertex, uvSetNames.GetStringAt(0), uv, unmapped) || unmapped);
-        if (success)
-        {
-            ExtractFloat<2>(uv.mData, outUV);
-        }
-
-        return success;
-    }
-
-    void GetVertexAttributes(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, FbxVector4& outPosition, FbxVector4& outNormal, FbxVector2& outTexCoord)
-    {
-        bool unmapped;
-        int controlPoint = pMesh->GetPolygonVertex(polygon, polygonVertex);
-        outPosition = pMesh->GetControlPointAt(controlPoint);
-        pMesh->GetPolygonVertexNormal(polygon, polygonVertex, outNormal);
-        pMesh->GetPolygonVertexUV(polygon, polygonVertex, uvSetNames.GetStringAt(0), outTexCoord, unmapped);
-
-        if (g_convertCoordinate)
-        {
-            ConvertCoordinateSystem(outPosition);
-            ConvertCoordinateSystem(outNormal);
-            ConvertCoordinateSystem(outTexCoord);
-        }
-    }
-
-    void CreateVertex(FbxMesh* pMesh, int polygon, int polygonVertex, const FbxStringList& uvSetNames, Fbx::Vertex& outVertex)
-    {
-        FbxVector4 position = FbxVector4(0.0, 0.0, 0.0);
-        FbxVector4 normal = FbxVector4(0.0, 0.0, 0.0);
-        FbxVector2 uv = FbxVector2(0.0, 0.0);
-
-        GetVertexAttributes(pMesh, polygon, polygonVertex, uvSetNames, position, normal, uv);
-
-        ExtractFloat<4, 3>(position.mData, outVertex.Position);
-        ExtractFloat<4, 3>(normal.mData, outVertex.Normal);
-        ExtractFloat<2>(uv.mData, outVertex.UV);
-    }
+    static void GetMeshAttributes(FbxNode* pNode, FbxContext* pContext);
 
     void ConvertCoordinateSystem(FbxVector4& vector)
     {
@@ -352,6 +93,15 @@ namespace Resource
         pDouble[1] = -pDouble[1];
         pDouble[2] = -pDouble[2];
         pDouble[3] = -pDouble[3];
+    }
+
+    template<size_t N>
+    void ExtractFloats(const FbxDouble* pIn, float* pOut)
+    {
+        for (size_t i = 0; i < N; ++i)
+        {
+            pOut[i] = static_cast<float>(pIn[i]);
+        }
     }
 
     template<typename ... Args>
@@ -388,77 +138,260 @@ namespace Resource
         return string_format("(%f, %f)", vector[0], vector[1]);
     }
 
-    template<i32 T0, i32 T1>
-    void ExtractFloat(double(&in)[T0], float(&out)[T1])
+    void GetNodeAttributes(FbxNode* pNode, FbxContext* pContext)
     {
-        for (int i = 0; i < T1; ++i)
+        LUZASSERT(pContext && pNode);
+
+        for (int i = 0, n = pNode->GetNodeAttributeCount(); i < n; ++i)
         {
-            out[i] = static_cast<float>(in[i]);
+            if (FbxNodeAttribute* pNodeAttribute = pNode->GetNodeAttributeByIndex(i))
+            {
+                FbxNodeAttribute::EType type = pNodeAttribute->GetAttributeType();
+                switch (type) {
+                case FbxNodeAttribute::eUnknown:
+                case FbxNodeAttribute::eNull:
+                case FbxNodeAttribute::eMarker:
+                case FbxNodeAttribute::eSkeleton:
+                    break;
+                case FbxNodeAttribute::eMesh:
+                    GetMeshAttributes(pNode, pContext);
+                    break;
+                case FbxNodeAttribute::eNurbs:
+                case FbxNodeAttribute::ePatch:
+                case FbxNodeAttribute::eCamera:
+                case FbxNodeAttribute::eCameraStereo:
+                case FbxNodeAttribute::eCameraSwitcher:
+                case FbxNodeAttribute::eLight:
+                case FbxNodeAttribute::eOpticalReference:
+                case FbxNodeAttribute::eOpticalMarker:
+                case FbxNodeAttribute::eNurbsCurve:
+                case FbxNodeAttribute::eTrimNurbsSurface:
+                case FbxNodeAttribute::eBoundary:
+                case FbxNodeAttribute::eNurbsSurface:
+                case FbxNodeAttribute::eShape:
+                case FbxNodeAttribute::eLODGroup:
+                case FbxNodeAttribute::eSubDiv:
+                default:
+                    break;
+                }
+            }
         }
     }
 
-    template<i32 T>
-    void ExtractFloat(double(&in)[T], float(&out)[T])
+    void GetNodeAttributesRecursively(FbxNode* pNode, FbxContext* pContext)
     {
-        ExtractFloat<T, T>(in, out);
-    }
+        LUZASSERT(pContext);
 
-    Fbx::Fbx()
-    {
-
-    }
-
-    Fbx::~Fbx()
-    {
-
-    }
-
-    Fbx::Vertex* Fbx::GetVertex(u32 i)
-    {
-        Fbx::Vertex* vertex = nullptr;
-        if (m_vertices.size() && i < (u32)m_vertices.size())
+        if (pNode)
         {
-            vertex = &m_vertices[i];
+            GetNodeAttributes(pNode, pContext);
+
+            for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
+            {
+                GetNodeAttributesRecursively(pNode->GetChild(i), pContext);
+            }
+        }
+    }
+
+    void GetMeshAttributes(FbxNode* pNode, FbxContext* pContext)
+    {
+        FbxMesh* pMesh = pNode->GetMesh();
+        LUZASSERT(pMesh);
+
+        // Check for normals, uvs by checking first vertex
+        FbxStringList uvSetNames;
+        FbxVector4 normal;
+        FbxVector2 uv;
+        bool bUnmapped;
+
+        pMesh->GetUVSetNames(uvSetNames);
+
+        unsigned int triStart = static_cast<unsigned int>(pContext->pTris->size());
+        bool bHasNormals = pMesh->GetPolygonVertexNormal(0, 0, normal);
+        bool bHasUVs = (uvSetNames.GetCount() != 0 && pMesh->GetPolygonVertexUV(0, 0, uvSetNames.GetStringAt(0), uv, bUnmapped));
+
+        // Reserve the memory if we can easily predict it
+        bool bIsTriangleMesh = pMesh->IsTriangleMesh();
+        if (bIsTriangleMesh)
+        {
+            pContext->pPositions->reserve(pContext->pPositions->size() + static_cast<size_t>(pMesh->GetPolygonCount() * 3));
+
+            if (bHasNormals)
+            {
+                pContext->pNormals->reserve(pContext->pNormals->size() + static_cast<size_t>(pMesh->GetPolygonCount() * 3));
+            }
+
+            if (bHasUVs)
+            {
+                pContext->pUVs->reserve(pContext->pUVs->size() + static_cast<size_t>(pMesh->GetPolygonCount() * 3));
+            }
         }
 
-        return vertex;
+        for (int iPolygon = 0, nPolygon = pMesh->GetPolygonCount(); iPolygon < nPolygon; ++iPolygon)
+        {
+            int nVertices = pMesh->GetPolygonSize(iPolygon);
+
+            // Extract vertex info
+            for (int iVertex = 0; iVertex < nVertices; ++iVertex)
+            {
+                int iControlPoint = pMesh->GetPolygonVertex(iPolygon, iVertex);
+
+                FbxVector4 fbxPosition = pMesh->GetControlPointAt(iControlPoint);
+                Fbx::Position& position = pContext->pPositions->emplace_back();
+                ExtractFloats<3>(fbxPosition.mData, position.Data);
+
+                FbxVector4 fbxNormal;
+                if (pMesh->GetPolygonVertexNormal(iPolygon, iVertex, fbxNormal))
+                {
+                    Fbx::Normal& normal = pContext->pNormals->emplace_back();
+                    ExtractFloats<3>(fbxNormal.mData, normal.Data);
+                }
+                else
+                {
+                    LUZASSERT(!bHasNormals);
+                }
+
+                FbxVector2 fbxUV;
+                if (pMesh->GetPolygonVertexUV(iPolygon, iVertex, uvSetNames.GetStringAt(0), fbxUV, bUnmapped))
+                {
+                    Fbx::UV& uv = pContext->pUVs->emplace_back();
+                    ExtractFloats<2>(fbxUV.mData, uv.Data);
+                }
+                else
+                {
+                    LUZASSERT(!bHasUVs);
+                }
+            }
+
+            // Build triangles
+            if (nVertices == 3)
+            {
+                int nPositions = static_cast<int>(pContext->pPositions->size());
+                int nNormals = static_cast<int>(pContext->pNormals->size());
+                int nUVs = static_cast<int>(pContext->pUVs->size());
+
+                Fbx::Triangle& tri = pContext->pTris->emplace_back();
+
+                for (int iVertex = 0; iVertex < nVertices; ++iVertex)
+                {
+                    int offset = (nVertices - iVertex);
+                    tri.Positions[iVertex] = nPositions - offset;
+                    tri.Normals[iVertex] = nNormals - offset;
+                    tri.UVs[iVertex] = nUVs - offset;
+                }
+            }
+            else
+            {
+                // need to triangulate polygon
+                int iBaseVertex = 0;
+                int iNextVertex = iBaseVertex + 1;
+
+                int nPositions = static_cast<int>(pContext->pPositions->size());
+                int nNormals = static_cast<int>(pContext->pNormals->size());
+                int nUVs = static_cast<int>(pContext->pUVs->size());
+
+                for (int iTri = 0, nTris = nVertices - 2; iTri < nTris; ++iTri)
+                {
+                    Fbx::Triangle& tri = pContext->pTris->emplace_back();
+                    tri.Positions[iBaseVertex] = nPositions - nVertices;
+                    tri.Normals[iBaseVertex] = nNormals - nVertices;
+                    tri.UVs[iBaseVertex] = nUVs - nVertices;
+
+                    for (int i = 0; i < 2; ++i)
+                    {
+                        int iVertex = iNextVertex + i;
+                        int offset = (nVertices - iVertex);
+                        tri.Positions[iVertex] = nPositions - offset;
+                        tri.Normals[iVertex] = nNormals - offset;
+                        tri.UVs[iVertex] = nUVs - offset;
+                    }
+
+                    iNextVertex += 1;
+                }
+            }
+        }
+
+        // Add the surface
+        Fbx::Surface& surface = pContext->pSurfaces->emplace_back();
+        surface.TriStart = triStart;
+        surface.NumTris = static_cast<unsigned int>(pContext->pTris->size()) - triStart;
+        surface.bHasNormals = bHasNormals;
+        surface.bHasUVs = bHasUVs;
     }
 
-    u32 Fbx::AddVertex()
+    int Fbx::NumSurfaces() const
     {
-        u32 i = static_cast<u32>(m_vertices.size());
-        m_vertices.emplace_back();
-        return i;
+        return static_cast<int>(m_surfaces.size());
     }
 
-    u32 Fbx::AddVertex(float(&position)[3], float(&normal)[3], float(&uv)[2])
+    int Fbx::NumTris(int i) const
     {
-        u32 i = static_cast<u32>(m_vertices.size());
-        m_vertices.emplace_back(position, normal, uv);
-        return i;
+        return static_cast<int>(m_surfaces[i].NumTris);
     }
 
-    u32 Fbx::AddVertex(double(&position)[4], double(&normal)[4], double(&uv)[2])
+    const Fbx::Position* Fbx::GetPosition(int i) const
     {
-        float pos[3];
-        float norm[3];
-        float tex[2];
-
-        ExtractFloat<4, 3>(position, pos);
-        ExtractFloat<4, 3>(normal, norm);
-        ExtractFloat<2>(uv, tex);
-
-        return AddVertex(pos, norm, tex);
+        return &m_positions[i];
     }
 
-    void Fbx::AddIndex(u32 i)
+    const Fbx::Normal* Fbx::GetNormal(int i) const
     {
-        m_indices.push_back(i);
+        return &m_normals[i];
     }
 
-    std::shared_ptr<const Fbx> Fbx::Load(const std::string& filename)
+    const Fbx::UV* Fbx::GetUV(int i) const
     {
-        auto fbx = std::make_shared<Fbx>();
+        return &m_uvs[i];
+    }
+
+    const Fbx::Surface* Fbx::GetSurface(int i) const
+    {
+        return &m_surfaces[i];
+    }
+
+    const Fbx::Triangle* Fbx::GetTriangle(int i) const
+    {
+        return &m_triangles[i];
+    }
+
+    void Fbx::ConvertCoordinateSystem()
+    {
+        for (int i = 0, n = static_cast<int>(m_positions.size()); i < n; ++i)
+        {
+            m_positions[i].Data[0] = -m_positions[i].Data[0];
+        }
+
+        for (int i = 0, n = static_cast<int>(m_normals.size()); i < n; ++i)
+        {
+            m_normals[i].Data[0] = -m_normals[i].Data[0];
+        }
+
+        for (int i = 0, n = static_cast<int>(m_uvs.size()); i < n; ++i)
+        {
+            m_uvs[i].Data[0] = 1.0f - m_uvs[i].Data[0];
+        }
+    }
+
+    void Fbx::ReverseWindingOrder()
+    {
+        auto swap = [](unsigned int* p1, unsigned int* p2)
+        {
+            unsigned int temp = *p1;
+            *p1 = *p2;
+            *p2 = temp;
+        };
+
+        for (int i = 0, n = static_cast<int>(m_triangles.size()); i < n; ++i)
+        {
+            swap(&m_triangles[i].Positions[1], &m_triangles[i].Positions[2]);
+            swap(&m_triangles[i].Normals[1], &m_triangles[i].Normals[2]);
+            swap(&m_triangles[i].UVs[1], &m_triangles[i].UVs[2]);
+        }
+    }
+
+    std::shared_ptr<const Fbx> Fbx::Load(const Desc& desc)
+    {
+        std::shared_ptr<Fbx> pResource = nullptr;
 
         FbxManager* fbxManager = FbxManager::Create();
 
@@ -466,29 +399,38 @@ namespace Resource
         fbxManager->SetIOSettings(ios);
 
         FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
-        if (!fbxImporter->Initialize(filename.c_str(), -1, fbxManager->GetIOSettings()))
+        if (fbxImporter->Initialize(desc.filename, -1, fbxManager->GetIOSettings()))
         {
-            return nullptr;
+            pResource = std::make_shared<Fbx>();
+
+            FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
+            fbxImporter->Import(fbxScene);
+            fbxImporter->Destroy();
+
+            FbxNode* rootNode = fbxScene->GetRootNode();
+            if (rootNode)
+            {
+                FbxContext ctx;
+                ctx.pPositions = &pResource->m_positions;
+                ctx.pNormals = &pResource->m_normals;
+                ctx.pUVs = &pResource->m_uvs;
+                ctx.pTris = &pResource->m_triangles;
+                ctx.pSurfaces = &pResource->m_surfaces;
+
+                GetNodeAttributesRecursively(rootNode, &ctx);
+            }
+
+            fbxScene->Destroy();
         }
 
-        FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
-        fbxImporter->Import(fbxScene);
         fbxImporter->Destroy();
-
-        g_convertCoordinate = fbxScene->GetGlobalSettings().GetAxisSystem() != FBX_DEFAULT_AXIS;
-        g_reverseWindingOrder = (FBX_WINDING_ORDER != TriWindingOrder::TRI_WINDING_ORDER_CW);
-
-        FbxNode* rootNode = fbxScene->GetRootNode();
-        if (rootNode)
-        {
-            GetNodeAttributesRecursively(fbx.get(), rootNode);
-        }
-
-        fbxScene->Destroy();
         fbxManager->Destroy();
 
-        return fbx;
-    }
+        if (desc.bConvertCoordinateSystem) pResource->ConvertCoordinateSystem();
 
+        if (desc.bReverseWindingOrder) pResource->ReverseWindingOrder();
+
+        return pResource;
+    }
 }
 

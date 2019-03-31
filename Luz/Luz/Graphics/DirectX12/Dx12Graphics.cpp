@@ -528,11 +528,9 @@ namespace Graphics
             s_device.pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&s_commandQueues[i].pCommandQueue));
             if (FAILED(hr)) return false;
 
-            hr = s_device.pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&s_commandQueues[i].pFence));
+            hr = s_device.pDevice->CreateFence(0ULL, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&s_commandQueues[i].pFence));
             if (FAILED(hr)) return false;
         }
-
-        CommandQueue& mainQueue = s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW];
 
         // Initialize Descriptor heaps
         DescriptorAllocator* pHeapAllocator = nullptr;
@@ -569,28 +567,18 @@ namespace Graphics
         s_swapChain.Frames = 0;
         s_swapChain.FullScreen = fullScreen;
 
-        DXGI_MODE_DESC backBufferDesc;
-        ZeroMemory(&backBufferDesc, sizeof(DXGI_MODE_DESC));
-        backBufferDesc.Width = width;
-        backBufferDesc.Height = height;
-        backBufferDesc.Format = s_swapChain.BufferFormat;
-
-        DXGI_SAMPLE_DESC sampleDesc;
-        ZeroMemory(&sampleDesc, sizeof(DXGI_SAMPLE_DESC));
-        sampleDesc.Count = 1;
-
-        DXGI_SWAP_CHAIN_DESC swapChainDesc;
-        ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+        ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC1));
         swapChainDesc.BufferCount = numBackBuffers;
-        swapChainDesc.BufferDesc = backBufferDesc;
+        swapChainDesc.Width = width;
+        swapChainDesc.Height = height;
+        swapChainDesc.Format = s_swapChain.BufferFormat;
         swapChainDesc.BufferUsage = s_swapChain.Usage;
         swapChainDesc.SwapEffect = s_swapChain.SwapEffect;
-        swapChainDesc.OutputWindow = s_swapChain.Handle;
-        swapChainDesc.SampleDesc = sampleDesc;
-        swapChainDesc.Windowed = !s_swapChain.FullScreen;
+        swapChainDesc.SampleDesc.Count = 1;
 
-        IDXGISwapChain* pTempSwapChain;
-        hr = s_device.pFactory4->CreateSwapChain(mainQueue.pCommandQueue, &swapChainDesc, &pTempSwapChain);
+        IDXGISwapChain1* pTempSwapChain;
+        hr = s_device.pFactory4->CreateSwapChainForHwnd(s_commandQueues[GFX_COMMAND_QUEUE_TYPE_DRAW].pCommandQueue, handle, &swapChainDesc, nullptr, nullptr, &pTempSwapChain);
         if (FAILED(hr))
         {   
             ErrorDescription(hr);
@@ -613,18 +601,18 @@ namespace Graphics
         }
 
         // Create Render Target Views for back buffers
-        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = s_swapChain.pRenderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = s_swapChain.pRenderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        UINT descriptorIncrementSize = GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
         for (u32 i = 0; i < s_swapChain.NumBuffers; ++i)
         {
-            ID3D12Resource* pSwapChainBuffer = nullptr;
-            s_swapChain.pSwapChain3->GetBuffer(i, IID_PPV_ARGS(&pSwapChainBuffer));
-            s_swapChain.RenderTargetViewHandles[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHandle, static_cast<INT>(i), GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+            s_swapChain.RenderTargetViewHandles[i] = 
+                CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuHandle, static_cast<INT>(i), descriptorIncrementSize);
 
-            D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
-            ZeroMemory(&rtvDesc, sizeof(D3D12_RENDER_TARGET_VIEW_DESC));
-            rtvDesc.Format = s_swapChain.RenderTargetFormat;
-            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-            s_device.pDevice->CreateRenderTargetView(pSwapChainBuffer, &rtvDesc, s_swapChain.RenderTargetViewHandles[i]);
+            ID3D12Resource* pResource = nullptr;
+            s_swapChain.pSwapChain3->GetBuffer(i, IID_PPV_ARGS(&pResource));
+            
+            s_device.pDevice->CreateRenderTargetView(pResource, nullptr, s_swapChain.RenderTargetViewHandles[i]);
         }
 
         // Create Depth Stencil View
@@ -733,25 +721,12 @@ namespace Graphics
 
         for (u32 i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
         {
-            SAFE_RELEASE(s_commandQueues[i].pCommandQueue);
-            SAFE_RELEASE(s_commandQueues[i].pFence);
-
             for (u32 j = 0; j < CommandContextPool::Capacity; ++j)
             {
                 s_commandContextPools[i].ppCommandAllocators[j]->Reset();
                 SAFE_RELEASE(s_commandContextPools[i].ppCommandAllocators[j]);
                 SAFE_RELEASE(s_commandContextPools[i].ppDescriptorHeaps[j]);
             }
-        }
-
-        for (u32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-        {
-            for (auto& heap : s_descriptorAllocatorCollection[i].m_descriptorHeaps)
-            {
-                SAFE_RELEASE(heap.pHeap);
-            }
-
-            s_descriptorAllocatorCollection[i].m_descriptorHeaps.clear();
         }
 
         for (u32 i = 0; i < s_swapChain.NumBuffers; ++i)
@@ -763,13 +738,28 @@ namespace Graphics
         }
 
         SAFE_RELEASE(s_swapChain.pGraphicsCommandList);
-        SAFE_RELEASE(s_swapChain.pRenderTargetDescriptorHeap);
-        SAFE_RELEASE(s_swapChain.pDepthStencilDescriptorHeap);
         SAFE_RELEASE(s_swapChain.pDepthStencilResource);
+        SAFE_RELEASE(s_swapChain.pDepthStencilDescriptorHeap);
+        SAFE_RELEASE(s_swapChain.pRenderTargetDescriptorHeap);
         SAFE_RELEASE(s_swapChain.pSwapChain);
         SAFE_RELEASE(s_swapChain.pSwapChain1);
         SAFE_RELEASE(s_swapChain.pSwapChain2);
         SAFE_RELEASE(s_swapChain.pSwapChain3);
+
+        for (u32 i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+        {
+            for (auto& heap : s_descriptorAllocatorCollection[i].m_descriptorHeaps)
+            {
+                SAFE_RELEASE(heap.pHeap);
+            }
+            s_descriptorAllocatorCollection[i].m_descriptorHeaps.clear();
+        }
+
+        for (u32 i = 0; i < GFX_COMMAND_QUEUE_TYPE_NUM_TYPES; ++i)
+        {
+            SAFE_RELEASE(s_commandQueues[i].pCommandQueue);
+            SAFE_RELEASE(s_commandQueues[i].pFence);
+        }
 
         SAFE_RELEASE(s_device.pAdapter);
         SAFE_RELEASE(s_device.pAdapter1);
@@ -1790,7 +1780,7 @@ namespace Graphics
     void ReleaseCommandStream(CommandStream* pCommandStream)
     {
         CommandList& cl = s_commandListCollection.GetData(pCommandStream->GetHandle());
-        cl.pGraphicsCommandList->ClearState(nullptr);
+        if (cl.pGraphicsCommandList) cl.pGraphicsCommandList->ClearState(nullptr);
         SAFE_RELEASE(cl.pGraphicsCommandList);
 
         s_commandListCollection.FreeHandle(pCommandStream->GetHandle());

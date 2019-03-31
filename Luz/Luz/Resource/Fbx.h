@@ -11,38 +11,71 @@ namespace Resource
     class Fbx
     {
     public:
-        typedef Vertex2 Vertex;
+        using Position = TArray<float, 3>;
+        using Normal = TArray<float, 3>;
+        using UV = TArray<float, 3>;
 
-        static std::shared_ptr<const Fbx> LUZ_API Load(const std::string& filename);
-
-        LUZ_API Fbx();
-        LUZ_API ~Fbx();
-
-        Vertex* GetVertex(u32 i);
-
-        u32 AddVertex();
-        u32 AddVertex(float(&position)[3], float(&normal)[3], float(&uv)[2]);
-        u32 AddVertex(double(&position)[4], double(&normal)[4], double(&uv)[2]);
-
-        void AddIndex(u32 i);
-
-        const std::vector<u32>& GetIndices() const { return m_indices; }
-
-        template<class VertexType>
-        void WriteVertices(std::vector<VertexType>& outVertices, std::function<void(VertexType&, const Fbx::Vertex&)> writer) const
+        struct LUZ_API JointBlend
         {
-            outVertices.resize(m_vertices.size());
+            unsigned int Index;
+            unsigned int Weight;
+        };
 
-            for (int i = 0, count = (int)m_vertices.size(); i < count; ++i)
-            {
-                writer(outVertices[i], m_vertices[i]);
-            }
-        }
+        struct LUZ_API Triangle
+        {
+            unsigned int Positions[3];
+            unsigned int Normals[3];
+            unsigned int UVs[3];
+        };
+
+        struct LUZ_API Surface
+        {
+            unsigned char* Name;
+            unsigned int TriStart;
+            unsigned int NumTris;
+
+            bool bHasNormals;
+            bool bHasUVs;
+        };
+
+        struct LUZ_API Desc
+        {
+            const char* filename;
+            bool bConvertCoordinateSystem;
+            bool bReverseWindingOrder;
+        };
+
+        Fbx() = default;
+       
+        ~Fbx() = default;
+
+        LUZ_API int NumSurfaces() const;
+
+        LUZ_API int NumTris(int i) const;
+
+        const LUZ_API Position* GetPosition(int i) const;
+
+        const LUZ_API Normal* GetNormal(int i) const;
+
+        const LUZ_API UV* GetUV(int i) const;
+
+        const LUZ_API Surface* GetSurface(int i) const;
+
+        const LUZ_API Triangle* GetTriangle(int i) const;
+
+        LUZ_API void ConvertCoordinateSystem();
+
+        LUZ_API void ReverseWindingOrder();
+        
+        static LUZ_API std::shared_ptr<const Fbx> Load(const Desc& desc);
 
     private:
-        std::vector<Triangle<Vertex>> m_triangles;
-        std::vector<Vertex> m_vertices;
-        std::vector<u32> m_indices;
+        std::vector<Position> m_positions;
+        std::vector<Normal> m_normals;
+        std::vector<UV> m_uvs;
+        std::vector<Triangle> m_triangles;
+        std::vector<Surface> m_surfaces;
+
         std::unordered_map<i32, u32> m_indicesByControlPointIndex;
         std::unordered_map<i32, JointBlend> m_blendByControlPointIndex;
     };

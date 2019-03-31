@@ -8,9 +8,7 @@
 
 namespace Resource
 {
-    static u32 FindOrCreate(std::string& s, std::vector<std::string>& v);
-
-    u32 FindOrCreate(std::string& s, std::vector<std::string>& v)
+    static u32 FindOrCreate(std::string& s, std::vector<std::string>& v)
     {
         for (u32 i = 0, size = (u32)v.size(); i < size; ++i)
         {
@@ -25,6 +23,80 @@ namespace Resource
         return (u32)v.size() - 1;
     }
 
+    Obj::Obj()
+    {
+        m_boundingBox.MinX = (std::numeric_limits<float>::max)();
+        m_boundingBox.MinY = (std::numeric_limits<float>::max)();
+        m_boundingBox.MinZ = (std::numeric_limits<float>::max)();
+        m_boundingBox.MaxX = (std::numeric_limits<float>::min)();
+        m_boundingBox.MaxY = (std::numeric_limits<float>::min)();
+        m_boundingBox.MaxZ = (std::numeric_limits<float>::min)();
+    }
+
+    Obj::~Obj()
+    {
+
+    }
+
+    u32 Obj::GetNumSurfaces() const
+    {
+        return static_cast<u32>(m_surfaces.size());
+    }
+
+    u32 Obj::GetNumMtls() const
+    {
+        return static_cast<u32>(m_mtls.size());
+    }
+
+    u32 Obj::GetNumMaterials() const
+    {
+        return static_cast<u32>(m_materialNames.size());
+    }
+
+    std::string Obj::GetMaterialName(const u32 i) const
+    {
+        return m_materialNames[i];
+    }
+
+    std::shared_ptr<const Mtl> Obj::GetMtl(const u32 i) const
+    {
+        return m_mtls[i];
+    }
+
+    const Mtl::MaterialDesc Obj::GetMaterialDesc(const u32 i) const
+    {
+        return m_materials[i];
+    }
+
+    const Obj::Surface* Obj::GetSurface(const unsigned int i) const
+    {
+        return &m_surfaces[i];
+    }
+
+    const Obj::Face* Obj::GetFace(const unsigned int i) const
+    {
+        return &m_faces[i];
+    }
+
+    const Obj::Position* Obj::GetPosition(const unsigned int i) const
+    {
+        return &m_positions[i];
+    }
+
+    const Obj::Normal* Obj::GetNormal(const unsigned int i) const
+    {
+        return &m_normals[i];
+    }
+
+    const Obj::UV* Obj::GetUV(const unsigned int i) const
+    {
+        return &m_uvs[i];
+    }
+
+    Obj::BoundingBox Obj::GetSceneBounds() const
+    {
+        return m_boundingBox;
+    }
 
     std::shared_ptr<const Obj> Obj::Load(const Desc desc)
     {
@@ -245,56 +317,5 @@ namespace Resource
         }
 
         return pResource;
-    }
-
-
-    Obj::Obj()
-    {
-        m_boundingBox.MinX = (std::numeric_limits<float>::max)();
-        m_boundingBox.MinY = (std::numeric_limits<float>::max)();
-        m_boundingBox.MinZ = (std::numeric_limits<float>::max)();
-        m_boundingBox.MaxX = (std::numeric_limits<float>::min)();
-        m_boundingBox.MaxY = (std::numeric_limits<float>::min)();
-        m_boundingBox.MaxZ = (std::numeric_limits<float>::min)();
-    }
-
-    Obj::~Obj()
-    {
-
-    }
-
-    Obj::BoundingBox Obj::GetSceneBounds() const
-    {
-        return m_boundingBox;
-    }
-
-    u32 Obj::GetNumSurfaces() const
-    {
-        return static_cast<u32>(m_surfaces.size());
-    }
-
-    u32 Obj::GetNumMaterials() const
-    {
-        return static_cast<u32>(m_materialNames.size());
-    }
-
-    std::string Obj::GetMaterialName(const u32 i) const
-    {
-        return m_materialNames[i];
-    }
-
-    u32 Obj::GetNumMtls() const
-    {
-        return static_cast<u32>(m_mtls.size());
-    }
-
-    std::shared_ptr<const Mtl> Obj::GetMtl(const u32 i) const
-    {
-        return m_mtls[i];
-    }
-
-    const Mtl::MaterialDesc Obj::GetMaterialDesc(const u32 i) const
-    {
-        return m_materials[i];
     }
 }

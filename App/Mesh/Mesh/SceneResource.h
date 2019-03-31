@@ -15,6 +15,20 @@
 class SceneResource
 {
 public:
+    enum ShadingMode
+    {
+        SHADING_MODE_DEFAULT,
+        SHADING_MODE_BLINN_PHONG,
+        SHADING_MODE_BECKMANN,
+        SHADING_MODE_GGX
+    };
+
+    enum BumpMode
+    {
+        BUMP_MODE_HEIGHT,
+        BUMP_MODE_NORMAL
+    };
+
     struct Asset
     {
         int Name = -1;
@@ -38,6 +52,10 @@ public:
 
     const char* GetFile(int i) const;
 
+    ShadingMode GetShadingMode() const;
+
+    BumpMode GetBumpMode() const;
+
     static std::shared_ptr<const SceneResource> Load(const char* filename);
 
 private:
@@ -45,6 +63,8 @@ private:
     std::vector<std::string> m_files;
     std::vector<std::string> m_directories;
     std::vector<Asset> m_assets;
+    ShadingMode m_eShadingMode;
+    BumpMode m_eBumpMode;
 };
 
 unsigned int SceneResource::NumAssets() const
@@ -70,6 +90,16 @@ const char* SceneResource::GetDirectory(int i) const
 const char* SceneResource::GetFile(int i) const
 {
     return (i != -1) ? m_files[i].c_str() : "";
+}
+
+SceneResource::ShadingMode SceneResource::GetShadingMode() const
+{
+    return m_eShadingMode;
+}
+
+SceneResource::BumpMode SceneResource::GetBumpMode() const
+{
+    return m_eBumpMode;
 }
 
 std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
@@ -123,6 +153,24 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
             {
                 pCurrentAsset->TextureDir = static_cast<int>(directories.size()) - 1;
             }
+        }
+        else if (cmd.compare("shading") == 0)
+        {
+            unsigned int mode;
+            fs >> mode;
+
+            LUZASSERT(static_cast<unsigned int>(ShadingMode::SHADING_MODE_DEFAULT) <= mode && mode <= static_cast<unsigned int>(ShadingMode::SHADING_MODE_GGX));
+
+            pResource->m_eShadingMode = static_cast<ShadingMode>(mode);
+        }
+        else if (cmd.compare("bump") == 0)
+        {
+            unsigned int mode;
+            fs >> mode;
+
+            LUZASSERT(0 <= mode && mode <= 1);
+
+            pResource->m_eBumpMode = static_cast<BumpMode>(mode);
         }
     }
 

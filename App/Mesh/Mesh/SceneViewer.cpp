@@ -15,15 +15,7 @@
 #include <iostream>
 #include <sstream>
 
-#define CRYTEK_SPONZA_DIRECTORY ".\\Assets\\crytek_sponza\\"
-#define CRYTEK_SPONZA_OBJ_PATH  ".\\Assets\\crytek_sponza\\sponza.obj"
-#define CRYTEK_SPONZA_TEXTURE_DIRECTORY ".\\Assets\\crytek_sponza\\textures"
-
 #define CUBE_MAP_PATH ".\\Assets\\satara_night.dds"
-
-#define GUN_DIRECTORY ".\\Assets\\"
-#define GUN_OBJ_PATH ".\\Assets\\gun.obj"
-#define GUN_TEXTURE_DIRECTORY ".\\Assets\\gun_TEXTURES1\\"
 
 using namespace Luz;
 using namespace lina;
@@ -39,14 +31,6 @@ Vertex::Vertex(
 {
 
 }
-
-enum ShadingMode
-{
-    SHADING_MODE_DEFAULT,
-    SHADING_MODE_BLINN_PHONG,
-    SHADING_MODE_BECKMANN,
-    SHADING_MODE_GGX
-};
 
 struct ShaderOptions
 {
@@ -99,9 +83,9 @@ static ShaderOptions s_shaderOptions =
 {
     float3(1.0f, 0.96f, 0.95f),
     normalize(float3(0.0f, -0.5f, -0.1f)),
-    float4(0.2f, 10.0f, 100.0f, 1.0f),
+    float4(0.2f, 10.0f, 10.0f, 1.0f),
     10.0f,
-    SHADING_MODE_GGX,
+    SceneResource::SHADING_MODE_DEFAULT,
     1,
     true,
     true,
@@ -121,7 +105,7 @@ static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f
 
 static SceneViewer* s_pSceneViewer = nullptr;
 
-static void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene);
+static void UpdateScene(const Resource::Obj* pObj, Scene* pScene);
 
 static void DestroyScene(const Scene* pScene);
 
@@ -176,8 +160,8 @@ bool SceneViewer::Initialize()
 
     // Shaders
     {
-        m_vs = Graphics::CreateVertexShader("VertexShader.hlsl");
-        m_ps = Graphics::CreatePixelShader("PixelShader.hlsl");
+        m_vs = Graphics::CreateVertexShader("scene_model_vs.hlsl");
+        m_ps = Graphics::CreatePixelShader("scene_model_ps.hlsl");
 
         m_fs_vs = Graphics::CreateVertexShader("FS_Tri_VS.hlsl");
         m_fs_ps = Graphics::CreatePixelShader("FS_Tri_PS.hlsl");
@@ -508,7 +492,6 @@ int SceneViewer::Shutdown()
 
     Graphics::ReleaseCommandStream(&m_commandStream);
     Graphics::Shutdown();
-   // s_consoleThread.join();
 
     return 0;
 }
@@ -522,14 +505,6 @@ void SceneViewer::Update(double dt)
     }
 
     static double s_time = 0.0;
-
-    // Daylight rgb(1.0f, 0.96, 0.95)
-    // Sky rgb((0.753f, 0.82f, 1.0f)
-    //static float3 daylight = float3(1.0f, 0.96f, 0.95f);
-    //static float3 sky = float3(0.753f, 0.82f, 1.0f);
-    //float t = sin(static_cast<float>(s_time)) * 0.5f + 0.5f;
-    //float3 lightColor = lerp(sky, daylight, t);
-
 
     s_time += dt;
 
@@ -756,9 +731,6 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
         std::vector<Resource::Async<Resource::Obj>> loadingObjs;
         std::vector<Resource::Async<Resource::Fbx>> loadingFbxs;
 
-        std::vector<std::shared_ptr<const Resource::Obj>> objs;
-        std::vector<std::shared_ptr<const Resource::Fbx>> fbxs;
-
         u32 nAssets = pScene->NumAssets();
 
         for (u32 iAsset = 0, nAssets = pScene->NumAssets(); iAsset < nAssets; ++iAsset)
@@ -816,15 +788,13 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 
         for (auto& async : loadingObjs)
         {
-            objs.push_back(async.Get());
-            UpdateScene(objs.back(), &scene);
+            UpdateScene(async.Get().get(), &scene);
         }
 
         for (auto& async : loadingFbxs)
         {
-            fbxs.push_back(async.Get());
-            // UpdateScene(fbxs.back(), &scene);
-        }
+            // UpdateScene(async.Get(), &scene);
+        } 
 
         {
             std::lock_guard<std::mutex> lock(m_sceneMutex);
@@ -840,6 +810,14 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             m_pStagingScene->Constants = scene.Constants;
             m_pStagingScene->Surfaces = scene.Surfaces;
             m_pStagingScene->Textures = scene.Textures;
+        }
+
+        // TODO: Need to write to shader options
+        // from file better here
+        {
+            std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+            s_shaderOptions.LightingMode = pScene->GetShadingMode();
+            s_shaderOptions.BumpMode = pScene->GetBumpMode();
         }
 
         s_loading.store(false);
@@ -1080,9 +1058,105 @@ int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::strin
     return (int)(iter - textureNames.begin());
 }
 
-void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene)
+void UpdateScene(const Resource::Obj* pObj, Scene* pScene)
 {
     LUZASSERT(pObj != nullptr);
+
+    // Surfaces
+    size_t iSurfaceStart = pScene->Meshes.size();
+    size_t nSurfaces = static_cast<size_t>(pObj->GetNumSurfaces());
+    pScene->Meshes.resize(iSurfaceStart + nSurfaces);
+    Graphics::CreateSurfaces<Vertex, u32>(pObj, &pScene->Meshes[iSurfaceStart], pObj->GetNumSurfaces());
+
+    size_t iSceneSurfaceStart = pScene->Surfaces.size();
+    pScene->Surfaces.resize(iSceneSurfaceStart + nSurfaces);
+
+    for (size_t iSurfaceOffset = 0; iSurfaceOffset < nSurfaces; ++iSurfaceOffset)
+    {
+        Graphics::Surface<Vertex, u32>* pSurface = &pScene->Meshes[iSurfaceStart + iSurfaceOffset];
+
+        Graphics::BufferDesc vbd;
+        vbd.Alignment = 0;
+        vbd.SizeInBytes = static_cast<u64>(sizeof(Vertex) * pSurface->Vertices.size());
+        vbd.StrideInBytes = sizeof(Vertex);
+        vbd.pData = pSurface->Vertices.data();
+
+        Graphics::BufferDesc ibd;
+        ibd.Alignment = 0;
+        ibd.SizeInBytes = static_cast<u64>(sizeof(u32) * pSurface->Indices.size());
+        ibd.StrideInBytes = sizeof(u32);
+        ibd.pData = pSurface->Indices.data();
+
+        Surface* pSceneSurface = &pScene->Surfaces[iSceneSurfaceStart + iSurfaceOffset];
+        pSceneSurface->vb = Graphics::CreateVertexBuffer(vbd);
+        pSceneSurface->ib = Graphics::CreateIndexBuffer(ibd);
+    }
+
+    // Materials
+    size_t iMaterialStart = pScene->Materials.size();
+    size_t nMaterials = static_cast<size_t>(pObj->GetNumMaterials());
+    pScene->Materials.resize(iMaterialStart + nMaterials);
+
+    size_t iConstantStart = pScene->Constants.size();
+    size_t nConstants = nMaterials;
+    pScene->Constants.resize(iConstantStart + nConstants);
+
+    // Cache this for later
+    size_t iTextureStart = pScene->TextureNames.size();
+
+    for (size_t iMaterialOffset = 0; iMaterialOffset < nMaterials; ++iMaterialOffset)
+    {
+        const Resource::Mtl::MaterialDesc md = pObj->GetMaterialDesc(iMaterialOffset);
+        
+        MaterialConstants& mc = pScene->Materials[iMaterialStart + iMaterialOffset];
+        mc.SpecularExponent = md.SpecularExponent;
+        mc.Transparency = md.Transparency;
+        mc.OpticalDensity = md.OpticalDensity;
+        mc.Dissolve = md.Dissolve;
+        mc.Specular = float3(md.Specular[0], md.Specular[1], md.Specular[2]);
+        mc.TransmissionFilter = float3(md.TransmissionFilter[0], md.TransmissionFilter[1], md.TransmissionFilter[2]);
+        mc.Ambient = float3(md.Ambient[0], md.Ambient[1], md.Ambient[2]);
+        mc.Diffuse = float3(md.Diffuse[0], md.Diffuse[1], md.Diffuse[2]);
+        mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
+
+        if (strlen(md.AmbientTextureName)) 
+            mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
+        
+        if (strlen(md.DiffuseTextureName)) 
+            mc.iDiffuse = FindOrPushBackTextureName(pScene->TextureNames, md.DiffuseTextureName);
+        
+        if (strlen(md.SpecularTextureName)) 
+            mc.iSpec = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularTextureName);
+
+        if (strlen(md.SpecularPowerTextureName)) 
+            mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularPowerTextureName);
+        
+        if (strlen(md.BumpTextureName0)) 
+            mc.iBump = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName0);
+        
+        if (strlen(md.BumpTextureName1)) 
+            mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName1);
+
+        Graphics::ConstantBufferDesc cbd;
+        cbd.Alignment = 0;
+        cbd.SizeInBytes = sizeof(MaterialConstants);
+        cbd.StrideInBytes = sizeof(MaterialConstants);
+        cbd.AllocHeap = true;
+        cbd.pData = &mc;
+        pScene->Constants[iConstantStart + iMaterialOffset] = Graphics::CreateConstantBuffer(cbd);
+    }
+
+    // Create TextureHandles
+    size_t nTextures = pScene->TextureNames.size() - iTextureStart;
+    pScene->Textures.resize(iTextureStart + nTextures);
+
+    for (size_t iTextureOffset = 0; iTextureOffset < nTextures; ++iTextureOffset)
+    {
+        Graphics::TextureFileDesc td;
+        td.Filename = pScene->TextureNames[iTextureStart + iTextureOffset].c_str();
+        td.GenMips = true;
+        pScene->Textures[iTextureStart + iTextureOffset] = Graphics::CreateTexture(td);
+    }
 
     // Get bounds
     Resource::Obj::BoundingBox boundingBox = pObj->GetSceneBounds();
@@ -1094,91 +1168,6 @@ void UpdateScene(std::shared_ptr<const Resource::Obj> pObj, Scene* pScene)
     pScene->Bounds.min.z = (std::min)(pScene->Bounds.min.z, boundingBox.MinZ);
 
     float3 dim = pScene->Bounds.max - pScene->Bounds.min;
-
-    // Create Meshes
-    pScene->Meshes.reserve(pScene->Meshes.size() + static_cast<size_t>(pObj->GetNumSurfaces()));
-
-    pObj->CreateStructuredSurfaces<Vertex, u32>([&](const u32 index, const Resource::Obj::StructuredSurface<Vertex, u32>& desc)
-    {
-        auto& mesh = pScene->Meshes.emplace_back();
-        mesh.SetVertices(desc.VerticesPtr, desc.NumVertices);
-        mesh.SetIndices(desc.IndicesPtr, desc.NumIndices);
-    });
-
-    // Create Surfaces
-    pScene->Surfaces.reserve(pScene->Surfaces.size() + static_cast<size_t>(pObj->GetNumSurfaces()));
-
-    for (auto& mesh : pScene->Meshes)
-    {
-        Graphics::BufferDesc vbd;
-        vbd.Alignment = 0;
-        vbd.SizeInBytes = mesh.NumVertexBytes();
-        vbd.StrideInBytes = mesh.VertexStride();
-        vbd.pData = mesh.Vertices();
-
-        Graphics::BufferDesc ibd;
-        ibd.Alignment = 0;
-        ibd.SizeInBytes = mesh.NumIndexBytes();
-        ibd.StrideInBytes = mesh.IndexStride();
-        ibd.pData = mesh.Indices();
-
-        auto& surface = pScene->Surfaces.emplace_back();
-        surface.vb = Graphics::CreateVertexBuffer(vbd);
-        surface.ib = Graphics::CreateIndexBuffer(ibd);
-    }
-
-    // Textures
-    std::vector<std::string> textures;
-
-    // Create mats
-    pScene->Materials.reserve(pScene->Materials.size() + static_cast<size_t>(pObj->GetNumMaterials()));
-
-    for (u32 i = 0, numMaterials = pObj->GetNumMaterials(); i < numMaterials; ++i)
-    {
-        auto md = pObj->GetMaterialDesc(i);
-        auto& mc = pScene->Materials.emplace_back();
-        mc.SpecularExponent = md.SpecularExponent;
-        mc.Transparency = md.Transparency;
-        mc.OpticalDensity = md.OpticalDensity;
-        mc.Dissolve = md.Dissolve;
-        mc.Specular = float3(md.Specular[0], md.Specular[1], md.Specular[2]);
-        mc.TransmissionFilter = float3(md.TransmissionFilter[0], md.TransmissionFilter[1], md.TransmissionFilter[2]);
-        mc.Ambient = float3(md.Ambient[0], md.Ambient[1], md.Ambient[2]);
-        mc.Diffuse = float3(md.Diffuse[0], md.Diffuse[1], md.Diffuse[2]);
-        mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
-
-        if (strlen(md.AmbientTextureName)) mc.iMetal = FindOrPushBackTextureName(textures, md.AmbientTextureName);
-        if (strlen(md.DiffuseTextureName)) mc.iDiffuse = FindOrPushBackTextureName(textures, md.DiffuseTextureName);
-        if (strlen(md.SpecularTextureName)) mc.iSpec = FindOrPushBackTextureName(textures, md.SpecularTextureName);
-        if (strlen(md.SpecularPowerTextureName)) mc.iRough = FindOrPushBackTextureName(textures, md.SpecularPowerTextureName);
-        if (strlen(md.BumpTextureName0)) mc.iBump = FindOrPushBackTextureName(textures, md.BumpTextureName0);
-        if (strlen(md.BumpTextureName1)) mc.iNormal = FindOrPushBackTextureName(textures, md.BumpTextureName1);
-    }
-
-    // Create ConstantBuffers
-    pScene->Constants.reserve(pScene->Constants.size() + pScene->Materials.size());
-
-    for (auto& material : pScene->Materials)
-    {
-        Graphics::ConstantBufferDesc cbd;
-        cbd.Alignment = 0;
-        cbd.SizeInBytes = sizeof(MaterialConstants);
-        cbd.StrideInBytes = sizeof(MaterialConstants);
-        cbd.AllocHeap = true;
-        cbd.pData = &material;
-        pScene->Constants.push_back(Graphics::CreateConstantBuffer(cbd));
-    }
-
-    // Create TextureHandles
-    pScene->Textures.reserve(pScene->Textures.size() + textures.size());
-
-    for (auto& texture : textures)
-    {
-        Graphics::TextureFileDesc td;
-        td.Filename = texture.c_str();
-        td.GenMips = true;
-        pScene->Textures.push_back(Graphics::CreateTexture(td));
-    }
 }
 
 void DestroyScene(const Scene* pScene)

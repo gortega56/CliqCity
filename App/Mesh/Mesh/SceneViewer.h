@@ -122,9 +122,11 @@ struct FrameConstants
 
 struct Scene
 {
-    std::vector<Graphics::Mesh<Vertex, u32>> Meshes;
+    std::vector<Graphics::Surface<Vertex, u32>> Meshes;
     std::vector<MaterialConstants> Materials;
     std::vector<Surface> Surfaces;
+    std::vector<std::string> TextureNames;
+
     std::vector<Graphics::ConstantBufferHandle> Constants;
     std::vector<Graphics::TextureHandle> Textures;
     range3 Bounds;
@@ -179,9 +181,11 @@ public:
     ~SceneViewer();
 
     bool Initialize() override;
+    
     int Shutdown() override;
 
     void Update(double delta) override;
+    
     void FixedUpdate(double delta) override;
 
     void LoadScene(const std::string filename, const u32 threadID);

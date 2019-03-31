@@ -1,0 +1,5 @@
+asset sponza
+	dir root garden_scene_obj
+	file garden_scene.obj
+	shading 0
+	bump 0
