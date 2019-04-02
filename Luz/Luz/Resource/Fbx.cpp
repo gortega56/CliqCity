@@ -1,10 +1,10 @@
 #include "stdafx.h"
 #include "Fbx.h"
 //#include "lina.h"
-#include <fbxsdk.h>
 #include <fstream>
 
 #define FBXSDK_SHARED
+#include <fbxsdk.h>
 #pragma comment(lib, "libfbxsdk.lib")
 
 #if _WIN32 || _WIN64
@@ -43,6 +43,8 @@ namespace Resource
         std::vector<Fbx::UV>* pUVs;
         std::vector<Fbx::Triangle>* pTris;
         std::vector<Fbx::Surface>* pSurfaces;
+        std::vector<Fbx::Material>* pMaterials;
+        std::vector<std::string>* pTextures;
     };
 
     static void ConvertCoordinateSystem(FbxVector4& vector);
@@ -301,13 +303,66 @@ namespace Resource
                     {
                         int iVertex = iNextVertex + i;
                         int offset = (nVertices - iVertex);
-                        tri.Positions[iVertex] = nPositions - offset;
-                        tri.Normals[iVertex] = nNormals - offset;
-                        tri.UVs[iVertex] = nUVs - offset;
+                        tri.Positions[i + 1] = nPositions - offset;
+                        tri.Normals[i + 1] = nNormals - offset;
+                        tri.UVs[i + 1] = nUVs - offset;
                     }
 
                     iNextVertex += 1;
                 }
+            }
+        }
+
+        for (int iMaterial = 0, nMaterials = pNode->GetMaterialCount(); iMaterial < nMaterials; ++iMaterial)
+        {
+            FbxSurfaceMaterial* pSurfaceMaterial = pNode->GetMaterial(iMaterial);
+            
+            int iTextureChannelName;
+            FBXSDK_FOR_EACH_TEXTURE(iTextureChannelName)
+            {
+                FbxProperty prop = pSurfaceMaterial->FindProperty(FbxLayerElement::sTextureChannelNames[iTextureChannelName]);
+                if (!prop.IsValid())
+                {
+                    continue;
+                }
+
+                for (int iTexture = 0, nTextures = prop.GetSrcObjectCount<FbxTexture>(); iTexture < nTextures; ++iTexture)
+                {
+                    FbxLayeredTexture* pLayeredTexture = prop.GetSrcObject<FbxLayeredTexture>(iTexture);
+                    if (pLayeredTexture)
+                    {
+
+                    }
+                    else
+                    {
+                        FbxTexture* pTexture = prop.GetSrcObject<FbxTexture>(iTexture);
+                        if (pTexture)
+                        {
+                            if (FbxFileTexture* pFileTexture = FbxCast<FbxFileTexture>(pTexture))
+                            {
+                                pContext->pTextures->emplace_back(pFileTexture->GetFileName());
+                            }
+                            else if (FbxProceduralTexture* pProceduralTexture = FbxCast<FbxProceduralTexture>(pTexture))
+                            {
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (pSurfaceMaterial->GetClassId().Is(FbxSurfacePhong::ClassId))
+            {
+                FbxSurfacePhong* pSurfacePhong = static_cast<FbxSurfacePhong*>(pSurfaceMaterial);
+
+            }
+            else if (pSurfaceMaterial->GetClassId().Is(FbxSurfaceLambert::ClassId))
+            {
+
+            }
+            else
+            {
+                LUZASSERT(0);
             }
         }
 
@@ -319,14 +374,9 @@ namespace Resource
         surface.bHasUVs = bHasUVs;
     }
 
-    int Fbx::NumSurfaces() const
+    int Fbx::GetNumSurfaces() const
     {
         return static_cast<int>(m_surfaces.size());
-    }
-
-    int Fbx::NumTris(int i) const
-    {
-        return static_cast<int>(m_surfaces[i].NumTris);
     }
 
     const Fbx::Position* Fbx::GetPosition(int i) const
@@ -416,6 +466,8 @@ namespace Resource
                 ctx.pUVs = &pResource->m_uvs;
                 ctx.pTris = &pResource->m_triangles;
                 ctx.pSurfaces = &pResource->m_surfaces;
+                ctx.pTextures = &pResource->m_textureFilenames;
+                ctx.pMaterials = &pResource->m_materials;
 
                 GetNodeAttributesRecursively(rootNode, &ctx);
             }
@@ -423,7 +475,6 @@ namespace Resource
             fbxScene->Destroy();
         }
 
-        fbxImporter->Destroy();
         fbxManager->Destroy();
 
         if (desc.bConvertCoordinateSystem) pResource->ConvertCoordinateSystem();

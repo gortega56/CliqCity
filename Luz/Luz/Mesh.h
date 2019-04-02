@@ -34,6 +34,24 @@ namespace Graphics
         std::vector<IndexType> Indices;
     };
 
+    template<class IndexType>
+    void ReverseWindingOrder(IndexType* pIndices, const unsigned int nIndices)
+    {
+        //LUZASSERT(nIndices % 3U == 0);
+
+        auto swap = [&](const int i, const int j)
+        {
+            IndexType temp = pIndices[i];
+            pIndices[i] = pIndices[j];
+            pIndices[j] = temp;
+        };
+
+        for (unsigned int i = 0; i < nIndices; i += 3)
+        {
+            swap(i + 1, i + 2);
+        }
+    }
+
     template<class VertexType, class IndexType>
     void CreateTangents(VertexType* pVertices, const unsigned int numVertices, IndexType* pIndices, const  unsigned int numIndices)
     {
@@ -127,17 +145,17 @@ namespace Graphics
             bool bHasNormals = pFbxSurface->bHasNormals;
             bool bHasUVs = pFbxSurface->bHasUVs;
 
-            size_t sz = static_cast<size_t>(pFbxSurface->NumTris()) * 3;
+            size_t sz = static_cast<size_t>(pFbxSurface->NumTris) * 3;
 
-            Surface<VertexType, IndexType>* pSurface = pSurfaces[iSurface];
+            Surface<VertexType, IndexType>* pSurface = &pSurfaces[iSurface];
             pSurface->Vertices.reserve(sz);
             pSurface->Indices.reserve(sz);
 
             for (unsigned int iTriangle = pFbxSurface->TriStart, nTriangles = pFbxSurface->TriStart + pFbxSurface->NumTris; iTriangle < nTriangles; ++iTriangle)
             {
-                const Resource::Fbx::Triangle* pTri = pFbxSurface->GetTriangle(iTriangle);
+                const Resource::Fbx::Triangle* pTri = pFbx->GetTriangle(iTriangle);
 
-                for (int iVertex = 0; i iVertex < 3; ++iVertex)
+                for (int iVertex = 0; iVertex < 3; ++iVertex)
                 {
                     VertexDesc desc;
                     desc.Data[0] = pTri->Positions[iVertex];
@@ -156,17 +174,17 @@ namespace Graphics
 
                         if (Geometry::VertexTraits<VertexType>::Position)
                         {
-                            memcpy_s(vertex.Position, sizeof(Fbx::Position), pFbxSurface->GetPosition(pTri->Positions[iVertex])->Data, sizeof(Fbx::Position));
+                            memcpy_s(&vertex.Position, sizeof(VertexType::Position), pFbx->GetPosition(pTri->Positions[iVertex])->Data, sizeof(Resource::Fbx::Position));
                         }
 
                         if (Geometry::VertexTraits<VertexType>::Normal && bHasNormals)
                         {
-                            memcpy_s(vertex.Normal, sizeof(Fbx::Normal), pFbxSurface->GetNormal(pTri->Normals[iVertex])->Data, sizeof(Fbx::Normal));
+                            memcpy_s(&vertex.Normal, sizeof(VertexType::Normal), pFbx->GetNormal(pTri->Normals[iVertex])->Data, sizeof(Resource::Fbx::Normal));
                         }
 
                         if (Geometry::VertexTraits<VertexType>::UV && bHasUVs)
                         {
-                            memcpy_s(vertex.UV, sizeof(Fbx::UV), pFbxSurface->GetUV(pTri->UVs[iVertex])->Data, sizeof(Fbx::UV));
+                            memcpy_s(&vertex.UV, sizeof(VertexType::UV), pFbx->GetUV(pTri->UVs[iVertex])->Data, sizeof(Resource::Fbx::UV));
                         }
                     }
                     else

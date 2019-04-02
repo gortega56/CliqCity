@@ -147,7 +147,7 @@ float4 Shade_Default(ShadingFrame frame)
     {
         float4 base = float4(0, 0, 0, 0);
         float3 ambient = float3(0, 0, 0);
-        float3 diffuse = float3(0, 0, 0);
+        float3 diffuse = float3(1, 0, 1);
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
 
@@ -204,7 +204,7 @@ float4 Shade_Default(ShadingFrame frame)
 
         output.xyz = lerp(ambient, (ambient + diffuse + specular), Sf);
     }
-
+    
     return output;
 }
 
@@ -592,5 +592,6 @@ float4 main(PS_Input input) : SV_TARGET
     output.xyz = ACES_Film(output.xyz);
     output.xyz = Linear_to_Gamma(output.xyz);
 
+    output.xyz = frame.N;
     return output;
 }

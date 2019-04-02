@@ -39,13 +39,15 @@ namespace Resource
             const char* BumpTextureName1;
         };
 
-        static std::shared_ptr<const Mtl> LUZ_API Load(const Desc desc);
-
         Mtl();
+
         ~Mtl();
 
-        bool LUZ_API TryGetMaterialDesc(const std::string name, Mtl::MaterialDesc& desc) const;
-        u32 LUZ_API NumMaterials() const;
+        LUZ_API u32 NumMaterials() const;
+
+        LUZ_API bool TryGetMaterialDesc(const std::string name, Mtl::MaterialDesc& desc) const;
+
+        static LUZ_API std::shared_ptr<const Mtl> Load(const Desc desc);
 
     private:
         struct Material

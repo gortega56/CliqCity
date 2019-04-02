@@ -1,0 +1,4 @@
+asset test
+	file cube_tex.fbx
+	shading 0
+	bump 0

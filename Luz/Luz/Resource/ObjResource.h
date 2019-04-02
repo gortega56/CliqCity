@@ -88,7 +88,7 @@ namespace Resource
 
         LUZ_API BoundingBox GetSceneBounds() const;
 
-        static std::shared_ptr<const Obj> LUZ_API Load(const Desc desc);
+        static LUZ_API std::shared_ptr<const Obj> Load(const Desc desc);
 
     private:
         std::vector<std::string> m_objectNames;
