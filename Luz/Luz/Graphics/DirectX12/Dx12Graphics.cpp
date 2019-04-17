@@ -1470,11 +1470,18 @@ namespace Graphics
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
             static std::atomic_bool s_coInitialized = false;
-            if (!s_coInitialized)
-            {
-                CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
-                s_coInitialized = true;
-            }
+			if (!s_coInitialized)
+			{
+				HRESULT hr = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
+				if (SUCCEEDED(hr))
+				{
+					s_coInitialized = true;
+				}
+				else
+				{
+					LUZASSERT(0);
+				}
+			}
             
             std::wstring filename = Internal::ConvertCString(desc.Filename);
             LPCWSTR extension = PathFindExtension(filename.c_str());

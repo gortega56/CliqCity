@@ -34,7 +34,7 @@ namespace Resource
 
     static constexpr size_t s_szPosition = sizeof(float) * 3;
     static constexpr size_t s_szNormal = sizeof(float) * 3;
-    static constexpr size_t s_szUV = sizeof(float) * 2;
+    static constexpr size_t s_szUV = sizeof(float) * 3;
 
     struct FbxContext
     {
@@ -45,6 +45,7 @@ namespace Resource
         std::vector<Fbx::Surface>* pSurfaces;
         std::vector<Fbx::Material>* pMaterials;
         std::vector<std::string>* pTextures;
+		const char* pTextureDirectory; // TODO: kill this
     };
 
     static void ConvertCoordinateSystem(FbxVector4& vector);
@@ -140,6 +141,61 @@ namespace Resource
         return string_format("(%f, %f)", vector[0], vector[1]);
     }
 
+	const char* TrimFileName(const char* pFileName)
+	{
+		size_t i = strlen(pFileName);
+
+		while (i > 0)
+		{
+			if (pFileName[i] == '\\' || pFileName[i] == '/')
+			{
+				return pFileName + i + 1;
+			}
+
+			i -= 1;
+		}
+
+		if (pFileName[0] == '\\' || pFileName[0] == '/')
+		{
+			return pFileName + 1;
+		}
+
+		return pFileName;
+	}
+
+	short CreateUniqueMaterialByName(const char* pName, std::vector<Fbx::Material>* pMaterials)
+	{
+		short n = static_cast<short>(pMaterials->size());
+		for (short i = 0; i < n; ++i)
+		{
+			if (strcmp((*pMaterials)[i].pName, pName) == 0)
+			{
+				return i;
+			}
+		}
+
+		Fbx::Material* pMaterial = &pMaterials->emplace_back();
+		pMaterial->pName = pName;
+
+		return n;
+	}
+
+	short CreateUniqueTextureFileName(const char* pName, std::vector<std::string>* pTextureFileNames)
+	{
+		short n = static_cast<short>(pTextureFileNames->size());
+		for (short i = 0; i < n; ++i)
+		{
+			if (strcmp((*pTextureFileNames)[i].c_str(), pName) == 0)
+			{
+				return i;
+			}
+		}
+
+		pTextureFileNames->emplace_back(pName);
+
+		return n;
+	}
+
     void GetNodeAttributes(FbxNode* pNode, FbxContext* pContext)
     {
         LUZASSERT(pContext && pNode);
@@ -200,6 +256,155 @@ namespace Resource
         FbxMesh* pMesh = pNode->GetMesh();
         LUZASSERT(pMesh);
 
+		// Get materials for this mesh
+		pContext->pMaterials->reserve(pContext->pMaterials->size() + static_cast<size_t>(pNode->GetMaterialCount()));
+
+		short iExportMaterial = -1;
+
+		for (int iMaterial = 0, nMaterials = pNode->GetMaterialCount(); iMaterial < nMaterials; ++iMaterial)
+		{
+			FbxSurfaceMaterial* pSurfaceMaterial = pNode->GetMaterial(iMaterial);
+
+			iExportMaterial = CreateUniqueMaterialByName(pSurfaceMaterial->GetName(), pContext->pMaterials);
+			
+			Fbx::Material* pExportMaterial = &pContext->pMaterials->at(static_cast<size_t>(iExportMaterial));
+			
+			// init texture indices
+			pExportMaterial->iDiffuse = -1;
+			pExportMaterial->iEmissive = -1;
+			pExportMaterial->iAmbient = -1;
+			pExportMaterial->iSpecular = -1;
+			pExportMaterial->iNormal = -1;
+			pExportMaterial->iBump = -1;
+			pExportMaterial->iAlpha = -1;
+			pExportMaterial->iReflection = -1;
+			pExportMaterial->iDisplacement = -1;
+			pExportMaterial->iDisplacementVector = -1;
+
+			if (pSurfaceMaterial->GetClassId().Is(FbxSurfaceLambert::ClassId))
+			{
+				FbxSurfaceLambert* pLambert = static_cast<FbxSurfaceLambert*>(pSurfaceMaterial);
+
+				ExtractFloats<3>(pLambert->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
+				ExtractFloats<3>(pLambert->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
+				ExtractFloats<3>(pLambert->Diffuse.Get().mData, pExportMaterial->DiffuseColor.Data);
+				ExtractFloats<3>(pLambert->NormalMap.Get().mData, pExportMaterial->NormalMap.Data);
+				ExtractFloats<3>(pLambert->Bump.Get().mData, pExportMaterial->Bump.Data);
+				ExtractFloats<3>(pLambert->TransparentColor.Get().mData, pExportMaterial->TransparentColor.Data);
+				ExtractFloats<3>(pLambert->DisplacementColor.Get().mData, pExportMaterial->DisplacementColor.Data);
+				ExtractFloats<3>(pLambert->VectorDisplacementColor.Get().mData, pExportMaterial->VectorDisplacementColor.Data);
+
+				pExportMaterial->EmissiveFactor = static_cast<float>(pLambert->EmissiveFactor.Get());
+				pExportMaterial->AmbientFactor = static_cast<float>(pLambert->AmbientFactor.Get());
+				pExportMaterial->DiffuseFactor = static_cast<float>(pLambert->DiffuseFactor.Get());
+				pExportMaterial->BumpFactor = static_cast<float>(pLambert->BumpFactor.Get());
+				pExportMaterial->TransparencyFactor = static_cast<float>(pLambert->TransparencyFactor.Get());
+				pExportMaterial->DisplacementFactor = static_cast<float>(pLambert->DisplacementFactor.Get());
+				pExportMaterial->VectorDisplacementFactor = static_cast<float>(pLambert->VectorDisplacementFactor.Get());
+
+				pExportMaterial->eSurface = Fbx::FBX_SURFACE_TYPE_LAMBERT;
+			}
+			else if (pSurfaceMaterial->GetClassId().Is(FbxSurfacePhong::ClassId))
+			{
+				FbxSurfacePhong* pPhong = static_cast<FbxSurfacePhong*>(pSurfaceMaterial);
+
+				ExtractFloats<3>(pPhong->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
+				ExtractFloats<3>(pPhong->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
+				ExtractFloats<3>(pPhong->Diffuse.Get().mData, pExportMaterial->DiffuseColor.Data);
+				ExtractFloats<3>(pPhong->NormalMap.Get().mData, pExportMaterial->NormalMap.Data);
+				ExtractFloats<3>(pPhong->Bump.Get().mData, pExportMaterial->Bump.Data);
+				ExtractFloats<3>(pPhong->TransparentColor.Get().mData, pExportMaterial->TransparentColor.Data);
+				ExtractFloats<3>(pPhong->DisplacementColor.Get().mData, pExportMaterial->DisplacementColor.Data);
+				ExtractFloats<3>(pPhong->VectorDisplacementColor.Get().mData, pExportMaterial->VectorDisplacementColor.Data);
+				ExtractFloats<3>(pPhong->Specular.Get().mData, pExportMaterial->SpecularColor.Data);
+				ExtractFloats<3>(pPhong->Reflection.Get().mData, pExportMaterial->ReflectionColor.Data);
+
+				pExportMaterial->EmissiveFactor = static_cast<float>(pPhong->EmissiveFactor.Get());
+				pExportMaterial->AmbientFactor = static_cast<float>(pPhong->AmbientFactor.Get());
+				pExportMaterial->DiffuseFactor = static_cast<float>(pPhong->DiffuseFactor.Get());
+				pExportMaterial->BumpFactor = static_cast<float>(pPhong->BumpFactor.Get());
+				pExportMaterial->TransparencyFactor = static_cast<float>(pPhong->TransparencyFactor.Get());
+				pExportMaterial->DisplacementFactor = static_cast<float>(pPhong->DisplacementFactor.Get());
+				pExportMaterial->VectorDisplacementFactor = static_cast<float>(pPhong->VectorDisplacementFactor.Get());
+				pExportMaterial->SpecularFactor = static_cast<float>(pPhong->SpecularFactor.Get());
+				pExportMaterial->Shininess = static_cast<float>(pPhong->Shininess.Get());
+				pExportMaterial->ReflectionFactor = static_cast<float>(pPhong->ReflectionFactor.Get());
+
+				pExportMaterial->eSurface = Fbx::FBX_SURFACE_TYPE_PHONG;
+			}
+			else
+			{
+				LUZASSERT(0);
+			}
+
+			int iTextureChannelName;
+			FBXSDK_FOR_EACH_TEXTURE(iTextureChannelName)
+			{
+				FbxProperty prop = pSurfaceMaterial->FindProperty(FbxLayerElement::sTextureChannelNames[iTextureChannelName]);
+				if (!prop.IsValid())
+				{
+					continue;
+				}
+
+				for (int iTexture = 0, nTextures = prop.GetSrcObjectCount<FbxTexture>(); iTexture < nTextures; ++iTexture)
+				{
+					FbxLayeredTexture* pLayeredTexture = prop.GetSrcObject<FbxLayeredTexture>(iTexture);
+					if (pLayeredTexture)
+					{
+						LUZASSERT(0);
+						// TODO: Support this
+					}
+					else
+					{
+						FbxTexture* pTexture = prop.GetSrcObject<FbxTexture>(iTexture);
+						if (pTexture)
+						{
+							if (FbxFileTexture * pFileTexture = FbxCast<FbxFileTexture>(pTexture))
+							{
+								char pPath[1024];
+								strcpy_s(pPath, pContext->pTextureDirectory);
+								strcat_s(pPath, TrimFileName(pFileTexture->GetFileName()));
+
+								short iTextureFileName = CreateUniqueTextureFileName(pPath, pContext->pTextures);
+
+								FbxLayerElement::EType eTextureType = static_cast<FbxLayerElement::EType>(FbxLayerElement::sTypeTextureStartIndex + iTextureChannelName);
+
+								switch (eTextureType)
+								{
+								case (FbxLayerElement::eTextureDiffuse): pExportMaterial->iDiffuse = iTextureFileName; break;
+								case (FbxLayerElement::eTextureDiffuseFactor): break;
+								case (FbxLayerElement::eTextureEmissive): pExportMaterial->iEmissive = iTextureFileName; break;
+								case (FbxLayerElement::eTextureEmissiveFactor): break;
+								case (FbxLayerElement::eTextureAmbient): pExportMaterial->iAmbient = iTextureFileName;  break;
+								case (FbxLayerElement::eTextureAmbientFactor): break;
+								case (FbxLayerElement::eTextureSpecular): pExportMaterial->iSpecular = iTextureFileName; break;
+								case (FbxLayerElement::eTextureSpecularFactor): break;
+								case (FbxLayerElement::eTextureShininess): pExportMaterial->iShininess = iTextureFileName; break;
+								case (FbxLayerElement::eTextureNormalMap): pExportMaterial->iNormal = iTextureFileName; break;
+								case (FbxLayerElement::eTextureBump): pExportMaterial->iBump = iTextureFileName; break;
+								case (FbxLayerElement::eTextureTransparency): pExportMaterial->iAlpha = iTextureFileName; break;
+								case (FbxLayerElement::eTextureTransparencyFactor): break;
+								case (FbxLayerElement::eTextureReflection): pExportMaterial->iReflection = iTextureFileName; break;
+								case (FbxLayerElement::eTextureReflectionFactor): break;
+								case (FbxLayerElement::eTextureDisplacement): pExportMaterial->iDisplacement = iTextureFileName; break;
+								case (FbxLayerElement::eTextureDisplacementVector): pExportMaterial->iDisplacementVector = iTextureFileName; break;
+								default: LUZASSERT(0) break;
+								};
+							}
+							else if (FbxProceduralTexture * pProceduralTexture = FbxCast<FbxProceduralTexture>(pTexture))
+							{
+								LUZASSERT(0);
+								// TODO: Support this
+							}
+						}
+					}
+
+				}
+			}
+		}
+
+		/* Get geometry for this mesh */
+
         // Check for normals, uvs by checking first vertex
         FbxStringList uvSetNames;
         FbxVector4 normal;
@@ -216,16 +421,16 @@ namespace Resource
         bool bIsTriangleMesh = pMesh->IsTriangleMesh();
         if (bIsTriangleMesh)
         {
-            pContext->pPositions->reserve(pContext->pPositions->size() + static_cast<size_t>(pMesh->GetPolygonCount() * 3));
+            pContext->pPositions->reserve(pContext->pPositions->size() + static_cast<size_t>(pMesh->GetPolygonCount()) * 3);
 
             if (bHasNormals)
             {
-                pContext->pNormals->reserve(pContext->pNormals->size() + static_cast<size_t>(pMesh->GetPolygonCount() * 3));
+                pContext->pNormals->reserve(pContext->pNormals->size() + static_cast<size_t>(pMesh->GetPolygonCount()) * 3);
             }
 
             if (bHasUVs)
             {
-                pContext->pUVs->reserve(pContext->pUVs->size() + static_cast<size_t>(pMesh->GetPolygonCount() * 3));
+                pContext->pUVs->reserve(pContext->pUVs->size() + static_cast<size_t>(pMesh->GetPolygonCount()) * 3);
             }
         }
 
@@ -258,6 +463,10 @@ namespace Resource
                 {
                     Fbx::UV& uv = pContext->pUVs->emplace_back();
                     ExtractFloats<2>(fbxUV.mData, uv.Data);
+
+					// TODO: This is specific to SceneViewer. Maybe some options on how
+					// we want to associate materials with geometry
+					uv.Data[2] = static_cast<float>(iExportMaterial);
                 }
                 else
                 {
@@ -313,71 +522,55 @@ namespace Resource
             }
         }
 
-        for (int iMaterial = 0, nMaterials = pNode->GetMaterialCount(); iMaterial < nMaterials; ++iMaterial)
-        {
-            FbxSurfaceMaterial* pSurfaceMaterial = pNode->GetMaterial(iMaterial);
-            
-            int iTextureChannelName;
-            FBXSDK_FOR_EACH_TEXTURE(iTextureChannelName)
-            {
-                FbxProperty prop = pSurfaceMaterial->FindProperty(FbxLayerElement::sTextureChannelNames[iTextureChannelName]);
-                if (!prop.IsValid())
-                {
-                    continue;
-                }
-
-                for (int iTexture = 0, nTextures = prop.GetSrcObjectCount<FbxTexture>(); iTexture < nTextures; ++iTexture)
-                {
-                    FbxLayeredTexture* pLayeredTexture = prop.GetSrcObject<FbxLayeredTexture>(iTexture);
-                    if (pLayeredTexture)
-                    {
-
-                    }
-                    else
-                    {
-                        FbxTexture* pTexture = prop.GetSrcObject<FbxTexture>(iTexture);
-                        if (pTexture)
-                        {
-                            if (FbxFileTexture* pFileTexture = FbxCast<FbxFileTexture>(pTexture))
-                            {
-                                pContext->pTextures->emplace_back(pFileTexture->GetFileName());
-                            }
-                            else if (FbxProceduralTexture* pProceduralTexture = FbxCast<FbxProceduralTexture>(pTexture))
-                            {
-
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (pSurfaceMaterial->GetClassId().Is(FbxSurfacePhong::ClassId))
-            {
-                FbxSurfacePhong* pSurfacePhong = static_cast<FbxSurfacePhong*>(pSurfaceMaterial);
-
-            }
-            else if (pSurfaceMaterial->GetClassId().Is(FbxSurfaceLambert::ClassId))
-            {
-
-            }
-            else
-            {
-                LUZASSERT(0);
-            }
-        }
-
         // Add the surface
         Fbx::Surface& surface = pContext->pSurfaces->emplace_back();
+		surface.Name = pMesh->GetName();
         surface.TriStart = triStart;
         surface.NumTris = static_cast<unsigned int>(pContext->pTris->size()) - triStart;
         surface.bHasNormals = bHasNormals;
         surface.bHasUVs = bHasUVs;
+		surface.Material = iExportMaterial;
     }
 
     int Fbx::GetNumSurfaces() const
     {
         return static_cast<int>(m_surfaces.size());
     }
+
+	int Fbx::GetNumMaterials() const
+	{
+		return static_cast<int>(m_materials.size());
+	}
+
+	const Fbx::Position* Fbx::GetPositions() const
+	{
+		return m_positions.data();
+	}
+		  
+	const Fbx::Normal* Fbx::GetNormals() const
+	{
+		return m_normals.data();
+	}
+		  
+	const Fbx::UV* Fbx::GetUVs() const
+	{
+		return m_uvs.data();
+	}
+		  
+	const Fbx::Surface* Fbx::GetSurfaces() const
+	{
+		return m_surfaces.data();
+	}
+		  
+	const Fbx::Triangle* Fbx::GetTriangles() const
+	{
+		return m_triangles.data();
+	}
+
+	const Fbx::Material* Fbx::GetMaterials() const
+	{
+		return m_materials.data();
+	}
 
     const Fbx::Position* Fbx::GetPosition(int i) const
     {
@@ -403,6 +596,11 @@ namespace Resource
     {
         return &m_triangles[i];
     }
+
+	const char* Fbx::GetTextureFileName(int i) const
+	{
+		return (i > -1) ? m_textureFileNames[i].c_str() : nullptr;
+	}
 
     void Fbx::ConvertCoordinateSystem()
     {
@@ -449,7 +647,7 @@ namespace Resource
         fbxManager->SetIOSettings(ios);
 
         FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
-        if (fbxImporter->Initialize(desc.filename, -1, fbxManager->GetIOSettings()))
+        if (fbxImporter->Initialize(desc.pFileName, -1, fbxManager->GetIOSettings()))
         {
             pResource = std::make_shared<Fbx>();
 
@@ -466,8 +664,9 @@ namespace Resource
                 ctx.pUVs = &pResource->m_uvs;
                 ctx.pTris = &pResource->m_triangles;
                 ctx.pSurfaces = &pResource->m_surfaces;
-                ctx.pTextures = &pResource->m_textureFilenames;
+                ctx.pTextures = &pResource->m_textureFileNames;
                 ctx.pMaterials = &pResource->m_materials;
+				ctx.pTextureDirectory = desc.pTextureDirectory;
 
                 GetNodeAttributesRecursively(rootNode, &ctx);
             }

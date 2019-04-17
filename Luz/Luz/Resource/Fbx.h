@@ -11,11 +11,11 @@ namespace Resource
     class Fbx
     {
     public:
-        using Position = TArray<float, 3>;
-        using Normal = TArray<float, 3>;
-        using UV = TArray<float, 3>;
-
-        using Color = TArray<float, 3>;
+		using Float3 = TArray<float, 3>;
+        using Position = Float3;
+        using Normal =Float3;
+        using UV = Float3;
+        using Color = Float3;
 
         struct LUZ_API JointBlend
         {
@@ -32,18 +32,18 @@ namespace Resource
 
         struct LUZ_API Surface
         {
-            unsigned char* Name;
-            
+            const char* Name;
             unsigned int TriStart;
             unsigned int NumTris;
-            unsigned int Material;
+            short Material;
             bool bHasNormals;
             bool bHasUVs;
         };
 
         struct LUZ_API Desc
         {
-            const char* filename;
+            const char* pFileName;
+			const char* pTextureDirectory;
             bool bConvertCoordinateSystem;
             bool bReverseWindingOrder;
         };
@@ -54,41 +54,44 @@ namespace Resource
             FBX_SURFACE_TYPE_LAMBERT
         };
 
-        struct PhongSurface
-        {
-            Color Ambient;
-            Color Diffuse;
-            Color Specular;
-            Color Emissive;
-            float Transparency;
-            float Shininess;
-            float Reflection;
-        };
-
-        struct LambertSurface
-        {
-            Color Ambient;
-            Color Diffuse;
-            Color Emissive;
-            float Transparency;
-        };
-
         struct Material
         {
-            unsigned int iDiffuse;
-            unsigned int iAmbient;
-            unsigned int iSpecular;
-            unsigned int iNormal;
-            unsigned int iAlpha;
-            unsigned int iRoughness;
-            unsigned int iMetallic;
-            SurfaceType eSurface;
+			const char* pName;
+			
+			Color EmissiveColor;
+			float EmissiveFactor;
+			Color AmbientColor;
+			float AmbientFactor;
+			Color DiffuseColor;
+			float DiffuseFactor;
+			Float3 NormalMap;
+			Float3 Bump;
+			float BumpFactor;
+			Color TransparentColor;
+			float TransparencyFactor;
+			Color DisplacementColor;
+			float DisplacementFactor;
+			Color VectorDisplacementColor;
+			float VectorDisplacementFactor;
+			Color SpecularColor;
+			float SpecularFactor;
+			float Shininess;
+			Color ReflectionColor;
+			float ReflectionFactor;
 
-            union
-            {
-                PhongSurface Phong;
-                LambertSurface Lambert;
-            };
+            short iDiffuse;
+			short iEmissive;
+            short iAmbient;
+            short iSpecular;
+			short iShininess;
+            short iNormal;
+			short iBump;
+            short iAlpha;
+            short iReflection;
+            short iDisplacement;
+			short iDisplacementVector;
+
+            SurfaceType eSurface;
         };
 
         Fbx() = default;
@@ -96,6 +99,20 @@ namespace Resource
         ~Fbx() = default;
 
         LUZ_API int GetNumSurfaces() const;
+
+		LUZ_API int GetNumMaterials() const;
+
+		const LUZ_API Position* GetPositions() const;
+
+		const LUZ_API Normal* GetNormals() const;
+
+		const LUZ_API UV* GetUVs() const;
+
+		const LUZ_API Surface* GetSurfaces() const;
+
+		const LUZ_API Triangle* GetTriangles() const;
+
+		const LUZ_API Material* GetMaterials() const;
 
         const LUZ_API Position* GetPosition(int i) const;
 
@@ -106,6 +123,8 @@ namespace Resource
         const LUZ_API Surface* GetSurface(int i) const;
 
         const LUZ_API Triangle* GetTriangle(int i) const;
+
+		const LUZ_API char* GetTextureFileName(int i) const;
 
         LUZ_API void ConvertCoordinateSystem();
 
@@ -120,7 +139,7 @@ namespace Resource
         std::vector<Triangle> m_triangles;
         std::vector<Surface> m_surfaces;
         std::vector<Material> m_materials;
-        std::vector<std::string> m_textureFilenames;
+        std::vector<std::string> m_textureFileNames;
         std::unordered_map<i32, u32> m_indicesByControlPointIndex;
         std::unordered_map<i32, JointBlend> m_blendByControlPointIndex;
     };

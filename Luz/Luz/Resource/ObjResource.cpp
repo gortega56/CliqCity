@@ -166,8 +166,8 @@ namespace Resource
                     uv[1] = 1.0f - uv[1];
                 }
 
-                // Leave the last coordinate alone because
-                // we probably don't have an mtl yet;
+				// Set material disabled until we have an mtl
+				uv[2] = -1;
             }
             else if (statement.compare("vn") == 0)
             {
@@ -289,10 +289,11 @@ namespace Resource
             {
                 for (u32 j = 0; j < 3; ++j)
                 {
-                    uvs[faces[i].Data[1] - 1].Data[2] = surface.MaterialHandle;
-                    uvs[faces[i].Data[4] - 1].Data[2] = surface.MaterialHandle;
-                    uvs[faces[i].Data[7] - 1].Data[2] = surface.MaterialHandle;
-                    if (!faces[i].IsTri) uvs[faces[i].Data[10] - 1].Data[2] = surface.MaterialHandle;
+                    uvs[static_cast<size_t>(faces[i].Data[1]) - 1].Data[2] = surface.MaterialHandle;
+                    uvs[static_cast<size_t>(faces[i].Data[4]) - 1].Data[2] = surface.MaterialHandle;
+                    uvs[static_cast<size_t>(faces[i].Data[7]) - 1].Data[2] = surface.MaterialHandle;
+                    if (!faces[i].IsTri) 
+						uvs[static_cast<size_t>(faces[i].Data[10]) - 1].Data[2] = surface.MaterialHandle;
                 }
             }
         }

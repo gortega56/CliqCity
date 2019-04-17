@@ -148,8 +148,8 @@ bool SceneViewer::Initialize()
     {
         return false;
     }
-
-    LoadScene("test_fbx.scene", 0);
+	Platform::CreateConsole();
+    LoadScene("sponza.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -777,7 +777,8 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
                 else if (strcmp(ext, "fbx") == 0)
                 {
                     Resource::Fbx::Desc desc;
-                    desc.filename = filePath;
+                    desc.pFileName = filePath;
+					desc.pTextureDirectory = texturePath;
                     desc.bConvertCoordinateSystem = true;
                     desc.bReverseWindingOrder = true;
 
@@ -786,8 +787,8 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             }
         }
 
-        float max = (std::numeric_limits<float>::max)();
-        float min = (std::numeric_limits<float>::min)();
+        constexpr float max = (std::numeric_limits<float>::max)();
+        constexpr float min = (std::numeric_limits<float>::min)();
 
         Scene scene;
         scene.Bounds.max = { min, min, min };
@@ -1127,22 +1128,29 @@ void UpdateScene(const Resource::Obj* pObj, Scene* pScene)
         mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
 
         if (strlen(md.AmbientTextureName)) 
-            mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
+            mc.iAmbient = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
         
         if (strlen(md.DiffuseTextureName)) 
             mc.iDiffuse = FindOrPushBackTextureName(pScene->TextureNames, md.DiffuseTextureName);
         
         if (strlen(md.SpecularTextureName)) 
-            mc.iSpec = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularTextureName);
+            mc.iSpecular = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularTextureName);
+
+		if (strlen(md.BumpTextureName0))
+			mc.iBump = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName0);
+
+		if (strlen(md.BumpTextureName1))
+			mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName1);
+
+		if (strlen(md.DissolveTextureName))
+			mc.iAlpha = FindOrPushBackTextureName(pScene->TextureNames, md.DissolveTextureName);
 
         if (strlen(md.SpecularPowerTextureName)) 
             mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularPowerTextureName);
-        
-        if (strlen(md.BumpTextureName0)) 
-            mc.iBump = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName0);
-        
-        if (strlen(md.BumpTextureName1)) 
-            mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName1);
+
+		// If pbr we may use the ambient slot for metal texture
+		if (strlen(md.AmbientTextureName))
+			mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
 
         Graphics::ConstantBufferDesc cbd;
         cbd.Alignment = 0;
@@ -1212,58 +1220,69 @@ void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene)
     }
 
     // Materials
-    //size_t iMaterialStart = pScene->Materials.size();
-    //size_t nMaterials = static_cast<size_t>(pFbx->GetNumMaterials());
-    //pScene->Materials.resize(iMaterialStart + nMaterials);
+    size_t iMaterialStart = pScene->Materials.size();
+    size_t nMaterials = static_cast<size_t>(pFbx->GetNumMaterials());
+    pScene->Materials.resize(iMaterialStart + nMaterials);
 
-    //size_t iConstantStart = pScene->Constants.size();
-    //size_t nConstants = nMaterials;
-    //pScene->Constants.resize(iConstantStart + nConstants);
+    size_t iConstantStart = pScene->Constants.size();
+    size_t nConstants = nMaterials;
+    pScene->Constants.resize(iConstantStart + nConstants);
 
     // Cache this for later
     size_t iTextureStart = pScene->TextureNames.size();
 
-    //for (size_t iMaterialOffset = 0; iMaterialOffset < nMaterials; ++iMaterialOffset)
-    //{
-    //    const Resource::Mtl::MaterialDesc md = pFbx->GetMaterialDesc(static_cast<u32>(iMaterialOffset));
+	const Resource::Fbx::Material* pMaterials = pFbx->GetMaterials();
 
-    //    MaterialConstants& mc = pScene->Materials[iMaterialStart + iMaterialOffset];
-    //    mc.SpecularExponent = md.SpecularExponent;
-    //    mc.Transparency = md.Transparency;
-    //    mc.OpticalDensity = md.OpticalDensity;
-    //    mc.Dissolve = md.Dissolve;
-    //    mc.Specular = float3(md.Specular[0], md.Specular[1], md.Specular[2]);
-    //    mc.TransmissionFilter = float3(md.TransmissionFilter[0], md.TransmissionFilter[1], md.TransmissionFilter[2]);
-    //    mc.Ambient = float3(md.Ambient[0], md.Ambient[1], md.Ambient[2]);
-    //    mc.Diffuse = float3(md.Diffuse[0], md.Diffuse[1], md.Diffuse[2]);
-    //    mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
+    for (size_t iMaterialOffset = 0; iMaterialOffset < nMaterials; ++iMaterialOffset)
+    {
+		const Resource::Fbx::Material& md = pMaterials[iMaterialOffset];
 
-    //    if (strlen(md.AmbientTextureName))
-    //        mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
+        MaterialConstants& mc = pScene->Materials[iMaterialStart + iMaterialOffset];
+        mc.SpecularExponent = md.SpecularFactor;
+        mc.Transparency = md.TransparencyFactor;
+        mc.OpticalDensity = md.ReflectionFactor;
+        mc.Dissolve = md.TransparencyFactor;
+        mc.Specular = float3(md.SpecularColor[0], md.SpecularColor[1], md.SpecularColor[2]);
+        mc.TransmissionFilter = float3(md.TransparentColor[0], md.TransparentColor[1], md.TransparentColor[2]);
+        mc.Ambient = float3(md.AmbientColor[0], md.AmbientColor[1], md.AmbientColor[2]);
+        mc.Diffuse = float3(md.DiffuseColor[0], md.DiffuseColor[1], md.DiffuseColor[2]);
+        mc.Emissive = float3(md.EmissiveColor[0], md.EmissiveColor[1], md.EmissiveColor[2]);
 
-    //    if (strlen(md.DiffuseTextureName))
-    //        mc.iDiffuse = FindOrPushBackTextureName(pScene->TextureNames, md.DiffuseTextureName);
+		if (const char* pAmbientTexture = pFbx->GetTextureFileName(md.iAmbient))
+			mc.iAmbient = FindOrPushBackTextureName(pScene->TextureNames, pAmbientTexture);
 
-    //    if (strlen(md.SpecularTextureName))
-    //        mc.iSpec = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularTextureName);
+		if (const char* pDiffuseTexture = pFbx->GetTextureFileName(md.iDiffuse))
+			mc.iDiffuse = FindOrPushBackTextureName(pScene->TextureNames, pDiffuseTexture);
 
-    //    if (strlen(md.SpecularPowerTextureName))
-    //        mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularPowerTextureName);
+		if (const char* pSpecularTexture = pFbx->GetTextureFileName(md.iSpecular))
+			mc.iSpecular = FindOrPushBackTextureName(pScene->TextureNames, pSpecularTexture);
 
-    //    if (strlen(md.BumpTextureName0))
-    //        mc.iBump = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName0);
+		if (const char* pNormalTexture = pFbx->GetTextureFileName(md.iNormal))
+			mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, pNormalTexture);
 
-    //    if (strlen(md.BumpTextureName1))
-    //        mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName1);
+		if (const char* pBumpTexture = pFbx->GetTextureFileName(md.iBump))
+			mc.iBump = FindOrPushBackTextureName(pScene->TextureNames, pBumpTexture);
 
-    //    Graphics::ConstantBufferDesc cbd;
-    //    cbd.Alignment = 0;
-    //    cbd.SizeInBytes = sizeof(MaterialConstants);
-    //    cbd.StrideInBytes = sizeof(MaterialConstants);
-    //    cbd.AllocHeap = true;
-    //    cbd.pData = &mc;
-    //    pScene->Constants[iConstantStart + iMaterialOffset] = Graphics::CreateConstantBuffer(cbd);
-    //}
+		if (const char* pAlphaTexture = pFbx->GetTextureFileName(md.iAlpha))
+			mc.iAlpha = FindOrPushBackTextureName(pScene->TextureNames, pAlphaTexture);
+
+		if (const char* pEmissiveTexture = pFbx->GetTextureFileName(md.iEmissive))
+			mc.iEmissive = FindOrPushBackTextureName(pScene->TextureNames, pEmissiveTexture);
+
+		if (const char* pMetalTexture = pFbx->GetTextureFileName(md.iReflection))
+			mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, pMetalTexture);
+
+		if (const char* pRoughTexture = pFbx->GetTextureFileName(md.iShininess))
+			mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, pRoughTexture);
+
+        Graphics::ConstantBufferDesc cbd;
+        cbd.Alignment = 0;
+        cbd.SizeInBytes = sizeof(MaterialConstants);
+        cbd.StrideInBytes = sizeof(MaterialConstants);
+        cbd.AllocHeap = true;
+        cbd.pData = &mc;
+        pScene->Constants[iConstantStart + iMaterialOffset] = Graphics::CreateConstantBuffer(cbd);
+    }
 
     // Create TextureHandles
     size_t nTextures = pScene->TextureNames.size() - iTextureStart;

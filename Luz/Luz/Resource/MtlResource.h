@@ -64,13 +64,13 @@ namespace Resource
             i8 IlluminationModel;         // illum
 
             std::string Name;
-            std::string AmbientTextureName;
-            std::string DiffuseTextureName;
-            std::string SpecularTextureName;
-            std::string SpecularPowerTextureName;
-            std::string DissolveTextureName;
-            std::string BumpTextureName0;
-            std::string BumpTextureName1;
+            std::string AmbientTextureName;			// map_Ka
+            std::string DiffuseTextureName;			// map_Kd
+            std::string SpecularTextureName;		// map_Ks
+            std::string SpecularPowerTextureName;	// map_Ns
+            std::string DissolveTextureName;		// map_d
+            std::string BumpTextureName0;			// bump
+            std::string BumpTextureName1;			// map_bump
         };
 
         std::unordered_map<std::string, Material> m_materials;

@@ -47,13 +47,16 @@ struct Material
     float dissolve;
     float3 emissive;
     float _unused0;
-    int iMetal;
+	int iAmbient;
     int iDiffuse;
     int iSpec;
-    int iRough;
     int iBump;
     int iNormal;
-    float _unused1[38];
+	int iAlpha;
+	int iEmissive;
+    int iMetal;
+    int iRough;
+    float _unused1[35];
 };
 
 ConstantBuffer<Material> materials[] : register(b3);
@@ -151,6 +154,13 @@ float4 Shade_Default(ShadingFrame frame)
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
 
+		int iAlpha = materials[iMaterial].iAlpha;
+		if (iAlpha != -1)
+		{
+			float alpha = textures[iAlpha].Sample(linear_wrap_sampler, frame.UV).r;
+			clip(alpha - 0.001f);
+		}
+
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
         {
@@ -199,7 +209,7 @@ float4 Shade_Default(ShadingFrame frame)
         float Sf = 1.0f;
         if (ShadowEnabled)
         {
-            //Sf = GetShadow(frame);
+            Sf = GetShadow(frame);
         }
 
         output.xyz = lerp(ambient, (ambient + diffuse + specular), Sf);
@@ -221,6 +231,13 @@ float4 Shade_Blinn_Phong(ShadingFrame frame)
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
         float metallic = 0;
+
+		int iAlpha = materials[iMaterial].iAlpha;
+		if (iAlpha != -1)
+		{
+			float alpha = textures[iAlpha].Sample(linear_wrap_sampler, frame.UV).r;
+			clip(alpha - 0.001f);
+		}
 
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
@@ -310,7 +327,6 @@ float4 Shade_Blinn_Phong(ShadingFrame frame)
     }
 
     return output;
-
 }
 
 float4 Shade_Beckmann(ShadingFrame frame)
@@ -326,6 +342,13 @@ float4 Shade_Beckmann(ShadingFrame frame)
         float3 specular = float3(0, 0, 0);
         float3 N = frame.N;
         float metallic = 0;
+
+		int iAlpha = materials[iMaterial].iAlpha;
+		if (iAlpha != -1)
+		{
+			float alpha = textures[iAlpha].Sample(linear_wrap_sampler, frame.UV).r;
+			clip(alpha - 0.001f);
+		}
 
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
@@ -432,6 +455,13 @@ float4 Shade_GGX(ShadingFrame frame)
         float metallic = 0;
         float roughness = 0;
 
+		int iAlpha = materials[iMaterial].iAlpha;
+		if (iAlpha != -1)
+		{
+			float alpha = textures[iAlpha].Sample(linear_wrap_sampler, frame.UV).r;
+			clip(alpha - 0.001f);
+		}
+
         int iDiffuse = materials[iMaterial].iDiffuse;
         if (iDiffuse != -1)
         {
@@ -471,8 +501,6 @@ float4 Shade_GGX(ShadingFrame frame)
         // Unlit
         if (AmbientEnabled)
         {
-
-            
             // Indirect diffuse;
             const float environmentMipLevels = 6.0;
             const float irradianceMipLevel = environmentMipLevels - 1.0;
@@ -592,6 +620,5 @@ float4 main(PS_Input input) : SV_TARGET
     output.xyz = ACES_Film(output.xyz);
     output.xyz = Linear_to_Gamma(output.xyz);
 
-    output.xyz = frame.N;
     return output;
 }

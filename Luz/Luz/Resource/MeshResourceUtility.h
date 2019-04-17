@@ -10,7 +10,14 @@ namespace Resource
         T Data[N];
 
         TArray(T(&src)[N]);
-        TArray();
+        
+		TArray();
+
+		~TArray() = default;
+
+		const T& operator[](int i) const;
+
+		T& operator[](int i);
     };
 
     template<typename T, size_t N>
@@ -24,6 +31,18 @@ namespace Resource
     {
         memset(Data, 0, sizeof(T) * N);
     }
+
+	template<typename T, size_t N>
+	const T& TArray<T, N>::operator[](int i) const
+	{
+		return Data[i];
+	}
+
+	template<typename T, size_t N>
+	T& TArray<T, N>::operator[](int i)
+	{
+		return Data[i];
+	}
 
     template<typename T, size_t N>
     struct TArrayHash

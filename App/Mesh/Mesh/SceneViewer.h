@@ -92,13 +92,16 @@ struct MaterialConstants
     float Dissolve;               
     float3 Emissive;
     float _unused0;
-    int iMetal = -1;
-    int iDiffuse = -1;
-    int iSpec = -1;
-    int iRough = -1;
-    int iBump = -1;
-    int iNormal = -1;
-    float _unused1[38];
+	int iAmbient	= -1;
+    int iDiffuse	= -1;
+	int iSpecular	= -1;
+	int iBump		= -1;
+	int iNormal		= -1;
+	int iAlpha		= -1;
+	int iEmissive	= -1;
+	int iMetal		= -1;
+    int iRough		= -1;
+    float _unused1[35];
 };
 
 static_assert(sizeof(MaterialConstants) == 256, "MaterialConstants must be 256 bytes");

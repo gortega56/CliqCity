@@ -34,23 +34,11 @@ namespace Graphics
         std::vector<IndexType> Indices;
     };
 
-    template<class IndexType>
-    void ReverseWindingOrder(IndexType* pIndices, const unsigned int nIndices)
-    {
-        //LUZASSERT(nIndices % 3U == 0);
+	void ReverseWindingOrder(unsigned char* pIndices, const unsigned int nIndices);
 
-        auto swap = [&](const int i, const int j)
-        {
-            IndexType temp = pIndices[i];
-            pIndices[i] = pIndices[j];
-            pIndices[j] = temp;
-        };
+	void ReverseWindingOrder(unsigned short* pIndices, const unsigned int nIndices);
 
-        for (unsigned int i = 0; i < nIndices; i += 3)
-        {
-            swap(i + 1, i + 2);
-        }
-    }
+	void ReverseWindingOrder(unsigned int* pIndices, const unsigned int nIndices);
 
     template<class VertexType, class IndexType>
     void CreateTangents(VertexType* pVertices, const unsigned int numVertices, IndexType* pIndices, const  unsigned int numIndices)
