@@ -1,5 +1,0 @@
-asset test
-	dir root fbx_test
-	file cube_tex.fbx
-	shading 0
-	bump 0

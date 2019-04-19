@@ -28,6 +28,14 @@ public:
         BUMP_MODE_HEIGHT,
         BUMP_MODE_NORMAL
     };
+	
+	enum TextureType
+	{
+		TEXTURE_TYPE_METAL,
+		TEXTURE_TYPE_ROUGH,
+		TEXTURE_TYPE_NORMAL,
+		TEXTURE_TYPE_COUNT
+	};
 
     struct Asset
     {
@@ -36,6 +44,7 @@ public:
         int TextureDir = -1;
         int nFiles = 0;
         int pFiles[256];
+		int pTextures[TEXTURE_TYPE_COUNT];
     };
 
     SceneResource() = default;
@@ -52,6 +61,8 @@ public:
 
     const char* GetFile(int i) const;
 
+	const char* GetTexture(int i) const;
+
     ShadingMode GetShadingMode() const;
 
     BumpMode GetBumpMode() const;
@@ -62,6 +73,7 @@ private:
     std::vector<std::string> m_names;
     std::vector<std::string> m_files;
     std::vector<std::string> m_directories;
+	std::vector<std::string> m_textures;
     std::vector<Asset> m_assets;
     ShadingMode m_eShadingMode;
     BumpMode m_eBumpMode;
@@ -92,6 +104,11 @@ const char* SceneResource::GetFile(int i) const
     return (i != -1) ? m_files[i].c_str() : "";
 }
 
+const char* SceneResource::GetTexture(int i) const
+{
+	return (i > -1) ? m_textures[i].c_str() : nullptr;
+}
+
 SceneResource::ShadingMode SceneResource::GetShadingMode() const
 {
     return m_eShadingMode;
@@ -117,7 +134,8 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
     auto& directories = pResource->m_directories;
     auto& files = pResource->m_files;
     auto& assets = pResource->m_assets;
-    
+	auto& textures = pResource->m_textures;
+
     Asset* pCurrentAsset = nullptr;
 
     while (fs.good())
@@ -133,6 +151,8 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
             pCurrentAsset = &assets.emplace_back();
             pCurrentAsset->Name = static_cast<int>(names.size()) - 1;
 
+			for (int i = 0; i < TEXTURE_TYPE_COUNT; ++i)
+				pCurrentAsset->pTextures[i] = -1;
         }
         else if (cmd.compare("file") == 0)
         {
@@ -172,6 +192,41 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
 
             pResource->m_eBumpMode = static_cast<BumpMode>(mode);
         }
+		else if (cmd.compare("texture") == 0)
+		{
+			fs >> cmd;
+
+			std::string texture;
+			fs >> texture;
+
+			textures.push_back(".\\Assets\\"
+				+ directories[pCurrentAsset->RootDir]
+				+ "\\" + directories[pCurrentAsset->TextureDir]
+				+ "\\" + texture);
+
+			int iTexture = static_cast<int>(textures.size()) - 1;
+
+			if (cmd.compare("metal") == 0)
+			{
+				pCurrentAsset->pTextures[SceneResource::TEXTURE_TYPE_METAL] = iTexture;
+			}
+			else if (cmd.compare("rough") == 0)
+			{
+				pCurrentAsset->pTextures[SceneResource::TEXTURE_TYPE_ROUGH] = iTexture;
+			}
+			else if (cmd.compare("normal") == 0)
+			{
+				pCurrentAsset->pTextures[SceneResource::TEXTURE_TYPE_NORMAL] = iTexture;
+			}
+			else
+			{
+				LUZASSERT(0);
+			}
+		}
+		else
+		{
+			LUZASSERT(0);
+		}
     }
 
     fs.close();

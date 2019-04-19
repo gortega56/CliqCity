@@ -1,0 +1,9 @@
+asset test
+	dir root Cerberus
+	dir textures Textures
+	file Cerberus_LP.fbx
+	texture metal Cerberus_M.tga
+	texture rough Cerberus_R.tga
+	texture normal Cerberus_N.tga
+	shading 3
+	bump 1

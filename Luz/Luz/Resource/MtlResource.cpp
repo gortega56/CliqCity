@@ -164,7 +164,7 @@ namespace Resource
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->DissolveTextureName = desc.TextureDirectory + textureName;
+                   // pMaterial->DissolveTextureName = desc.TextureDirectory + textureName;
                 }
             }
 

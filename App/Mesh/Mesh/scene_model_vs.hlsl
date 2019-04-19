@@ -34,7 +34,7 @@ VS_OUTPUT main(VS_INPUT input)
     output.tangent = input.tangent.xyz;
     output.bitangent = cross(input.norm, input.tangent.xyz);// *input.tangent.w;
     output.norm = input.norm;
-    output.uv = input.uv.xy;
+	output.uv = float2(1.0f - input.uv.x, 1.0f - input.uv.y);
     output.mat = (int)input.uv.z;
     return output;
 }

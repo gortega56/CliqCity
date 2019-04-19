@@ -69,6 +69,13 @@ struct EnvironmentParameters
     float AspectRatio;
 };
 
+struct TextureOverrides
+{
+	const char* Metal;
+	const char* Rough;
+	const char* Normal;
+};
+
 static int s_window_width = 1600;
 
 static int s_window_height = 900;
@@ -105,9 +112,9 @@ static OrthographicCamera s_lighting = OrthographicCamera(1500.0f, 1500.0f, 0.1f
 
 static SceneViewer* s_pSceneViewer = nullptr;
 
-static void UpdateScene(const Resource::Obj* pObj, Scene* pScene);
+static void UpdateScene(const Resource::Obj* pObj, Scene* pScene, TextureOverrides* pTextureOverrides);
 
-static void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene);
+static void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene, TextureOverrides* pTextureOverrides);
 
 static void DestroyScene(const Scene* pScene);
 
@@ -149,7 +156,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 	Platform::CreateConsole();
-    LoadScene("sponza.scene", 0);
+    LoadScene("cerberus.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -732,6 +739,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 
         std::vector<Resource::Async<Resource::Obj>> loadingObjs;
         std::vector<Resource::Async<Resource::Fbx>> loadingFbxs;
+		std::vector<TextureOverrides> textures;
 
         u32 nAssets = pScene->NumAssets();
 
@@ -741,26 +749,26 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             const char* rootDir = pScene->GetDirectory(asset.RootDir);
             const char* textureDir = pScene->GetDirectory(asset.TextureDir);
 
+			char relativePath[256];
+			strcpy_s(relativePath, assetDir);
+			if (strlen(rootDir))
+			{
+				strcat_s(relativePath, rootDir);
+				strcat_s(relativePath, "\\");
+			}
+
+			char texturePath[256];
+			strcpy_s(texturePath, relativePath);
+			if (strlen(textureDir))
+			{
+				strcat_s(texturePath, textureDir);
+				strcat_s(texturePath, "\\");
+			}
+
             for (int iFile = 0; iFile < asset.nFiles; ++iFile)
             {
                 const char* file = pScene->GetFile(asset.pFiles[iFile]);
                 const char* ext = getExtension(file);
-
-                char relativePath[256];
-                strcpy_s(relativePath, assetDir);
-                if (strlen(rootDir))
-                {
-                    strcat_s(relativePath, rootDir);
-                    strcat_s(relativePath, "\\");
-                }
-                
-                char texturePath[256];
-                strcpy_s(texturePath, relativePath);
-                if (strlen(textureDir))
-                {
-                    strcat_s(texturePath, textureDir);
-                    strcat_s(texturePath, "\\");
-                }
 
                 char filePath[256];
                 strcpy_s(filePath, relativePath);
@@ -785,6 +793,11 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
                     loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(desc));
                 }
             }
+
+			TextureOverrides* pTextureOverride = &textures.emplace_back();
+			pTextureOverride->Metal = pScene->GetTexture(asset.pTextures[SceneResource::TEXTURE_TYPE_METAL]);
+			pTextureOverride->Rough = pScene->GetTexture(asset.pTextures[SceneResource::TEXTURE_TYPE_ROUGH]);
+			pTextureOverride->Normal = pScene->GetTexture(asset.pTextures[SceneResource::TEXTURE_TYPE_NORMAL]);
         }
 
         constexpr float max = (std::numeric_limits<float>::max)();
@@ -794,14 +807,14 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
         scene.Bounds.max = { min, min, min };
         scene.Bounds.min = { max, max, max };
 
-        for (auto& async : loadingObjs)
+        for (size_t i = 0, n = loadingObjs.size(); i < n; ++i)
         {
-            UpdateScene(async.Get().get(), &scene);
+            UpdateScene(loadingObjs[i].Get().get(), &scene, &textures[i]);
         }
 
-        for (auto& async : loadingFbxs)
+        for (size_t i = 0, n = loadingFbxs.size(); i < n; ++i)
         {
-            UpdateScene(async.Get().get(), &scene);
+            UpdateScene(loadingFbxs[i].Get().get(), &scene, &textures[i]);
         } 
 
         {
@@ -1066,7 +1079,7 @@ int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::strin
     return (int)(iter - textureNames.begin());
 }
 
-void UpdateScene(const Resource::Obj* pObj, Scene* pScene)
+void UpdateScene(const Resource::Obj* pObj, Scene* pScene, TextureOverrides* pTextureOverrides)
 {
     LUZASSERT(pObj != nullptr);
 
@@ -1185,7 +1198,7 @@ void UpdateScene(const Resource::Obj* pObj, Scene* pScene)
     float3 dim = pScene->Bounds.max - pScene->Bounds.min;
 }
 
-void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene)
+void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene, TextureOverrides* pTextureOverrides)
 {
     LUZASSERT(pFbx != nullptr);
 
@@ -1273,6 +1286,17 @@ void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene)
 			mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, pMetalTexture);
 
 		if (const char* pRoughTexture = pFbx->GetTextureFileName(md.iShininess))
+			mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, pRoughTexture);
+
+		// Overrides
+
+		if (const char* pMetalTexture = pTextureOverrides->Metal)
+			mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, pMetalTexture);
+
+		if (const char* pNormalTexture = pTextureOverrides->Normal)
+			mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, pNormalTexture);
+
+		if (const char* pRoughTexture = pTextureOverrides->Rough)
 			mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, pRoughTexture);
 
         Graphics::ConstantBufferDesc cbd;

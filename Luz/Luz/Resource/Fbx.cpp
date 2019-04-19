@@ -274,6 +274,7 @@ namespace Resource
 			pExportMaterial->iEmissive = -1;
 			pExportMaterial->iAmbient = -1;
 			pExportMaterial->iSpecular = -1;
+			pExportMaterial->iShininess = -1;
 			pExportMaterial->iNormal = -1;
 			pExportMaterial->iBump = -1;
 			pExportMaterial->iAlpha = -1;
