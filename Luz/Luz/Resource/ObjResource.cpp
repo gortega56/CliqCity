@@ -1,27 +1,23 @@
 #include "stdafx.h"
 #include "ObjResource.h"
 
-// Each obj surface has a material... not each obj object... an obj object can have multiple surfaces each with it's own material.
-// Need to refactor so that we flatten this list out to surfaces / meshes whatever.. so long as we create a new mesh based on material
-// not object name (o | object). This requires changes to MeshDesc... though not much so long at the list of surfaces is flattened and 
-// not hierarchical
-
 namespace Resource
 {
-    static u32 FindOrCreate(std::string& s, std::vector<std::string>& v)
-    {
-        for (u32 i = 0, size = (u32)v.size(); i < size; ++i)
-        {
-            if (v[i] == s)
-            {
-                return i;
-            }
-        }
+	static int FindOrPushName(const char* pName, std::vector<std::string>& names)
+	{
+		size_t n = names.size();
+		for (size_t i = 0; i < n; ++i)
+		{
+			if (strcmp(names[i].c_str(), pName) == 0)
+			{
+				return static_cast<int>(i);
+			}
+		}
 
-        v.push_back(s);
+		names.emplace_back(pName);
 
-        return (u32)v.size() - 1;
-    }
+		return static_cast<int>(n);
+	}
 
     Obj::Obj()
     {
@@ -53,10 +49,20 @@ namespace Resource
         return static_cast<u32>(m_materialNames.size());
     }
 
-    std::string Obj::GetMaterialName(const u32 i) const
+    const char* Obj::GetMaterialName(const u32 i) const
     {
-        return m_materialNames[i];
+        return m_materialNames[i].c_str();
     }
+
+	const char* Obj::GetDirectory() const
+	{
+		return (iDirectory > -1) ? m_names[iDirectory].c_str() : nullptr;
+	}
+
+	const char* Obj::GetTextureDirectory() const
+	{
+		return (iTextureDirectory > -1) ? m_names[iTextureDirectory].c_str() : nullptr;
+	}
 
     std::shared_ptr<const Mtl> Obj::GetMtl(const u32 i) const
     {
@@ -102,13 +108,17 @@ namespace Resource
     {
         std::shared_ptr<Obj> pResource;
 
-        std::ifstream fileStream(desc.Filename.c_str());
+        std::ifstream fileStream(desc.Filename);
         if (!fileStream.is_open())
         {
             LUZASSERT(false);
         }
 
         pResource = std::make_shared<Obj>();
+		pResource->iDirectory = FindOrPushName(desc.Directory, pResource->m_names);
+		pResource->iTextureDirectory = FindOrPushName(desc.TextureDirectory, pResource->m_names);
+
+		auto& names = pResource->m_names;
         auto& objectNames = pResource->m_objectNames;
         auto& groupNames = pResource->m_groupNames;
         auto& positions = pResource->m_positions;
@@ -120,7 +130,9 @@ namespace Resource
         auto& mtls = pResource->m_mtls;
         auto& materials = pResource->m_materials;
         auto& boundingBox = pResource->m_boundingBox;
-        std::vector<Resource::Async<Mtl>> loadingMtls;
+        
+		// Temp
+		std::vector<Resource::Async<Mtl>> loadingMtls;
 
         Surface* pCurrentSurface = nullptr;
 
@@ -161,11 +173,6 @@ namespace Resource
                 float* uv = uvs.emplace_back().Data;
                 fileStream >> uv[0] >> uv[1];
 
-                if (desc.InvertUVs)
-                {
-                    uv[1] = 1.0f - uv[1];
-                }
-
 				// Set material disabled until we have an mtl
 				uv[2] = -1;
             }
@@ -189,17 +196,19 @@ namespace Resource
                 // Add a new surface
                 pCurrentSurface = &surfaces.emplace_back();
                 pCurrentSurface->ObjectHandle = static_cast<u32>(pResource->m_objectNames.size() - 1);
-                pCurrentSurface->MaterialHandle = FindOrCreate(materialName, materialNames);
+                pCurrentSurface->MaterialHandle = FindOrPushName(materialName.c_str(), materialNames);
                 pCurrentSurface->FacesStart = numFaces;
             }
             else if (statement.compare("mtllib") == 0)
             {
-                std::string filename;
-                fileStream >> filename;
+				std::string& filename = names.emplace_back();
+				fileStream >> filename;
+
+				filename.insert(0, pResource->GetDirectory());
 
                 Mtl::Desc mtl;
-                mtl.Filename = desc.Directory + filename;
-                mtl.TextureDirectory = desc.TextureDirectory;
+				mtl.Filename = filename.c_str();
+				mtl.TextureDirectory = pResource->GetTextureDirectory();
 
                 loadingMtls.push_back(Resource::Async<Mtl>::Load(mtl));
             }

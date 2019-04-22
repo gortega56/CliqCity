@@ -54,9 +54,11 @@ struct Material
     int iNormal;
 	int iAlpha;
 	int iEmissive;
+	int iShininess;
+	int iReflection;
     int iMetal;
     int iRough;
-    float _unused1[35];
+    float _unused1[33];
 };
 
 ConstantBuffer<Material> materials[] : register(b3);

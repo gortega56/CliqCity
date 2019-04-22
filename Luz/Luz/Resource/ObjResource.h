@@ -32,10 +32,9 @@ namespace Resource
 
         struct LUZ_API Desc
         {
-            std::string Filename;
-            std::string Directory;
-            std::string TextureDirectory;
-            bool InvertUVs;
+            const char* Filename;
+            const char* Directory;
+			const char* TextureDirectory;
         };
 
         struct LUZ_API BoundingBox
@@ -53,11 +52,11 @@ namespace Resource
 
         struct LUZ_API Surface
         {
-            u32 FacesStart;
-            u32 NumFaces;
-            u16 ObjectHandle;
-            u16 GroupHandle;
-            u16 MaterialHandle;
+            unsigned int FacesStart;
+            unsigned int NumFaces;
+			short ObjectHandle		= -1;
+            short GroupHandle		= -1;
+            short MaterialHandle	= -1;
         };
 
         Obj();
@@ -70,7 +69,11 @@ namespace Resource
         
         LUZ_API u32 GetNumMaterials() const;
         
-        LUZ_API std::string GetMaterialName(const u32 i) const;
+        const LUZ_API char* GetMaterialName(const u32 i) const;
+
+		const LUZ_API char* GetDirectory() const;
+
+		const LUZ_API char* GetTextureDirectory() const;
 
         LUZ_API std::shared_ptr<const Mtl> GetMtl(const u32 i) const;
 
@@ -91,6 +94,7 @@ namespace Resource
         static LUZ_API std::shared_ptr<const Obj> Load(const Desc desc);
 
     private:
+		std::vector<std::string> m_names;
         std::vector<std::string> m_objectNames;
         std::vector<std::string> m_groupNames;
         std::vector<std::string> m_materialNames;
@@ -102,6 +106,9 @@ namespace Resource
         std::vector<std::shared_ptr<const Mtl>> m_mtls;
         std::vector<Resource::Mtl::MaterialDesc> m_materials;
         BoundingBox m_boundingBox;
+
+		int iDirectory = -1;
+		int iTextureDirectory = -1;
     };
 }
 

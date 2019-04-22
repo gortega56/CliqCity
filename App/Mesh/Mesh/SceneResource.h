@@ -199,10 +199,7 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
 			std::string texture;
 			fs >> texture;
 
-			textures.push_back(".\\Assets\\"
-				+ directories[pCurrentAsset->RootDir]
-				+ "\\" + directories[pCurrentAsset->TextureDir]
-				+ "\\" + texture);
+			textures.push_back(texture);
 
 			int iTexture = static_cast<int>(textures.size()) - 1;
 
@@ -225,7 +222,7 @@ std::shared_ptr<const SceneResource> SceneResource::Load(const char* filename)
 		}
 		else
 		{
-			LUZASSERT(0);
+			//LUZASSERT(0);
 		}
     }
 

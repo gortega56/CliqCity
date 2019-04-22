@@ -239,7 +239,7 @@ namespace Graphics
 
             Surface<VertexType, IndexType>* pSurface = &pSurfaces[iSurface];
 
-            size_t sz = pObjSurface->NumFaces * 3;
+            size_t sz = static_cast<size_t>(pObjSurface->NumFaces) * 3;
             pSurface->Vertices.reserve(sz);
             pSurface->Indices.reserve(sz);
 

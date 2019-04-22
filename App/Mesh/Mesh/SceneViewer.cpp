@@ -20,6 +20,8 @@
 using namespace Luz;
 using namespace lina;
 
+const char* s_pAssetDirectory = ".\\Assets\\";
+
 Vertex::Vertex(
     float px, float py, float pz,
     float nx, float ny, float nz,
@@ -156,7 +158,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 	Platform::CreateConsole();
-    LoadScene("cerberus.scene", 0);
+    LoadScene("sponza.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -709,10 +711,8 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 
     m_loadingThreads[threadID] = std::thread([&, filename]()
     {
-        const char* assetDir = ".\\Assets\\";
-
         char path[256];
-        strcpy_s(path, assetDir);
+        strcpy_s(path, s_pAssetDirectory);
         strcat_s(path, filename.c_str());
 
         auto pScene = Resource::Async<SceneResource>::Load(path).Get();
@@ -750,7 +750,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             const char* textureDir = pScene->GetDirectory(asset.TextureDir);
 
 			char relativePath[256];
-			strcpy_s(relativePath, assetDir);
+			strcpy_s(relativePath, s_pAssetDirectory);
 			if (strlen(rootDir))
 			{
 				strcat_s(relativePath, rootDir);
@@ -777,9 +777,10 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
                 if (strcmp(ext, "obj") == 0)
                 {
                     Resource::Obj::Desc desc;
-                    desc.Filename = std::string(filePath);
-                    desc.Directory = std::string(relativePath);
-                    desc.TextureDirectory = std::string(texturePath);
+                    desc.Filename = filePath;
+                    desc.Directory = relativePath;
+					desc.TextureDirectory = texturePath;
+
                     loadingObjs.push_back(Resource::Async<Resource::Obj>::Load(desc));
                 }
                 else if (strcmp(ext, "fbx") == 0)
@@ -787,8 +788,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
                     Resource::Fbx::Desc desc;
                     desc.pFileName = filePath;
 					desc.pTextureDirectory = texturePath;
-                    desc.bConvertCoordinateSystem = true;
-                    desc.bReverseWindingOrder = true;
+					desc.eFlags = Resource::Fbx::FBX_FLAG_INVERT_UV_X;
 
                     loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(desc));
                 }
@@ -952,7 +952,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
 
     for (int i = 0; i < 6; ++i)
     {
-        CameraConstants camera;
+		CameraConstants camera;
         camera.Proj = proj.transpose();
         camera.View = views[i].transpose();
         camera.InverseProj = proj.inverse().transpose();
@@ -1140,30 +1140,42 @@ void UpdateScene(const Resource::Obj* pObj, Scene* pScene, TextureOverrides* pTe
         mc.Diffuse = float3(md.Diffuse[0], md.Diffuse[1], md.Diffuse[2]);
         mc.Emissive = float3(md.Emissive[0], md.Emissive[1], md.Emissive[2]);
 
-        if (strlen(md.AmbientTextureName)) 
+        if (md.AmbientTextureName)
             mc.iAmbient = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
         
-        if (strlen(md.DiffuseTextureName)) 
+        if (md.DiffuseTextureName)
             mc.iDiffuse = FindOrPushBackTextureName(pScene->TextureNames, md.DiffuseTextureName);
         
-        if (strlen(md.SpecularTextureName)) 
+        if (md.SpecularTextureName)
             mc.iSpecular = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularTextureName);
 
-		if (strlen(md.BumpTextureName0))
+		if (md.BumpTextureName0)
 			mc.iBump = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName0);
 
-		if (strlen(md.BumpTextureName1))
+		if (md.BumpTextureName1)
 			mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, md.BumpTextureName1);
 
-		if (strlen(md.DissolveTextureName))
+		if (md.DissolveTextureName)
 			mc.iAlpha = FindOrPushBackTextureName(pScene->TextureNames, md.DissolveTextureName);
 
-        if (strlen(md.SpecularPowerTextureName)) 
-            mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularPowerTextureName);
+        if (md.SpecularPowerTextureName)
+            mc.iShininess = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularPowerTextureName);
 
-		// If pbr we may use the ambient slot for metal texture
-		if (strlen(md.AmbientTextureName))
+		// Overrides
+		if (md.AmbientTextureName)
 			mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, md.AmbientTextureName);
+
+		if (md.SpecularPowerTextureName)
+			mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, md.SpecularPowerTextureName);
+
+		///if (const char* pMetalTexture = pTextureOverrides->Metal)
+		///	mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, pMetalTexture);
+		///
+		///if (const char* pNormalTexture = pTextureOverrides->Normal)
+		///	mc.iNormal = FindOrPushBackTextureName(pScene->TextureNames, pNormalTexture);
+		///
+		///if (const char* pRoughTexture = pTextureOverrides->Rough)
+		///	mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, pRoughTexture);
 
         Graphics::ConstantBufferDesc cbd;
         cbd.Alignment = 0;
@@ -1180,8 +1192,12 @@ void UpdateScene(const Resource::Obj* pObj, Scene* pScene, TextureOverrides* pTe
 
     for (size_t iTextureOffset = 0; iTextureOffset < nTextures; ++iTextureOffset)
     {
+		char pFilePath[256];
+		strcpy_s(pFilePath, pObj->GetTextureDirectory());
+		strcat_s(pFilePath, pScene->TextureNames[iTextureStart + iTextureOffset].c_str());
+
         Graphics::TextureFileDesc td;
-        td.Filename = pScene->TextureNames[iTextureStart + iTextureOffset].c_str();
+        td.Filename = pFilePath;
         td.GenMips = true;
         pScene->Textures[iTextureStart + iTextureOffset] = Graphics::CreateTexture(td);
     }
@@ -1282,11 +1298,11 @@ void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene, TextureOverrides* pTe
 		if (const char* pEmissiveTexture = pFbx->GetTextureFileName(md.iEmissive))
 			mc.iEmissive = FindOrPushBackTextureName(pScene->TextureNames, pEmissiveTexture);
 
-		if (const char* pMetalTexture = pFbx->GetTextureFileName(md.iReflection))
-			mc.iMetal = FindOrPushBackTextureName(pScene->TextureNames, pMetalTexture);
+		if (const char* pReflectTexture = pFbx->GetTextureFileName(md.iReflection))
+			mc.iReflection = FindOrPushBackTextureName(pScene->TextureNames, pReflectTexture);
 
-		if (const char* pRoughTexture = pFbx->GetTextureFileName(md.iShininess))
-			mc.iRough = FindOrPushBackTextureName(pScene->TextureNames, pRoughTexture);
+		if (const char* pShininess = pFbx->GetTextureFileName(md.iShininess))
+			mc.iShininess = FindOrPushBackTextureName(pScene->TextureNames, pShininess);
 
 		// Overrides
 
@@ -1314,8 +1330,12 @@ void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene, TextureOverrides* pTe
 
     for (size_t iTextureOffset = 0; iTextureOffset < nTextures; ++iTextureOffset)
     {
+		char pFilePath[256];
+		strcpy_s(pFilePath, pFbx->GetTextureDirectory());
+		strcat_s(pFilePath, pScene->TextureNames[iTextureStart + iTextureOffset].c_str());
+
         Graphics::TextureFileDesc td;
-        td.Filename = pScene->TextureNames[iTextureStart + iTextureOffset].c_str();
+		td.Filename = pFilePath;
         td.GenMips = true;
         pScene->Textures[iTextureStart + iTextureOffset] = Graphics::CreateTexture(td);
     }

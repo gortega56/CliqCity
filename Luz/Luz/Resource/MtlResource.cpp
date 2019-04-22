@@ -3,6 +3,22 @@
 
 namespace Resource
 {
+	static int FindOrPushName(const char* pName , std::vector<std::string>& names)
+	{
+		size_t n = names.size();
+		for (size_t i = 0; i < n; ++i)
+		{
+			if (strcmp(names[i].c_str(), pName) == 0)
+			{
+				return static_cast<int>(i);
+			}
+		}
+
+		names.emplace_back(pName);
+
+		return static_cast<int>(n);
+	}
+
     Mtl::Mtl()
     {
 
@@ -12,6 +28,11 @@ namespace Resource
     {
 
     }
+
+	const char* Mtl::GetTexture(int i) const
+	{
+		return (i > -1) ? m_textures[i].c_str() : nullptr;
+	}
 
     bool Mtl::TryGetMaterialDesc(const std::string name, Mtl::MaterialDesc& desc) const
     {
@@ -28,14 +49,14 @@ namespace Resource
             desc.Specular = pMaterial->Specular;
             desc.Emissive = pMaterial->Emissive;
             desc.TransmissionFilter = pMaterial->TransmissionFilter;
-            desc.Name = pMaterial->Name.c_str();
-            desc.AmbientTextureName = pMaterial->AmbientTextureName.c_str();
-            desc.DiffuseTextureName = pMaterial->DiffuseTextureName.c_str();
-            desc.SpecularTextureName = pMaterial->SpecularTextureName.c_str();
-            desc.SpecularPowerTextureName = pMaterial->SpecularPowerTextureName.c_str();
-            desc.DissolveTextureName = pMaterial->DissolveTextureName.c_str();
-            desc.BumpTextureName0 = pMaterial->BumpTextureName0.c_str();
-            desc.BumpTextureName1 = pMaterial->BumpTextureName1.c_str();
+			//desc.Name = GetName(pMaterial->iName);
+            desc.AmbientTextureName = GetTexture(pMaterial->iAmbient);
+            desc.DiffuseTextureName = GetTexture(pMaterial->iDiffuse);
+			desc.SpecularTextureName = GetTexture(pMaterial->iSpecular);
+			desc.SpecularPowerTextureName = GetTexture(pMaterial->iSpecularPower);
+			desc.DissolveTextureName = GetTexture(pMaterial->iDissolve);
+            desc.BumpTextureName0 = GetTexture(pMaterial->iBump0);
+            desc.BumpTextureName1 = GetTexture(pMaterial->iBump1);
             return true;
         }
 
@@ -59,8 +80,11 @@ namespace Resource
         std::ifstream fileStream(desc.Filename);
         if (fileStream.is_open())
         {
-            pResource = std::make_shared<Mtl>();
-            
+            pResource = std::make_shared<Mtl>();    
+			pResource->m_name.assign(desc.TextureDirectory);
+
+			auto& textures = pResource->m_textures;
+
             // This is the active material
             Material* pMaterial = nullptr;
 
@@ -75,7 +99,7 @@ namespace Resource
                     std::string name;
                     fileStream >> name;
                     pMaterial = pResource->FindOrCreateMaterial(name);
-                    pMaterial->Name = name;
+                   // pMaterial->iName = FindOrPushName(name.c_str(), names);
                 }
                 else if (statement.compare("Ns") == 0)
                 {
@@ -122,49 +146,49 @@ namespace Resource
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->AmbientTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->iAmbient = FindOrPushName(textureName.c_str(), textures);
                 }
                 else if (statement.compare("map_Kd") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->DiffuseTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->iDiffuse = FindOrPushName(textureName.c_str(), textures);
                 }
                 else if (statement.compare("map_Ks") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->SpecularTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->iSpecular = FindOrPushName(textureName.c_str(), textures);
                 }
                 else if (statement.compare("map_Ns") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->SpecularPowerTextureName = desc.TextureDirectory + textureName;
+                    pMaterial->iSpecularPower = FindOrPushName(textureName.c_str(), textures);
                 }
                 else if (statement.compare("map_bump") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->BumpTextureName0 = desc.TextureDirectory + textureName;
+                    pMaterial->iBump0 = FindOrPushName(textureName.c_str(), textures);
                 }
                 else if (statement.compare("bump") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                    pMaterial->BumpTextureName1 = desc.TextureDirectory + textureName;
+                    pMaterial->iBump1 = FindOrPushName(textureName.c_str(), textures);
                 }
                 else if (statement.compare("map_d") == 0)
                 {
                     std::string textureName;
                     fileStream >> textureName;
 
-                   // pMaterial->DissolveTextureName = desc.TextureDirectory + textureName;
+					//pMaterial->iDissolve = FindOrPushName(textureName.c_str(), textures);
                 }
             }
 

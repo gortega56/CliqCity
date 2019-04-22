@@ -1466,46 +1466,47 @@ namespace Graphics
 
     TextureHandle CreateTexture(const TextureFileDesc& desc) 
     {
+		static std::atomic_bool s_coInitialized = false;
+		if (!s_coInitialized)
+		{
+			HRESULT hr = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
+			if (SUCCEEDED(hr))
+			{
+				s_coInitialized = true;
+			}
+			else
+			{
+				LUZASSERT(0);
+			}
+		}
+
+		std::wstring filename = Internal::ConvertCString(desc.Filename);
+		LPCWSTR extension = PathFindExtension(filename.c_str());
+		DirectX::ScratchImage image;
+		bool bImageLoaded = false;
+
+		if (_wcsicmp(L".dds", extension) == 0)
+		{
+			bImageLoaded = Internal::LoadDDSImage(filename, image, desc.GenMips);
+		}
+		else if (_wcsicmp(L".tga", extension) == 0)
+		{
+			bImageLoaded = Internal::LoadTgaImage(filename, image, desc.GenMips);
+		}
+		else
+		{
+			bImageLoaded = Internal::LoadWICImage(filename, image, desc.GenMips);
+		}
+
+		LUZASSERT(bImageLoaded);
+
+		if (!bImageLoaded) return GPU_RESOURCE_HANDLE_INVALID;
+
+		const DirectX::TexMetadata& imageMetadata = image.GetMetadata();
+
         TextureHandle handle = s_textureCollection.AllocateHandle(GFX_DESCRIPTOR_HANDLE_TYPE_SRV, s_nDescriptorTypeBits);
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
         {
-            static std::atomic_bool s_coInitialized = false;
-			if (!s_coInitialized)
-			{
-				HRESULT hr = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
-				if (SUCCEEDED(hr))
-				{
-					s_coInitialized = true;
-				}
-				else
-				{
-					LUZASSERT(0);
-				}
-			}
-            
-            std::wstring filename = Internal::ConvertCString(desc.Filename);
-            LPCWSTR extension = PathFindExtension(filename.c_str());
-            DirectX::ScratchImage image;
-
-            if (_wcsicmp(L".dds", extension) == 0)
-            {
-                bool imageLoaded = Internal::LoadDDSImage(filename, image, desc.GenMips);
-                LUZASSERT(imageLoaded);
-            }
-            else if (_wcsicmp(L".tga", extension) == 0)
-            {
-                bool imageLoaded = Internal::LoadTgaImage(filename, image, desc.GenMips);
-                LUZASSERT(imageLoaded);
-            }
-            else
-            {
-                bool imageLoaded = Internal::LoadWICImage(filename, image, desc.GenMips);
-                LUZASSERT(imageLoaded);
-            }
-
-            const DirectX::TexMetadata& imageMetadata = image.GetMetadata();
-
-
             Texture& tex = s_textureCollection.GetData(handle);
             HRESULT hr = DirectX::CreateTexture(s_device.pDevice, imageMetadata, &tex.pResource);
             LUZASSERT(SUCCEEDED(hr));

@@ -99,9 +99,11 @@ struct MaterialConstants
 	int iNormal		= -1;
 	int iAlpha		= -1;
 	int iEmissive	= -1;
+	int iShininess	= -1;
+	int iReflection = -1;
 	int iMetal		= -1;
     int iRough		= -1;
-    float _unused1[35];
+    float _unused1[33];
 };
 
 static_assert(sizeof(MaterialConstants) == 256, "MaterialConstants must be 256 bytes");

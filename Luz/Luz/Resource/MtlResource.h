@@ -12,8 +12,8 @@ namespace Resource
     public:
         struct LUZ_API Desc
         {
-            std::string Filename;
-            std::string TextureDirectory;
+            const char* Filename;
+			const char* TextureDirectory;
         };
 
         struct LUZ_API MaterialDesc
@@ -43,6 +43,8 @@ namespace Resource
 
         ~Mtl();
 
+		const LUZ_API char* GetTexture(int i) const;
+
         LUZ_API u32 NumMaterials() const;
 
         LUZ_API bool TryGetMaterialDesc(const std::string name, Mtl::MaterialDesc& desc) const;
@@ -63,17 +65,20 @@ namespace Resource
             float TransmissionFilter[3];  // Tf
             i8 IlluminationModel;         // illum
 
-            std::string Name;
-            std::string AmbientTextureName;			// map_Ka
-            std::string DiffuseTextureName;			// map_Kd
-            std::string SpecularTextureName;		// map_Ks
-            std::string SpecularPowerTextureName;	// map_Ns
-            std::string DissolveTextureName;		// map_d
-            std::string BumpTextureName0;			// bump
-            std::string BumpTextureName1;			// map_bump
+            int iName;
+            int iAmbient			= -1;	// map_Ka
+            int iDiffuse			= -1;	// map_Kd
+            int iSpecular			= -1;	// map_Ks
+            int iSpecularPower		= -1;	// map_Ns
+            int iDissolve			= -1;	// map_d
+            int iBump0				= -1;	// bump
+            int iBump1				= -1;	// map_bump
         };
 
+		std::string m_name;
+		std::vector<std::string> m_textures;
         std::unordered_map<std::string, Material> m_materials;
+
         Material* FindOrCreateMaterial(const std::string& name);
     };
 }

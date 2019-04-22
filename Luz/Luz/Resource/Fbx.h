@@ -17,6 +17,14 @@ namespace Resource
         using UV = Float3;
         using Color = Float3;
 
+		enum Flags
+		{
+			FBX_FLAG_NONE = 0,
+			FBX_FLAG_INVERT_UV_X = 1,
+			FBX_FLAG_INVERT_UV_Y = 2,
+			FBX_FLAG_INVERT_UV	 = FBX_FLAG_INVERT_UV_X | FBX_FLAG_INVERT_UV_Y
+		};
+
         struct LUZ_API JointBlend
         {
             unsigned int Index;
@@ -46,6 +54,7 @@ namespace Resource
 			const char* pTextureDirectory;
             bool bConvertCoordinateSystem;
             bool bReverseWindingOrder;
+			Flags eFlags;
         };
 
         enum SurfaceType
@@ -98,6 +107,10 @@ namespace Resource
        
         ~Fbx() = default;
 
+		const LUZ_API char* GetDirectory() const;
+
+		const LUZ_API char* GetTextureDirectory() const;
+
         LUZ_API int GetNumSurfaces() const;
 
 		LUZ_API int GetNumMaterials() const;
@@ -139,9 +152,12 @@ namespace Resource
         std::vector<Triangle> m_triangles;
         std::vector<Surface> m_surfaces;
         std::vector<Material> m_materials;
-        std::vector<std::string> m_textureFileNames;
+        std::vector<std::string> m_names;
         std::unordered_map<i32, u32> m_indicesByControlPointIndex;
         std::unordered_map<i32, JointBlend> m_blendByControlPointIndex;
+
+		int iDirectory = -1;
+		int iTextureDirectory = -1;
     };
 }
 
