@@ -34,11 +34,11 @@ namespace Graphics
         std::vector<IndexType> Indices;
     };
 
-	void ReverseWindingOrder(unsigned char* pIndices, const unsigned int nIndices);
+	LUZ_API void ReverseWindingOrder(unsigned char* pIndices, const unsigned int nIndices);
 
-	void ReverseWindingOrder(unsigned short* pIndices, const unsigned int nIndices);
+	LUZ_API void ReverseWindingOrder(unsigned short* pIndices, const unsigned int nIndices);
 
-	void ReverseWindingOrder(unsigned int* pIndices, const unsigned int nIndices);
+	LUZ_API void ReverseWindingOrder(unsigned int* pIndices, const unsigned int nIndices);
 
     template<class VertexType, class IndexType>
     void CreateTangents(VertexType* pVertices, const unsigned int numVertices, IndexType* pIndices, const  unsigned int numIndices)
@@ -127,21 +127,28 @@ namespace Graphics
 
         VertexCache cache;
 
+		const Resource::Fbx::Surface* pInputSurfaces = pFbx->GetSurfaces();
+
         for (unsigned int iSurface = 0; iSurface < nSurfaces; ++iSurface)
         {
-            const Resource::Fbx::Surface* pFbxSurface = pFbx->GetSurface(iSurface);
-            bool bHasNormals = pFbxSurface->bHasNormals;
-            bool bHasUVs = pFbxSurface->bHasUVs;
+            const Resource::Fbx::Surface* pInSurface = &pInputSurfaces[iSurface];
+            bool bHasNormals = pInSurface->bHasNormals;
+            bool bHasUVs = pInSurface->bHasUVs;
 
-            size_t sz = static_cast<size_t>(pFbxSurface->NumTris) * 3;
+            size_t sz = static_cast<size_t>(pInSurface->NumTris) * 3;
 
             Surface<VertexType, IndexType>* pSurface = &pSurfaces[iSurface];
             pSurface->Vertices.reserve(sz);
             pSurface->Indices.reserve(sz);
 
-            for (unsigned int iTriangle = pFbxSurface->TriStart, nTriangles = pFbxSurface->TriStart + pFbxSurface->NumTris; iTriangle < nTriangles; ++iTriangle)
+			const Resource::Fbx::Triangle* pTriangles = pFbx->GetTriangles();
+			const Resource::Fbx::Position* pPositions = pFbx->GetPositions();
+			const Resource::Fbx::Normal* pNormals = pFbx->GetNormals();
+			const Resource::Fbx::UV* pUVs = pFbx->GetUVs();
+
+            for (unsigned int iTriangle = pInSurface->TriStart, nTriangles = pInSurface->TriStart + pInSurface->NumTris; iTriangle < nTriangles; ++iTriangle)
             {
-                const Resource::Fbx::Triangle* pTri = pFbx->GetTriangle(iTriangle);
+				const Resource::Fbx::Triangle* pTri = &pTriangles[iTriangle];
 
                 for (int iVertex = 0; iVertex < 3; ++iVertex)
                 {
@@ -162,17 +169,17 @@ namespace Graphics
 
                         if (Geometry::VertexTraits<VertexType>::Position)
                         {
-                            memcpy_s(&vertex.Position, sizeof(VertexType::Position), pFbx->GetPosition(pTri->Positions[iVertex])->Data, sizeof(Resource::Fbx::Position));
+                            memcpy_s(&vertex.Position, sizeof(VertexType::Position), pPositions[pTri->Positions[iVertex]].Data, sizeof(Resource::Fbx::Position));
                         }
 
                         if (Geometry::VertexTraits<VertexType>::Normal && bHasNormals)
                         {
-                            memcpy_s(&vertex.Normal, sizeof(VertexType::Normal), pFbx->GetNormal(pTri->Normals[iVertex])->Data, sizeof(Resource::Fbx::Normal));
+                            memcpy_s(&vertex.Normal, sizeof(VertexType::Normal), pNormals[pTri->Normals[iVertex]].Data, sizeof(Resource::Fbx::Normal));
                         }
 
                         if (Geometry::VertexTraits<VertexType>::UV && bHasUVs)
                         {
-                            memcpy_s(&vertex.UV, sizeof(VertexType::UV), pFbx->GetUV(pTri->UVs[iVertex])->Data, sizeof(Resource::Fbx::UV));
+                            memcpy_s(&vertex.UV, sizeof(VertexType::UV), pUVs[pTri->UVs[iVertex]].Data, sizeof(Resource::Fbx::UV));
                         }
                     }
                     else
@@ -201,6 +208,10 @@ namespace Graphics
 
         VertexCache cache;
 
+		const Resource::Obj::Position* pPositions = pObj->GetPositions();
+		const Resource::Obj::Normal* pNormals = pObj->GetNormals();
+		const Resource::Obj::UV* pUVs = pObj->GetUVs();
+
         auto findOrCreateVertex = [&](const VertexDesc& desc, Surface<VertexType, IndexType>* pSurface)
         {
             auto iter = cache.find(desc);
@@ -214,17 +225,17 @@ namespace Graphics
                 VertexType& vertex = pSurface->Vertices.emplace_back();
                 if (Geometry::VertexTraits<VertexType>::Position)
                 {
-                    memcpy_s(&vertex.Position, sizeof(VertexType::Position), pObj->GetPosition(desc.Data[0])->Data, sizeof(Resource::Obj::Position));
+                    memcpy_s(&vertex.Position, sizeof(VertexType::Position), pPositions[desc.Data[0]].Data, sizeof(Resource::Obj::Position));
                 }
 
                 if (Geometry::VertexTraits<VertexType>::UV)
                 {
-                    memcpy_s(&vertex.UV, sizeof(VertexType::UV), pObj->GetUV(desc.Data[1])->Data, sizeof(Resource::Obj::UV));
+                    memcpy_s(&vertex.UV, sizeof(VertexType::UV), pUVs[desc.Data[1]].Data, sizeof(Resource::Obj::UV));
                 }
 
                 if (Geometry::VertexTraits<VertexType>::Normal)
                 {
-                    memcpy_s(&vertex.Normal, sizeof(VertexType::Normal), pObj->GetNormal(desc.Data[2])->Data, sizeof(Resource::Obj::Normal));
+                    memcpy_s(&vertex.Normal, sizeof(VertexType::Normal), pNormals[desc.Data[2]].Data, sizeof(Resource::Obj::Normal));
                 }
             }
             else
@@ -233,40 +244,43 @@ namespace Graphics
             }
         };
 
+		const Resource::Obj::Surface* pInputSurfaces = pObj->GetSurfaces();
+		const Resource::Obj::Face* pFaces = pObj->GetFaces();
+
         for (unsigned int iSurface = 0; iSurface < nSurfaces; ++iSurface)
         {
-            const Resource::Obj::Surface* pObjSurface = pObj->GetSurface(iSurface);
+			const Resource::Obj::Surface* pInSurface = &pInputSurfaces[iSurface];
 
             Surface<VertexType, IndexType>* pSurface = &pSurfaces[iSurface];
 
-            size_t sz = static_cast<size_t>(pObjSurface->NumFaces) * 3;
+            size_t sz = static_cast<size_t>(pInSurface->NumFaces) * 3;
             pSurface->Vertices.reserve(sz);
             pSurface->Indices.reserve(sz);
 
-            for (unsigned int iFace = pObjSurface->FacesStart, nFaces = pObjSurface->FacesStart + pObjSurface->NumFaces; iFace < nFaces; ++iFace)
+            for (unsigned int iFace = pInSurface->FacesStart, nFaces = pInSurface->FacesStart + pInSurface->NumFaces; iFace < nFaces; ++iFace)
             {
-                const Resource::Obj::Face* pObjFace = pObj->GetFace(iFace);
+				const Resource::Obj::Face* pFace = &pFaces[iFace];
 
                 // Always add the first 3 vertices
                 for (u32 k = 0; k < 3; ++k)
                 {
                     VertexDesc desc;
-                    desc.Data[0] = pObjFace->Data[3 * k + 0] - 1;
-                    desc.Data[1] = pObjFace->Data[3 * k + 1] - 1;
-                    desc.Data[2] = pObjFace->Data[3 * k + 2] - 1;
+                    desc.Data[0] = pFace->Data[3 * k + 0] - 1;
+                    desc.Data[1] = pFace->Data[3 * k + 1] - 1;
+                    desc.Data[2] = pFace->Data[3 * k + 2] - 1;
     
                     findOrCreateVertex(desc, pSurface);
                 }
 
                 // Add the other half of the quad
-                if (!pObjFace->IsTri)
+                if (!pFace->IsTri)
                 {
                     for (u32 k = 2; k < 5; ++k)
                     {
                         VertexDesc desc;
-                        desc.Data[0] = pObjFace->Data[3 * (k % 4) + 0] - 1;
-                        desc.Data[1] = pObjFace->Data[3 * (k % 4) + 1] - 1;
-                        desc.Data[2] = pObjFace->Data[3 * (k % 4) + 2] - 1;
+                        desc.Data[0] = pFace->Data[3 * (k % 4) + 0] - 1;
+                        desc.Data[1] = pFace->Data[3 * (k % 4) + 1] - 1;
+                        desc.Data[2] = pFace->Data[3 * (k % 4) + 2] - 1;
 
                         findOrCreateVertex(desc, pSurface);
                     }
@@ -281,6 +295,11 @@ namespace Graphics
             }
         }
     }
+
+	LUZ_API void CreateRange2D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions);
+
+	LUZ_API void CreateRange3D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions);
+
 }
 
 #endif

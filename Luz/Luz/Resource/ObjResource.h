@@ -37,12 +37,6 @@ namespace Resource
 			const char* TextureDirectory;
         };
 
-        struct LUZ_API BoundingBox
-        {
-            float MinX, MinY, MinZ;
-            float MaxX, MaxY, MaxZ;
-        };
-
         struct LUZ_API Face : public TArray<i32, 12>
         {
             bool HasNormals = false;
@@ -63,33 +57,39 @@ namespace Resource
 
         ~Obj();
 
-        LUZ_API u32 GetNumSurfaces() const;
+		LUZ_API unsigned int GetNumPositions() const;
 
-        LUZ_API u32 GetNumMtls() const;
+		LUZ_API unsigned int GetNumNormals() const;
+
+		LUZ_API unsigned int GetNumUVs() const;
+
+		LUZ_API unsigned int GetNumFaces() const;
+
+        LUZ_API unsigned int GetNumSurfaces() const;
+
+        LUZ_API unsigned int GetNumMaterials() const;
         
-        LUZ_API u32 GetNumMaterials() const;
-        
-        const LUZ_API char* GetMaterialName(const u32 i) const;
+		LUZ_API unsigned int GetNumMtls() const;
+
+        const LUZ_API char* GetMaterialName(const unsigned int i) const;
 
 		const LUZ_API char* GetDirectory() const;
 
 		const LUZ_API char* GetTextureDirectory() const;
 
-        LUZ_API std::shared_ptr<const Mtl> GetMtl(const u32 i) const;
+		const LUZ_API Position* GetPositions() const;
 
-        const LUZ_API Mtl::MaterialDesc GetMaterialDesc(const u32 i) const;
+		const LUZ_API Normal* GetNormals() const;
 
-        const LUZ_API Surface* GetSurface(const unsigned int i) const;
+		const LUZ_API UV* GetUVs() const;
 
-        const LUZ_API Face* GetFace(const unsigned int i) const;
+		const LUZ_API Face* GetFaces() const;
 
-        const LUZ_API Position* GetPosition(const unsigned int i) const;
-        
-        const LUZ_API Normal* GetNormal(const unsigned int i) const;
-        
-        const LUZ_API UV* GetUV(const unsigned int i) const;
+		const LUZ_API Surface* GetSurfaces() const;
 
-        LUZ_API BoundingBox GetSceneBounds() const;
+		const LUZ_API Mtl::MaterialDesc* GetMaterials() const;
+
+        LUZ_API std::shared_ptr<const Mtl> GetMtl(const unsigned int i) const;
 
         static LUZ_API std::shared_ptr<const Obj> Load(const Desc desc);
 
@@ -105,7 +105,6 @@ namespace Resource
         std::vector<Surface> m_surfaces;
         std::vector<std::shared_ptr<const Mtl>> m_mtls;
         std::vector<Resource::Mtl::MaterialDesc> m_materials;
-        BoundingBox m_boundingBox;
 
 		int iDirectory = -1;
 		int iTextureDirectory = -1;

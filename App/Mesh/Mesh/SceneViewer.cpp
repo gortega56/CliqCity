@@ -157,8 +157,8 @@ bool SceneViewer::Initialize()
     {
         return false;
     }
-	Platform::CreateConsole();
-    LoadScene("sponza.scene", 0);
+
+	LoadScene("sponza.scene", 0);
 
     m_cameraController = CameraController();
 
@@ -800,12 +800,16 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 			pTextureOverride->Normal = pScene->GetTexture(asset.pTextures[SceneResource::TEXTURE_TYPE_NORMAL]);
         }
 
-        constexpr float max = (std::numeric_limits<float>::max)();
-        constexpr float min = (std::numeric_limits<float>::min)();
+		static constexpr float min = (std::numeric_limits<float>::max)();
+		static constexpr float max = (std::numeric_limits<float>::min)();
 
         Scene scene;
-        scene.Bounds.max = { min, min, min };
-        scene.Bounds.min = { max, max, max };
+		scene.Bounds.min.x = min;
+		scene.Bounds.min.y = min;
+		scene.Bounds.min.z = min;
+		scene.Bounds.max.x = max;
+		scene.Bounds.max.y = max;
+		scene.Bounds.max.z = max;
 
         for (size_t i = 0, n = loadingObjs.size(); i < n; ++i)
         {
@@ -831,6 +835,13 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             m_pStagingScene->Constants = scene.Constants;
             m_pStagingScene->Surfaces = scene.Surfaces;
             m_pStagingScene->Textures = scene.Textures;
+
+			float3 dim = scene.Bounds.max - scene.Bounds.min;
+			float3 lp = dim * -normalize(s_shaderOptions.LightDirection);
+			float3x3 lv = float3x3::orientation_lh(s_shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
+
+			s_lighting.GetTransform()->SetPosition(lp);
+			s_lighting.GetTransform()->SetRotation(quaternion::create(lv));
         }
 
         // TODO: Need to write to shader options
@@ -1125,9 +1136,11 @@ void UpdateScene(const Resource::Obj* pObj, Scene* pScene, TextureOverrides* pTe
     // Cache this for later
     size_t iTextureStart = pScene->TextureNames.size();
 
+	const Resource::Mtl::MaterialDesc* pMds = pObj->GetMaterials();
+
     for (size_t iMaterialOffset = 0; iMaterialOffset < nMaterials; ++iMaterialOffset)
     {
-        const Resource::Mtl::MaterialDesc md = pObj->GetMaterialDesc(static_cast<u32>(iMaterialOffset));
+		const Resource::Mtl::MaterialDesc md = pMds[iMaterialOffset];
         
         MaterialConstants& mc = pScene->Materials[iMaterialStart + iMaterialOffset];
         mc.SpecularExponent = md.SpecularExponent;
@@ -1202,16 +1215,7 @@ void UpdateScene(const Resource::Obj* pObj, Scene* pScene, TextureOverrides* pTe
         pScene->Textures[iTextureStart + iTextureOffset] = Graphics::CreateTexture(td);
     }
 
-    // Get bounds
-    Resource::Obj::BoundingBox boundingBox = pObj->GetSceneBounds();
-    pScene->Bounds.max.x = (std::max)(pScene->Bounds.max.x, boundingBox.MaxX);
-    pScene->Bounds.max.y = (std::max)(pScene->Bounds.max.y, boundingBox.MaxY);
-    pScene->Bounds.max.z = (std::max)(pScene->Bounds.max.z, boundingBox.MaxZ);
-    pScene->Bounds.min.x = (std::min)(pScene->Bounds.min.x, boundingBox.MinX);
-    pScene->Bounds.min.y = (std::min)(pScene->Bounds.min.y, boundingBox.MinY);
-    pScene->Bounds.min.z = (std::min)(pScene->Bounds.min.z, boundingBox.MinZ);
-
-    float3 dim = pScene->Bounds.max - pScene->Bounds.min;
+	Graphics::CreateRange3D(pScene->Bounds.min.p_cols, pScene->Bounds.max.p_cols, pObj->GetPositions()->Data, pObj->GetNumPositions());
 }
 
 void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene, TextureOverrides* pTextureOverrides)
@@ -1340,16 +1344,7 @@ void UpdateScene(const Resource::Fbx* pFbx, Scene* pScene, TextureOverrides* pTe
         pScene->Textures[iTextureStart + iTextureOffset] = Graphics::CreateTexture(td);
     }
 
-    // Get bounds
-    //Resource::Obj::BoundingBox boundingBox = pFbx->GetSceneBounds();
-    //pScene->Bounds.max.x = (std::max)(pScene->Bounds.max.x, boundingBox.MaxX);
-    //pScene->Bounds.max.y = (std::max)(pScene->Bounds.max.y, boundingBox.MaxY);
-    //pScene->Bounds.max.z = (std::max)(pScene->Bounds.max.z, boundingBox.MaxZ);
-    //pScene->Bounds.min.x = (std::min)(pScene->Bounds.min.x, boundingBox.MinX);
-    //pScene->Bounds.min.y = (std::min)(pScene->Bounds.min.y, boundingBox.MinY);
-    //pScene->Bounds.min.z = (std::min)(pScene->Bounds.min.z, boundingBox.MinZ);
-    //
-    //float3 dim = pScene->Bounds.max - pScene->Bounds.min;
+	Graphics::CreateRange3D(pScene->Bounds.min.p_cols, pScene->Bounds.max.p_cols, pFbx->GetPositions()->Data, pFbx->GetNumPositions());
 }
 
 void DestroyScene(const Scene* pScene)
@@ -1375,11 +1370,11 @@ void DestroyScene(const Scene* pScene)
 
 void ConsoleThread()
 {
-    //Platform::CreateConsole();
+    Platform::CreateConsole();
 
     ShaderOptions shaderOptions = s_shaderOptions;
 
-    /*while (Platform::Running())
+    while (Platform::Running())
     {
         int iter = 0, nDots = 3;
         while (s_loading.load())
@@ -1411,83 +1406,83 @@ void ConsoleThread()
         {
             break;
         }
-        else if (strcmp(cmd.c_str(), "set_light") == 0)
+        else if (strcmp(cmd.c_str(), "setlightcolor") == 0)
         {
             ss >> shaderOptions.LightColor.x >> shaderOptions.LightColor.y >> shaderOptions.LightColor.z;
         }
-        else if (strcmp(cmd.c_str(), "set_exposure") == 0)
+        else if (strcmp(cmd.c_str(), "setexposure") == 0)
         {
             ss >> shaderOptions.Exposure;
         }
-        else if (strcmp(cmd.c_str(), "set_ambient") == 0)
+        else if (strcmp(cmd.c_str(), "setambient") == 0)
         {
             ss >> shaderOptions.LightIntensity.x;
         }
-        else if (strcmp(cmd.c_str(), "set_diffuse") == 0)
+        else if (strcmp(cmd.c_str(), "setdiffuse") == 0)
         {
             ss >> shaderOptions.LightIntensity.y;
         }
-        else if (strcmp(cmd.c_str(), "set_spec") == 0)
+        else if (strcmp(cmd.c_str(), "setspecular") == 0)
         {
             ss >> shaderOptions.LightIntensity.z;
         }
-        else if (strcmp(cmd.c_str(), "set_lx") == 0)
+        else if (strcmp(cmd.c_str(), "setlux") == 0)
         {
             ss >> shaderOptions.LightIntensity.w;
         }
-        else if (strcmp(cmd.c_str(), "toggle_ambient") == 0)
+        else if (strcmp(cmd.c_str(), "toggleambient") == 0)
         {
             shaderOptions.AmbientEnabled = !shaderOptions.AmbientEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_diffuse") == 0)
+        else if (strcmp(cmd.c_str(), "togglediffuse") == 0)
         {
             shaderOptions.DiffuseEnabled = !shaderOptions.DiffuseEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_spec") == 0)
+        else if (strcmp(cmd.c_str(), "togglespecular") == 0)
         {
             shaderOptions.SpecEnabled = !shaderOptions.SpecEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_shadow") == 0)
+        else if (strcmp(cmd.c_str(), "toggleshadow") == 0)
         {
             shaderOptions.ShadowEnabled = !shaderOptions.ShadowEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_bump") == 0)
+        else if (strcmp(cmd.c_str(), "togglebump") == 0)
         {
             shaderOptions.BumpEnabled = !shaderOptions.BumpEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_micro") == 0)
+        else if (strcmp(cmd.c_str(), "toggled") == 0)
         {
             shaderOptions.MicrofacetEnabled = !shaderOptions.MicrofacetEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_masking") == 0)
+        else if (strcmp(cmd.c_str(), "togglev") == 0)
         {
             shaderOptions.MaskingEnabled = !shaderOptions.MaskingEnabled;
         }
-        else if (strcmp(cmd.c_str(), "toggle_fresnel") == 0)
+        else if (strcmp(cmd.c_str(), "togglef") == 0)
         {
             shaderOptions.FresnelEnabled = !shaderOptions.FresnelEnabled;
         }
-        else if (strcmp(cmd.c_str(), "set_mode_npbr") == 0)
+        else if (strcmp(cmd.c_str(), "shadedefault") == 0)
         {
             shaderOptions.LightingMode = 0;
         }
-        else if (strcmp(cmd.c_str(), "set_mode_bp") == 0)
+        else if (strcmp(cmd.c_str(), "shadeblinnphong") == 0)
         {
             shaderOptions.LightingMode = 1;
         }
-        else if (strcmp(cmd.c_str(), "set_mode_beckmann") == 0)
+        else if (strcmp(cmd.c_str(), "shadebeckmann") == 0)
         {
             shaderOptions.LightingMode = 2;
         }
-        else if (strcmp(cmd.c_str(), "set_mode_ggx") == 0)
+        else if (strcmp(cmd.c_str(), "shadeggx") == 0)
         {
             shaderOptions.LightingMode = 3;
         }
-        else if (strcmp(cmd.c_str(), "set_bump_h") == 0)
+        else if (strcmp(cmd.c_str(), "setbumpheight") == 0)
         {
             shaderOptions.BumpMode = 0;
         }
-        else if (strcmp(cmd.c_str(), "set_bump_n") == 0)
+        else if (strcmp(cmd.c_str(), "setbumpnormal") == 0)
         {
             shaderOptions.BumpMode = 1;
         }
@@ -1502,7 +1497,7 @@ void ConsoleThread()
             shaderOptions.MicrofacetEnabled = true;
             shaderOptions.FresnelEnabled = true;
         }
-        else if (strcmp(cmd.c_str(), "load_scene") == 0)
+        else if (strcmp(cmd.c_str(), "loadscene") == 0)
         {
             if (!s_loading.load())
             {
@@ -1520,7 +1515,9 @@ void ConsoleThread()
             continue;
         }
 
-        std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-        s_shaderOptions = shaderOptions;
-    }*/
+		{
+			std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+			s_shaderOptions = shaderOptions;
+		}
+    }
 }

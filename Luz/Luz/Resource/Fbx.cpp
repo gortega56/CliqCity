@@ -551,14 +551,34 @@ namespace Resource
 		return (iTextureDirectory > -1) ? m_names[iTextureDirectory].c_str() : nullptr;
 	}
 
-    int Fbx::GetNumSurfaces() const
+	unsigned int Fbx::GetNumPositions() const
+	{
+		return static_cast<unsigned int>(m_positions.size());
+	}
+
+	unsigned int Fbx::GetNumNormals() const
+	{
+		return static_cast<unsigned int>(m_normals.size());
+	}
+
+	unsigned int Fbx::GetNumUVs() const
+	{
+		return static_cast<unsigned int>(m_uvs.size());
+	}
+
+	unsigned int Fbx::GetNumSurfaces() const
     {
-        return static_cast<int>(m_surfaces.size());
+        return static_cast<unsigned int>(m_surfaces.size());
     }
 
-	int Fbx::GetNumMaterials() const
+	unsigned int Fbx::GetNumTriangles() const
 	{
-		return static_cast<int>(m_materials.size());
+		return static_cast<unsigned int>(m_triangles.size());
+	}
+
+	unsigned int Fbx::GetNumMaterials() const
+	{
+		return static_cast<unsigned int>(m_materials.size());
 	}
 
 	const Fbx::Position* Fbx::GetPositions() const
@@ -590,31 +610,6 @@ namespace Resource
 	{
 		return m_materials.data();
 	}
-
-    const Fbx::Position* Fbx::GetPosition(int i) const
-    {
-        return &m_positions[i];
-    }
-
-    const Fbx::Normal* Fbx::GetNormal(int i) const
-    {
-        return &m_normals[i];
-    }
-
-    const Fbx::UV* Fbx::GetUV(int i) const
-    {
-        return &m_uvs[i];
-    }
-
-    const Fbx::Surface* Fbx::GetSurface(int i) const
-    {
-        return &m_surfaces[i];
-    }
-
-    const Fbx::Triangle* Fbx::GetTriangle(int i) const
-    {
-        return &m_triangles[i];
-    }
 
 	const char* Fbx::GetTextureFileName(int i) const
 	{
@@ -701,16 +696,16 @@ namespace Resource
 
 		if (desc.eFlags & Fbx::FBX_FLAG_INVERT_UV_X)
 		{
-			InvertTextureCoordinatesU(pResource->m_uvs.data(), (size_t)pResource->m_uvs.size());
+			InvertTextureCoordinatesU(pResource->m_uvs.data(), (unsigned int)pResource->m_uvs.size());
 		}
 		else if (desc.eFlags & Fbx::FBX_FLAG_INVERT_UV_Y)
 		{
-			InvertTextureCoordinatesV(pResource->m_uvs.data(), (size_t)pResource->m_uvs.size());
+			InvertTextureCoordinatesV(pResource->m_uvs.data(), (unsigned int)pResource->m_uvs.size());
 
 		}
 		else if (desc.eFlags & Fbx::FBX_FLAG_INVERT_UV)
 		{
-			InvertTextureCoordinates(pResource->m_uvs.data(), (size_t)pResource->m_uvs.size());
+			InvertTextureCoordinates(pResource->m_uvs.data(), (unsigned int)pResource->m_uvs.size());
 		}
 
         return pResource;

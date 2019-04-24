@@ -35,4 +35,42 @@ namespace Graphics
 	{
 		ReverseWindingOrder<unsigned int>(pIndices, nIndices);
 	}
+
+
+	template<unsigned int Dimension>
+	static void CreateRange(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions)
+	{
+		float min[Dimension], max[Dimension];
+
+		for (unsigned int j = 0; j < Dimension; ++j)
+		{
+			min[j] = (std::numeric_limits<float>::max)();
+			max[j] = (std::numeric_limits<float>::min)();
+		}
+
+		for (unsigned int i = 0; i < nPositions; i += Dimension)
+		{
+			for (unsigned int j = 0; j < Dimension; ++j)
+			{
+				min[j] = std::min<float>(min[j], pPositions[i + j]);
+				max[j] = std::max<float>(max[j], pPositions[i + j]);
+			}
+		}
+
+		for (unsigned int j = 0; j < Dimension; ++j)
+		{
+			pMin[j] = std::min(min[j], pMin[j]);
+			pMax[j] = std::max(max[j], pMax[j]);
+		}
+	}
+
+	void CreateRange2D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions)
+	{
+		CreateRange<2>(pMin, pMax, pPositions, nPositions);
+	}
+
+	void CreateRange3D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions)
+	{
+		CreateRange<3>(pMin, pMax, pPositions, nPositions);
+	}
 }

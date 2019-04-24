@@ -21,12 +21,6 @@ namespace Resource
 
     Obj::Obj()
     {
-        m_boundingBox.MinX = (std::numeric_limits<float>::max)();
-        m_boundingBox.MinY = (std::numeric_limits<float>::max)();
-        m_boundingBox.MinZ = (std::numeric_limits<float>::max)();
-        m_boundingBox.MaxX = (std::numeric_limits<float>::min)();
-        m_boundingBox.MaxY = (std::numeric_limits<float>::min)();
-        m_boundingBox.MaxZ = (std::numeric_limits<float>::min)();
     }
 
     Obj::~Obj()
@@ -34,22 +28,42 @@ namespace Resource
 
     }
 
-    u32 Obj::GetNumSurfaces() const
+	unsigned int Obj::GetNumPositions() const
+	{
+		return static_cast<unsigned int>(m_positions.size());
+	}
+
+	unsigned int Obj::GetNumNormals() const
+	{
+		return static_cast<unsigned int>(m_normals.size());
+	}
+
+	unsigned int Obj::GetNumUVs() const
+	{
+		return static_cast<unsigned int>(m_uvs.size());
+	}
+
+	unsigned int Obj::GetNumFaces() const
+	{
+		return static_cast<unsigned int>(m_faces.size());
+	}
+
+	unsigned int Obj::GetNumSurfaces() const
     {
-        return static_cast<u32>(m_surfaces.size());
+        return static_cast<unsigned int>(m_surfaces.size());
     }
 
-    u32 Obj::GetNumMtls() const
+	unsigned int Obj::GetNumMaterials() const
+	{
+		return static_cast<unsigned int>(m_materialNames.size());
+	}
+
+	unsigned int Obj::GetNumMtls() const
     {
-        return static_cast<u32>(m_mtls.size());
+        return static_cast<unsigned int>(m_mtls.size());
     }
 
-    u32 Obj::GetNumMaterials() const
-    {
-        return static_cast<u32>(m_materialNames.size());
-    }
-
-    const char* Obj::GetMaterialName(const u32 i) const
+    const char* Obj::GetMaterialName(const unsigned int i) const
     {
         return m_materialNames[i].c_str();
     }
@@ -64,57 +78,53 @@ namespace Resource
 		return (iTextureDirectory > -1) ? m_names[iTextureDirectory].c_str() : nullptr;
 	}
 
-    std::shared_ptr<const Mtl> Obj::GetMtl(const u32 i) const
+    std::shared_ptr<const Mtl> Obj::GetMtl(const unsigned int i) const
     {
         return m_mtls[i];
     }
 
-    const Mtl::MaterialDesc Obj::GetMaterialDesc(const u32 i) const
+    const Mtl::MaterialDesc* Obj::GetMaterials() const
     {
-        return m_materials[i];
+        return m_materials.data();
     }
 
-    const Obj::Surface* Obj::GetSurface(const unsigned int i) const
+    const Obj::Surface* Obj::GetSurfaces() const
     {
-        return &m_surfaces[i];
+        return m_surfaces.data();
     }
 
-    const Obj::Face* Obj::GetFace(const unsigned int i) const
+    const Obj::Face* Obj::GetFaces() const
     {
-        return &m_faces[i];
+        return m_faces.data();
     }
 
-    const Obj::Position* Obj::GetPosition(const unsigned int i) const
+    const Obj::Position* Obj::GetPositions() const
     {
-        return &m_positions[i];
+        return m_positions.data();
     }
 
-    const Obj::Normal* Obj::GetNormal(const unsigned int i) const
+    const Obj::Normal* Obj::GetNormals() const
     {
-        return &m_normals[i];
+        return m_normals.data();
     }
 
-    const Obj::UV* Obj::GetUV(const unsigned int i) const
+    const Obj::UV* Obj::GetUVs() const
     {
-        return &m_uvs[i];
-    }
-
-    Obj::BoundingBox Obj::GetSceneBounds() const
-    {
-        return m_boundingBox;
+        return m_uvs.data();
     }
 
     std::shared_ptr<const Obj> Obj::Load(const Desc desc)
     {
-        std::shared_ptr<Obj> pResource;
+		std::ifstream fileStream;
 
-        std::ifstream fileStream(desc.Filename);
+		fileStream.open(desc.Filename);
+
         if (!fileStream.is_open())
         {
             LUZASSERT(false);
         }
 
-        pResource = std::make_shared<Obj>();
+		std::shared_ptr<Obj> pResource = std::make_shared<Obj>();
 		pResource->iDirectory = FindOrPushName(desc.Directory, pResource->m_names);
 		pResource->iTextureDirectory = FindOrPushName(desc.TextureDirectory, pResource->m_names);
 
@@ -129,7 +139,6 @@ namespace Resource
         auto& faces = pResource->m_faces;
         auto& mtls = pResource->m_mtls;
         auto& materials = pResource->m_materials;
-        auto& boundingBox = pResource->m_boundingBox;
         
 		// Temp
 		std::vector<Resource::Async<Mtl>> loadingMtls;
@@ -159,14 +168,6 @@ namespace Resource
             {
                 float* position = positions.emplace_back().Data;
                 fileStream >> position[0] >> position[1] >> position[2];
-
-                if (position[0] < boundingBox.MinX) boundingBox.MinX = position[0];
-                if (position[1] < boundingBox.MinY) boundingBox.MinY = position[1];
-                if (position[2] < boundingBox.MinZ) boundingBox.MinZ = position[2];
-
-                if (position[0] > boundingBox.MaxX) boundingBox.MaxX = position[0];
-                if (position[1] > boundingBox.MaxY) boundingBox.MaxY = position[1];
-                if (position[2] > boundingBox.MaxZ) boundingBox.MaxZ = position[2];
             }
             else if (statement.compare("vt") == 0)
             {

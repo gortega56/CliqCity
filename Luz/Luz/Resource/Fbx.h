@@ -111,9 +111,17 @@ namespace Resource
 
 		const LUZ_API char* GetTextureDirectory() const;
 
-        LUZ_API int GetNumSurfaces() const;
+		LUZ_API unsigned int GetNumPositions() const;
+		 
+		LUZ_API unsigned int GetNumNormals() const;
+		
+		LUZ_API unsigned int GetNumUVs() const;
 
-		LUZ_API int GetNumMaterials() const;
+        LUZ_API unsigned int GetNumSurfaces() const;
+
+		LUZ_API unsigned int GetNumTriangles() const;
+
+		LUZ_API unsigned int GetNumMaterials() const;
 
 		const LUZ_API Position* GetPositions() const;
 
@@ -126,16 +134,6 @@ namespace Resource
 		const LUZ_API Triangle* GetTriangles() const;
 
 		const LUZ_API Material* GetMaterials() const;
-
-        const LUZ_API Position* GetPosition(int i) const;
-
-        const LUZ_API Normal* GetNormal(int i) const;
-
-        const LUZ_API UV* GetUV(int i) const;
-
-        const LUZ_API Surface* GetSurface(int i) const;
-
-        const LUZ_API Triangle* GetTriangle(int i) const;
 
 		const LUZ_API char* GetTextureFileName(int i) const;
 
