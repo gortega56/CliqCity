@@ -52,8 +52,15 @@ namespace Luz
         m_mouseX = mouseX;
         m_mouseY = mouseY;
 
-        float moveSpeed = std::clamp(m_movementSpeed + Platform::GetMouseWheelDelta(), 0.001f, 1000.0f);
-        m_movementSpeed = moveSpeed;
+		static float s_mouseWheelDelta = 0.0f;
+		static float s_increments = 10.0f;
+		static float s_min_speed = 0.001f;
+		static float s_max_speed = 500.0f;
+
+		s_mouseWheelDelta = std::clamp(s_mouseWheelDelta + Platform::GetMouseWheelDelta(), 0.0f, s_increments);
+
+		float t = (s_mouseWheelDelta / s_increments);
+        m_movementSpeed = (1.0f - t) * s_min_speed + s_max_speed * t;;
        
         float3 prev = pTransform->GetPosition();
 		float3 current = prev;
