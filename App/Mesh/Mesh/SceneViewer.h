@@ -135,6 +135,8 @@ struct Scene
     std::vector<Graphics::ConstantBufferHandle> Constants;
     std::vector<Graphics::TextureHandle> Textures;
     range3 Bounds;
+	unsigned short eShading;
+	unsigned short eBump;
 };
 
 class SceneViewer :
@@ -147,42 +149,51 @@ public:
 
     static constexpr u32 s_nFrameResources = s_nSwapChainTargets;
 
-    FrameConstants m_frameConsts[s_nFrameResources];
+	std::shared_ptr<Window> m_window;
+
+	std::shared_ptr<Scene> m_pScene;
+
+	std::shared_ptr<Scene> m_pStagingScene;
+
+	std::mutex m_sceneMutex;
+
+	FrameConstants m_frameConsts[s_nFrameResources];
 
     u32 m_frameIndex;
 
     Luz::CameraController m_cameraController;
 
-    std::shared_ptr<Window> m_window;
-
     Graphics::CommandStream m_commandStream;
 
-    Graphics::ShaderHandle m_vs;
-    Graphics::ShaderHandle m_ps;
-    Graphics::ShaderHandle m_fs_vs;
-    Graphics::ShaderHandle m_fs_ps;
-    Graphics::ShaderHandle m_cube_map_vs;
-    Graphics::ShaderHandle m_cube_map_ps;
-    Graphics::ShaderHandle m_irradiance_map_ps;
-    Graphics::ShaderHandle m_radiance_map_ps;
-    Graphics::ShaderHandle m_brdf_map_ps;
+    Graphics::ShaderHandle m_vsScene;
+    Graphics::ShaderHandle m_psScene;
+    Graphics::ShaderHandle m_vsFullScreen;
+    Graphics::ShaderHandle m_psFullScreen;
+    Graphics::ShaderHandle m_vsCubeMap;
+    Graphics::ShaderHandle m_psCubeMap;
+    Graphics::ShaderHandle m_psIrradianceMap;
+    Graphics::ShaderHandle m_psRadianceMap;
+    Graphics::ShaderHandle m_psLUT;
 
-    Graphics::VertexBufferHandle m_cube_map_vb_handle;
-    Graphics::IndexBufferHandle m_cube_map_ib_handle;
-    Graphics::IndexBufferHandle m_fs_ib;
+    Graphics::VertexBufferHandle m_vbCubeMap;
+    Graphics::IndexBufferHandle m_ibCubeMap;
+    Graphics::IndexBufferHandle m_ibFullScreen;
 
-    Graphics::TextureHandle m_cube_map_texture_handle;
-    Graphics::TextureHandle m_environment_cube_map_handle;
-    Graphics::TextureHandle m_environment_brdf_map_handle;
+    Graphics::TextureHandle m_txCubeMap;
+    Graphics::TextureHandle m_txEnvMap;
+    Graphics::TextureHandle m_txLUT;
 
-    Graphics::DepthStencilHandle m_shadowTexture;
+    Graphics::DepthStencilHandle m_txShadow;
 
     Graphics::PipelineStateHandle m_opaquePipeline;
     Graphics::PipelineStateHandle m_shadowPipeline;
     Graphics::PipelineStateHandle m_fullScreenPipeline;
     Graphics::PipelineStateHandle m_cubemapPipeline;
 
+	std::vector<std::thread> m_loadingThreads;
+
     SceneViewer();
+
     ~SceneViewer();
 
     bool Initialize() override;
@@ -194,12 +205,6 @@ public:
     void FixedUpdate(double delta) override;
 
     void LoadScene(const std::string filename, const u32 threadID);
-    
-    std::mutex m_sceneMutex;
-    std::shared_ptr<Scene> m_pScene;
-    std::shared_ptr<Scene> m_pStagingScene;
-
-    std::vector<std::thread> m_loadingThreads;
 };
 
 #endif

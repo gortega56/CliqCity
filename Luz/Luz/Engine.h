@@ -60,7 +60,7 @@ namespace Engine
                 accumulator -= dt;
             }
 
-            app.Update(dt);
+            app.Update(frameTime);
 
             Platform::EndUpdate(totalTime, frameTime);
         }

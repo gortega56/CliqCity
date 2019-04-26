@@ -22,10 +22,12 @@ namespace Resource
         ~Async();
 
         Async(const Async<ResourceType>& o);
-        Async& operator=(const Async<ResourceType>& o);
 
-        Async(Async<ResourceType>&& o);
-        Async& operator=(Async<ResourceType>&& o);
+        Async(Async<ResourceType>&& o) noexcept;
+        
+		Async& operator=(const Async<ResourceType>& o);
+
+		Async& operator=(Async<ResourceType>&& o);
 
         std::shared_ptr<const ResourceType> Get();
 
@@ -71,7 +73,7 @@ namespace Resource
 
 
     template<class ResourceType>
-    Async<ResourceType>::Async(Async<ResourceType>&& o)
+    Async<ResourceType>::Async(Async<ResourceType>&& o) noexcept
         : m_future(std::move(o.m_future))
     {
 

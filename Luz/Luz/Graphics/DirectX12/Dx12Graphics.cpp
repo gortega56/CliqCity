@@ -1721,11 +1721,7 @@ namespace Graphics
         s_swapChain.FrameIndex = s_swapChain.pSwapChain3->GetCurrentBackBufferIndex();
         s_swapChain.Frames += 1;
 
-        // wait every N frames
-        u64 nBuffers = static_cast<u64>(s_swapChain.NumBuffers);
-        bool wait = (s_swapChain.Frames % nBuffers) == (nBuffers - 1);
-
-        SignalQueue(GFX_COMMAND_QUEUE_TYPE_DRAW, execution, wait);
+        SignalQueue(GFX_COMMAND_QUEUE_TYPE_DRAW, execution, true);
     }
 
     void Flush()

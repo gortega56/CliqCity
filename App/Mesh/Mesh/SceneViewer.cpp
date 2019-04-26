@@ -11,16 +11,17 @@
 #include "CommandStream.h"
 #include "Platform\Input.h"
 #include "SceneResource.h"
-#include <codecvt>
 #include <iostream>
 #include <sstream>
+
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
 
 #define CUBE_MAP_PATH ".\\Assets\\satara_night.dds"
 
 using namespace Luz;
 using namespace lina;
-
-const char* s_pAssetDirectory = ".\\Assets\\";
 
 Vertex::Vertex(
     float px, float py, float pz,
@@ -51,8 +52,6 @@ struct ShaderOptions
     bool MaskingEnabled;
     bool FresnelEnabled;
 };
-// Daylight rgb(1.0f, 0.96, 0.95)
-// Sky rgb((0.753f, 0.82f, 1.0f)
 
 struct EnvironmentParameters
 {
@@ -77,6 +76,8 @@ struct TextureOverrides
 	const char* Rough;
 	const char* Normal;
 };
+
+const char* s_pAssetDirectory = ".\\Assets\\";
 
 static int s_window_width = 1600;
 
@@ -128,15 +129,31 @@ static void ConsoleThread();
 
 SceneViewer::SceneViewer()
     : m_window(nullptr)
-    , m_vs(0)
-    , m_ps(0)
-    , m_fs_vs(0)
-    , m_fs_ps(0)
-    , m_fs_ib(0)
-    , m_opaquePipeline(0)
+	, m_pScene(nullptr)
+	, m_pStagingScene(nullptr)
+    , m_frameIndex(0)
+	, m_cameraController()
+	, m_commandStream()
+    , m_vsScene(0)
+    , m_psScene(0)
+    , m_vsFullScreen(0)
+    , m_psFullScreen(0)
+	, m_vsCubeMap(0)
+	, m_psCubeMap(0)
+	, m_psIrradianceMap(0)
+	, m_psRadianceMap(0)
+	, m_psLUT(0)
+	, m_vbCubeMap(0)
+	, m_ibCubeMap(0)
+    , m_ibFullScreen(0)
+	, m_txCubeMap(0)
+	, m_txEnvMap(0)
+	, m_txLUT(0)
+	, m_txShadow(0)
+	, m_opaquePipeline(0)
     , m_shadowPipeline(0)
     , m_fullScreenPipeline(0)
-    , m_frameIndex(0)
+	, m_cubemapPipeline(0)
 {
     s_pSceneViewer = this;
     auto nThreads = std::thread::hardware_concurrency() - 1;
@@ -171,18 +188,18 @@ bool SceneViewer::Initialize()
 
     // Shaders
     {
-        m_vs = Graphics::CreateVertexShader("scene_model_vs.hlsl");
-        m_ps = Graphics::CreatePixelShader("scene_model_ps.hlsl");
+        m_vsScene = Graphics::CreateVertexShader("scene_model_vs.hlsl");
+        m_psScene = Graphics::CreatePixelShader("scene_model_ps.hlsl");
 
-        m_fs_vs = Graphics::CreateVertexShader("FS_Tri_VS.hlsl");
-        m_fs_ps = Graphics::CreatePixelShader("FS_Tri_PS.hlsl");
+        m_vsFullScreen = Graphics::CreateVertexShader("FS_Tri_VS.hlsl");
+        m_psFullScreen = Graphics::CreatePixelShader("FS_Tri_PS.hlsl");
 
-        m_cube_map_vs = Graphics::CreateVertexShader("cube_map_vs.hlsl");
-        m_cube_map_ps = Graphics::CreatePixelShader("cube_map_ps.hlsl");
+        m_vsCubeMap = Graphics::CreateVertexShader("cube_map_vs.hlsl");
+        m_psCubeMap = Graphics::CreatePixelShader("cube_map_ps.hlsl");
 
-        m_radiance_map_ps = Graphics::CreatePixelShader("radiance_map_ps.hlsl");
-        m_irradiance_map_ps = Graphics::CreatePixelShader("irradiance_map_ps.hlsl");
-        m_brdf_map_ps = Graphics::CreatePixelShader("brdf_integration_ps.hlsl");
+        m_psRadianceMap = Graphics::CreatePixelShader("radiance_map_ps.hlsl");
+        m_psIrradianceMap = Graphics::CreatePixelShader("irradiance_map_ps.hlsl");
+        m_psLUT = Graphics::CreatePixelShader("brdf_integration_ps.hlsl");
     }
 
     // Static geometry
@@ -231,21 +248,21 @@ bool SceneViewer::Initialize()
         vb.SizeInBytes = sizeof(float3) * 8;
         vb.StrideInBytes = sizeof(float3);
         vb.pData = cube_map_vertices;
-        m_cube_map_vb_handle = Graphics::CreateVertexBuffer(vb);
+        m_vbCubeMap = Graphics::CreateVertexBuffer(vb);
 
         Graphics::BufferDesc ib;
         ib.Alignment = 0;
         ib.SizeInBytes = sizeof(int) * 36;
         ib.StrideInBytes = sizeof(int);
         ib.pData = cube_map_indices;
-        m_cube_map_ib_handle = Graphics::CreateIndexBuffer(ib);
+        m_ibCubeMap = Graphics::CreateIndexBuffer(ib);
 
         static u32 s_ib[] = { 0, 1, 2 };
         ib.Alignment = 0;
         ib.SizeInBytes = 12;
         ib.StrideInBytes = sizeof(u32);
         ib.pData = s_ib;
-        m_fs_ib = Graphics::CreateIndexBuffer(ib);
+        m_ibFullScreen = Graphics::CreateIndexBuffer(ib);
     }
 
     // Frame Resources
@@ -276,7 +293,7 @@ bool SceneViewer::Initialize()
         ds.Format = Graphics::GFX_FORMAT_R32_TYPELESS;
         ds.Width = 2048;
         ds.Height = 2048;
-        m_shadowTexture = Graphics::CreateDepthStencil(ds);
+        m_txShadow = Graphics::CreateDepthStencil(ds);
 
         // Environment brdf
         {
@@ -291,7 +308,7 @@ bool SceneViewer::Initialize()
             td.Dimension = Graphics::GFX_RESOURCE_DIMENSION_TEXTURE2D;
             td.Flags = Graphics::GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
             td.bIsCube = false;
-            m_environment_brdf_map_handle = Graphics::CreateTexture(td);
+            m_txLUT = Graphics::CreateTexture(td);
         }
 
         // Environment cube
@@ -307,7 +324,7 @@ bool SceneViewer::Initialize()
             td.Dimension = Graphics::GFX_RESOURCE_DIMENSION_TEXTURE2D;
             td.Flags = Graphics::GFX_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
             td.bIsCube = true;
-            m_environment_cube_map_handle = Graphics::CreateTexture(td);
+            m_txEnvMap = Graphics::CreateTexture(td);
         }
 
         // Sky box
@@ -315,7 +332,7 @@ bool SceneViewer::Initialize()
             Graphics::TextureFileDesc fd;
             fd.Filename = CUBE_MAP_PATH;
             fd.GenMips = false;
-            m_cube_map_texture_handle = Graphics::CreateTexture(fd);
+            m_txCubeMap = Graphics::CreateTexture(fd);
         }
     }
     
@@ -347,8 +364,8 @@ bool SceneViewer::Initialize()
             .AppendPosition3F()
             .AppendNormal3F()
             .AppendUV3();
-        pd.VertexShaderHandle = m_vs;
-        pd.PixelShaderHandle = m_ps;
+        pd.VertexShaderHandle = m_vsScene;
+        pd.PixelShaderHandle = m_psScene;
         pd.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         pd.SampleCount = 1;
         pd.SampleQuality = 0;
@@ -375,8 +392,8 @@ bool SceneViewer::Initialize()
             .AppendDescriptorTable(Graphics::SHADER_VISIBILITY_PS)
             .AppendDescriptorTableRange(0, 1, 1, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
             .AppendAnisotropicWrapSampler(0);
-        pd.VertexShaderHandle = m_fs_vs;
-        pd.PixelShaderHandle = m_fs_ps;
+        pd.VertexShaderHandle = m_vsFullScreen;
+        pd.PixelShaderHandle = m_psFullScreen;
         pd.UseSwapChain = true;
         m_fullScreenPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
@@ -389,10 +406,10 @@ bool SceneViewer::Initialize()
             .DenyDS()
             .DenyGS()
             .AppendConstantView(0);
-        pd.VertexShaderHandle = m_vs;
+        pd.VertexShaderHandle = m_vsScene;
         pd.PixelShaderHandle = 0;
         pd.NumRenderTargets = 0;
-        pd.DsHandle = m_shadowTexture;
+        pd.DsHandle = m_txShadow;
         pd.UseSwapChain = false;
 
         pd.Rasterizer.DepthBias = 100000;
@@ -413,8 +430,8 @@ bool SceneViewer::Initialize()
             .AppendDescriptorTableRange(1, 1, 0, 0, Graphics::DescriptorTable::Range::DESCRIPTOR_TABLE_RANGE_TYPE_SHADER_VIEW)
             .AppendLinearWrapSampler(0);
         skyboxPipe.InputLayout.AppendPosition3F();
-        skyboxPipe.VertexShaderHandle = m_cube_map_vs;
-        skyboxPipe.PixelShaderHandle = m_cube_map_ps;
+        skyboxPipe.VertexShaderHandle = m_vsCubeMap;
+        skyboxPipe.PixelShaderHandle = m_psCubeMap;
         skyboxPipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         skyboxPipe.SampleCount = 1;
         skyboxPipe.SampleQuality = 0;
@@ -436,17 +453,17 @@ bool SceneViewer::Initialize()
     Graphics::CreateCommandStream(csd, &m_commandStream);
 
     EnvironmentParameters params;
-    params.hCubeTexture = m_cube_map_texture_handle;
-    params.hRenderTarget = m_environment_cube_map_handle;
-    params.hDfgRenderTarget = m_environment_brdf_map_handle;
-    params.hCubeVertexBuffer = m_cube_map_vb_handle;
-    params.hCubeIndexBuffer = m_cube_map_ib_handle;
-    params.hTriIndexBuffer = m_fs_ib;
-    params.hCubeVertexShader = m_cube_map_vs;
-    params.hTriVertexShader = m_fs_vs;
-    params.hRadiancePixelShader = m_radiance_map_ps;
-    params.hIrradiancePixelShader = m_irradiance_map_ps;
-    params.hDfgPixelShader = m_brdf_map_ps;
+    params.hCubeTexture = m_txCubeMap;
+    params.hRenderTarget = m_txEnvMap;
+    params.hDfgRenderTarget = m_txLUT;
+    params.hCubeVertexBuffer = m_vbCubeMap;
+    params.hCubeIndexBuffer = m_ibCubeMap;
+    params.hTriIndexBuffer = m_ibFullScreen;
+    params.hCubeVertexShader = m_vsCubeMap;
+    params.hTriVertexShader = m_vsFullScreen;
+    params.hRadiancePixelShader = m_psRadianceMap;
+    params.hIrradiancePixelShader = m_psIrradianceMap;
+    params.hDfgPixelShader = m_psLUT;
     params.AspectRatio = m_window->AspectRatio();
     params.pCommandStream = &m_commandStream;
     ProcessEnvironmentLighting(params);
@@ -476,25 +493,25 @@ int SceneViewer::Shutdown()
     DestroyScene(m_pStagingScene.get());
     DestroyScene(m_pScene.get());
 
-    Graphics::ReleaseShader(m_vs);
-    Graphics::ReleaseShader(m_ps);
-    Graphics::ReleaseShader(m_fs_vs);
-    Graphics::ReleaseShader(m_fs_ps);
-    Graphics::ReleaseShader(m_cube_map_vs);
-    Graphics::ReleaseShader(m_cube_map_ps);
-    Graphics::ReleaseShader(m_radiance_map_ps);
-    Graphics::ReleaseShader(m_irradiance_map_ps);
-    Graphics::ReleaseShader(m_brdf_map_ps);
+    Graphics::ReleaseShader(m_vsScene);
+    Graphics::ReleaseShader(m_psScene);
+    Graphics::ReleaseShader(m_vsFullScreen);
+    Graphics::ReleaseShader(m_psFullScreen);
+    Graphics::ReleaseShader(m_vsCubeMap);
+    Graphics::ReleaseShader(m_psCubeMap);
+    Graphics::ReleaseShader(m_psRadianceMap);
+    Graphics::ReleaseShader(m_psIrradianceMap);
+    Graphics::ReleaseShader(m_psLUT);
 
-    Graphics::ReleaseVertexBuffer(m_cube_map_vb_handle);
-    Graphics::ReleaseIndexBuffer(m_cube_map_ib_handle);
-    Graphics::ReleaseIndexBuffer(m_fs_ib);
+    Graphics::ReleaseVertexBuffer(m_vbCubeMap);
+    Graphics::ReleaseIndexBuffer(m_ibCubeMap);
+    Graphics::ReleaseIndexBuffer(m_ibFullScreen);
 
-    Graphics::ReleaseTexture(m_cube_map_texture_handle);
-    Graphics::ReleaseTexture(m_environment_cube_map_handle);
-    Graphics::ReleaseTexture(m_environment_brdf_map_handle);
+    Graphics::ReleaseTexture(m_txCubeMap);
+    Graphics::ReleaseTexture(m_txEnvMap);
+    Graphics::ReleaseTexture(m_txLUT);
 
-    Graphics::ReleaseDepthStencil(m_shadowTexture);
+    Graphics::ReleaseDepthStencil(m_txShadow);
 
     Graphics::ReleasePipeline(m_opaquePipeline);
     Graphics::ReleasePipeline(m_shadowPipeline);
@@ -509,80 +526,92 @@ int SceneViewer::Shutdown()
 
 void SceneViewer::Update(double dt)
 {
-    ShaderOptions shaderOptions;
-    {
-        std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-        shaderOptions = s_shaderOptions;
-    }
+	m_cameraController.Update(dt);
 
-    static double s_time = 0.0;
+	std::shared_ptr<Scene> pScene = nullptr;
+	bool bDidLoad = false;
+	{
+		std::lock_guard<std::mutex> lock(m_sceneMutex);
 
-    s_time += dt;
+		if (m_pStagingScene)
+		{
+			// wait for any command lists in flight
+			// before swapping scene
+			Graphics::Flush();
+			DestroyScene(m_pScene.get());
+			m_pScene = m_pStagingScene;
+			m_pStagingScene = nullptr;
+			bDidLoad = true;
+		}
 
-    m_cameraController.Update(dt);
+		pScene = m_pScene;
+	}
 
-    float4x4 view = m_cameraController.GetCamera()->GetView();
-    float4x4 proj = m_cameraController.GetCamera()->GetProjection();
+	if (bDidLoad)
+	{
+		std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+		s_shaderOptions.LightingMode = pScene->eShading;
+		s_shaderOptions.BumpMode = pScene->eBump;
+	}
 
-    FrameConstants* pConsts = &m_frameConsts[m_frameIndex];
-
-    pConsts->CameraConsts.View = view.transpose();
-    pConsts->CameraConsts.Proj = proj.transpose();
-    pConsts->CameraConsts.InverseView = view.inverse().transpose();
-    pConsts->CameraConsts.InverseProj = proj.inverse().transpose();
-
-    view = s_lighting.GetView();
-    proj = s_lighting.GetProjection();
-
-    pConsts->ShadowConsts.View = view.transpose();
-    pConsts->ShadowConsts.Proj = proj.transpose();
-    pConsts->ShadowConsts.InverseView = view.inverse().transpose();
-    pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
-
-    pConsts->LightingConsts.Color = shaderOptions.LightColor;
-    pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
-    pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
-    pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
-    pConsts->LightingConsts.LightingMode = shaderOptions.LightingMode;
-    pConsts->LightingConsts.BumpMode = shaderOptions.BumpMode;
-    pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
-    pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
-    pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
-    pConsts->LightingConsts.EnableBump = shaderOptions.BumpEnabled;
-    pConsts->LightingConsts.EnableShadow = shaderOptions.ShadowEnabled;
-    pConsts->LightingConsts.MicrofacetEnabled = shaderOptions.MicrofacetEnabled;
-    pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
-    pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
-
-    static const Graphics::Viewport vp = { 0.0f, 0.0f, static_cast<float>(s_window_width), static_cast<float>(s_window_height), 0.0f, 1.0f };
-    static const Graphics::Rect scissor = { 0, 0, static_cast<u32>(s_window_width), static_cast<u32>(s_window_height) };
-    float clear[4] =
-    {
-        shaderOptions.LightColor.x,
-        shaderOptions.LightColor.y,
-        shaderOptions.LightColor.z,
-        1.0f,
-    };
-
-    std::shared_ptr<Scene> pScene;
-    {
-        std::lock_guard<std::mutex> lock(m_sceneMutex);
-
-        if (m_pStagingScene)
-        {
-            // wait for any command lists in flight
-            // before swapping scene
-            Graphics::Flush();
-            DestroyScene(m_pScene.get());
-            m_pScene = m_pStagingScene;
-            m_pStagingScene = nullptr;
-        }
-
-        pScene = m_pScene;
-    }
+	ShaderOptions shaderOptions;
+	{
+		std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+		shaderOptions = s_shaderOptions;
+	}
 
     if (pScene)
     {
+		float3 dim = pScene->Bounds.max - pScene->Bounds.min;
+		float3 lp = dim * -normalize(shaderOptions.LightDirection);
+		float3x3 lv = float3x3::orientation_lh(shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
+
+		s_lighting.GetTransform()->SetPosition(lp);
+		s_lighting.GetTransform()->SetRotation(quaternion::create(lv));
+
+		float4x4 view = m_cameraController.GetCamera()->GetView();
+		float4x4 proj = m_cameraController.GetCamera()->GetProjection();
+
+		FrameConstants* pConsts = &m_frameConsts[m_frameIndex];
+
+		pConsts->CameraConsts.View = view.transpose();
+		pConsts->CameraConsts.Proj = proj.transpose();
+		pConsts->CameraConsts.InverseView = view.inverse().transpose();
+		pConsts->CameraConsts.InverseProj = proj.inverse().transpose();
+
+		view = s_lighting.GetView();
+		proj = s_lighting.GetProjection();
+
+		pConsts->ShadowConsts.View = view.transpose();
+		pConsts->ShadowConsts.Proj = proj.transpose();
+		pConsts->ShadowConsts.InverseView = view.inverse().transpose();
+		pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
+
+		pConsts->LightingConsts.Color = shaderOptions.LightColor;
+		pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
+		pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
+		pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
+		pConsts->LightingConsts.LightingMode = shaderOptions.LightingMode;
+		pConsts->LightingConsts.BumpMode = shaderOptions.BumpMode;
+		pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
+		pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
+		pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
+		pConsts->LightingConsts.EnableBump = shaderOptions.BumpEnabled;
+		pConsts->LightingConsts.EnableShadow = shaderOptions.ShadowEnabled;
+		pConsts->LightingConsts.MicrofacetEnabled = shaderOptions.MicrofacetEnabled;
+		pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
+		pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
+
+		static const Graphics::Viewport vp = { 0.0f, 0.0f, static_cast<float>(s_window_width), static_cast<float>(s_window_height), 0.0f, 1.0f };
+		static const Graphics::Rect scissor = { 0, 0, static_cast<u32>(s_window_width), static_cast<u32>(s_window_height) };
+		float clear[4] =
+		{
+			shaderOptions.LightColor.x,
+			shaderOptions.LightColor.y,
+			shaderOptions.LightColor.z,
+			1.0f,
+		};
+
         if (shaderOptions.ShadowEnabled)
         {
             static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
@@ -592,8 +621,8 @@ void SceneViewer::Update(double dt)
 
             auto& cs = m_commandStream;
             cs.SetPipeline(m_shadowPipeline);
-            cs.SetRenderTargets(0, nullptr, m_shadowTexture);
-            cs.ClearDepthStencil(1.0f, 0, m_shadowTexture);
+            cs.SetRenderTargets(0, nullptr, m_txShadow);
+            cs.ClearDepthStencil(1.0f, 0, m_txShadow);
             cs.SetViewport(s_shadow_vp);
             cs.SetScissorRect(s_shadow_scissor);
             cs.SetConstantBuffer(0, pConsts->hShadow);
@@ -612,20 +641,20 @@ void SceneViewer::Update(double dt)
         if (s_shadowFullScreen)
         {
             auto& cs = m_commandStream;
-            // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            // cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             cs.SetPipeline(m_fullScreenPipeline);
             cs.SetRenderTargets();
             cs.ClearRenderTarget(clear);
             cs.ClearDepthStencil(1.0f, 0);
             cs.SetViewport(vp);
             cs.SetScissorRect(scissor);
-            cs.SetDescriptorTable(0, &m_environment_brdf_map_handle, 1);
+            cs.SetDescriptorTable(0, &m_txLUT, 1);
 
             cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             cs.SetVertexBuffer(0);
-            cs.SetIndexBuffer(m_fs_ib);
-            cs.DrawInstanceIndexed(m_fs_ib);
-            // cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
+            cs.SetIndexBuffer(m_ibFullScreen);
+            cs.DrawInstanceIndexed(m_ibFullScreen);
+            // cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
 
             Graphics::SubmitCommandStream(&cs);
         }
@@ -643,9 +672,9 @@ void SceneViewer::Update(double dt)
             pRanges[1].nHandles = nTextures;
             pRanges[2].Register = 5;
             pRanges[2].nHandles = 3;
-            pRanges[2].pHandles[0] = m_shadowTexture;
-            pRanges[2].pHandles[1] = m_environment_brdf_map_handle;
-            pRanges[2].pHandles[2] = m_environment_cube_map_handle;
+            pRanges[2].pHandles[0] = m_txShadow;
+            pRanges[2].pHandles[1] = m_txLUT;
+            pRanges[2].pHandles[2] = m_txEnvMap;
             memcpy_s(pRanges[0].pHandles, szConstants, pScene->Constants.data(), szConstants);
             memcpy_s(pRanges[1].pHandles, szTextures, pScene->Textures.data(), szTextures);
 
@@ -655,7 +684,7 @@ void SceneViewer::Update(double dt)
 
             auto& cs = m_commandStream;
             cs.TransitionRenderTarget(Graphics::GFX_RESOURCE_STATE_PRESENT, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
-            cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             cs.SetPipeline(m_opaquePipeline);
             cs.SetRenderTargets();
             cs.ClearRenderTarget(clear);
@@ -675,7 +704,7 @@ void SceneViewer::Update(double dt)
                 cs.DrawInstanceIndexed(surface.ib);
             }
 
-            cs.TransitionDepthStencil(m_shadowTexture, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
+            cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
             Graphics::SubmitCommandStream(&cs);
 
             // Draw cube map
@@ -684,12 +713,12 @@ void SceneViewer::Update(double dt)
             cs.SetViewport(vp);
             cs.SetScissorRect(scissor);
             cs.SetConstantBuffer(0, pConsts->hCamera);
-            cs.SetDescriptorTable(1, &m_cube_map_texture_handle, 1);
+            cs.SetDescriptorTable(1, &m_txCubeMap, 1);
 
             cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            cs.SetVertexBuffer(m_cube_map_vb_handle);
-            cs.SetIndexBuffer(m_cube_map_ib_handle);
-            cs.DrawInstanceIndexed(m_cube_map_ib_handle);
+            cs.SetVertexBuffer(m_vbCubeMap);
+            cs.SetIndexBuffer(m_ibCubeMap);
+            cs.DrawInstanceIndexed(m_ibCubeMap);
 
             Graphics::SubmitCommandStream(&cs);
         }
@@ -711,7 +740,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 
     m_loadingThreads[threadID] = std::thread([&, filename]()
     {
-        char path[256];
+        char path[MAX_PATH];
         strcpy_s(path, s_pAssetDirectory);
         strcat_s(path, filename.c_str());
 
@@ -749,7 +778,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             const char* rootDir = pScene->GetDirectory(asset.RootDir);
             const char* textureDir = pScene->GetDirectory(asset.TextureDir);
 
-			char relativePath[256];
+			char relativePath[MAX_PATH];
 			strcpy_s(relativePath, s_pAssetDirectory);
 			if (strlen(rootDir))
 			{
@@ -757,7 +786,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 				strcat_s(relativePath, "\\");
 			}
 
-			char texturePath[256];
+			char texturePath[MAX_PATH];
 			strcpy_s(texturePath, relativePath);
 			if (strlen(textureDir))
 			{
@@ -770,7 +799,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
                 const char* file = pScene->GetFile(asset.pFiles[iFile]);
                 const char* ext = getExtension(file);
 
-                char filePath[256];
+                char filePath[MAX_PATH];
                 strcpy_s(filePath, relativePath);
                 strcat_s(filePath, file);
 
@@ -810,6 +839,8 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
 		scene.Bounds.max.x = max;
 		scene.Bounds.max.y = max;
 		scene.Bounds.max.z = max;
+		scene.eShading = pScene->GetShadingMode();
+		scene.eBump = pScene->GetBumpMode();
 
         for (size_t i = 0, n = loadingObjs.size(); i < n; ++i)
         {
@@ -835,21 +866,8 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
             m_pStagingScene->Constants = scene.Constants;
             m_pStagingScene->Surfaces = scene.Surfaces;
             m_pStagingScene->Textures = scene.Textures;
-
-			float3 dim = scene.Bounds.max - scene.Bounds.min;
-			float3 lp = dim * -normalize(s_shaderOptions.LightDirection);
-			float3x3 lv = float3x3::orientation_lh(s_shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
-
-			s_lighting.GetTransform()->SetPosition(lp);
-			s_lighting.GetTransform()->SetRotation(quaternion::create(lv));
-        }
-
-        // TODO: Need to write to shader options
-        // from file better here
-        {
-            std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-            s_shaderOptions.LightingMode = pScene->GetShadingMode();
-            s_shaderOptions.BumpMode = pScene->GetBumpMode();
+			m_pStagingScene->eShading = scene.eShading;
+			m_pStagingScene->eBump = scene.eBump;
         }
 
         s_loading.store(false);
@@ -1372,8 +1390,6 @@ void ConsoleThread()
 {
     Platform::CreateConsole();
 
-    ShaderOptions shaderOptions = s_shaderOptions;
-
     while (Platform::Running())
     {
         int iter = 0, nDots = 3;
@@ -1392,6 +1408,12 @@ void ConsoleThread()
 
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
+
+		ShaderOptions shaderOptions;
+		{
+			std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
+			shaderOptions = s_shaderOptions;
+		}
 
         std::cout << ">: ";
 

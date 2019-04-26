@@ -40,6 +40,10 @@ namespace Graphics
 
 	LUZ_API void ReverseWindingOrder(unsigned int* pIndices, const unsigned int nIndices);
 
+	LUZ_API void CreateRange2D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions);
+
+	LUZ_API void CreateRange3D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions);
+
     template<class VertexType, class IndexType>
     void CreateTangents(VertexType* pVertices, const unsigned int numVertices, IndexType* pIndices, const  unsigned int numIndices)
     {
@@ -295,11 +299,6 @@ namespace Graphics
             }
         }
     }
-
-	LUZ_API void CreateRange2D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions);
-
-	LUZ_API void CreateRange3D(float* pMin, float* pMax, const float* pPositions, const unsigned int nPositions);
-
 }
 
 #endif
