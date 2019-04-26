@@ -9,7 +9,7 @@
 #include "Platform\Window.h"
 #include "Graphics.h"
 #include "CommandStream.h"
-#include "Platform\Input.h"
+#include "Platform\PlatformInput.h"
 #include "SceneResource.h"
 #include <iostream>
 #include <sstream>

@@ -3,12 +3,10 @@
 
 #ifdef WINXX
 #include "WindowsPlatformTypes.h"
-#include "Input.h"
+#include "PlatformInput.h"
 
 namespace Platform
 {    
-    static Input s_input = Input();
-
     int Initialize(int n, ...)
     {
         va_list args;
@@ -27,11 +25,10 @@ namespace Platform
         s_messageBus.GetEvent(WM_QUIT)->Bind(quit);
         s_messageBus.GetEvent(WM_CLOSE)->Bind(quit);
         s_messageBus.GetEvent(WM_DESTROY)->Bind([](const WindowsMessage& wm) { PostQuitMessage(0); });
-    
-        int success = s_input.Initialize();
-        LUZASSERT(success);
 
-        return success;
+		Initialize_Input();
+
+        return 1;
     }
 
     void Shutdown()
@@ -41,13 +38,13 @@ namespace Platform
 
     void BeginUpdate(double time, double delta)
     {
-        s_input.Update(delta);
-        s_messageBus.PeekMessages();
+		// Route os messages at the beginning of the frame
+		s_messageBus.PeekMessages();
     }
 
     void EndUpdate(double time, double delta)
-    {
-
+	{
+		Update_Input(delta);
     }
 
     bool Running()
@@ -184,76 +181,6 @@ namespace Platform
         if (s_console.Cout) { fclose(s_console.Cout); }
         if (s_console.Cerr) { fclose(s_console.Cerr); }
         FreeConsole();
-    }
-
-    ScreenPoint GetMousePosition()
-    {
-        return s_input.mousePosition;
-    }
-
-    bool IsMouseActive()
-    {
-        return s_input.IsMouseActive();
-    }
-
-    void SetMouseActive(bool active)
-    {
-        s_input.SetMouseActive(active);
-    }
-
-    bool GetKeyDown(KeyCode key)
-    {
-        return s_input.GetKeyDown(key);
-    }
-
-    bool GetKeyUp(KeyCode key)
-    {
-        return s_input.GetKeyUp(key);
-    }
-
-    bool GetKey(KeyCode key)
-    {
-        return s_input.GetKey(key);
-    }
-
-    float GetMouseWheelDelta()
-    {
-        return s_input.mouseWheelDelta;
-    }
-
-    bool GetMouseButtonDown(MouseButton button)
-    {
-        return s_input.GetMouseButtonDown(button);
-    }
-
-    bool GetMouseButtonUp(MouseButton button)
-    {
-        return s_input.GetMouseButtonUp(button);
-    }
-
-    bool GetMouseButton(MouseButton button)
-    {
-        return s_input.GetMouseButton(button);
-    }
-
-    bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive, short id)
-    {
-        return s_input.GetGamepadButtonDown(buttonMask, isAdditive, id);
-    }
-
-    bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive, short id)
-    {
-        return s_input.GetGamepadButtonUp(buttonMask, isAdditive, id);
-    }
-
-    bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive, short id)
-    {
-        return s_input.GetGamepadButton(buttonMask, isAdditive, id);
-    }
-
-    float GetGamepadAxis(GamepadAxis axis, short id)
-    {
-        return s_input.GetGamepadAxis(axis, id);
     }
 }
 

@@ -73,6 +73,10 @@ namespace Platform
     MouseInputType GetMouseInputType(const UINT message);
 
     KeyboardInputType GetKeyboardInputType(const UINT message);
+
+	UINT GetKeyCode(const KeyType eKey);
+
+	KeyType GetKeyType(const UINT code);
 }
 
 #endif

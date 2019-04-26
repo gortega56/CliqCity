@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "CameraController.h"
 #include "Platform.h"
-#include "Input.h"
+#include "PlatformInput.h"
 
 using namespace lina;
 
@@ -60,37 +60,37 @@ namespace Luz
 		s_mouseWheelDelta = std::clamp(s_mouseWheelDelta + Platform::GetMouseWheelDelta(), 0.0f, s_increments);
 
 		float t = (s_mouseWheelDelta / s_increments);
-        m_movementSpeed = (1.0f - t) * s_min_speed + s_max_speed * t;;
+		m_movementSpeed = (1.0f - t) * s_min_speed + s_max_speed * t;;
        
         float3 prev = pTransform->GetPosition();
 		float3 current = prev;
 
-        if (Platform::GetKey(Platform::KEYCODE_W))
+        if (Platform::GetKey(Platform::KEYTYPE_W))
         {
 			current += pTransform->GetForward() * m_movementSpeed * dt;
         }
 
-        if (Platform::GetKey(Platform::KEYCODE_A))
+        if (Platform::GetKey(Platform::KEYTYPE_A))
         {
 			current += -pTransform->GetRight() * m_movementSpeed * dt;
         }
 
-        if (Platform::GetKey(Platform::KEYCODE_S))
+        if (Platform::GetKey(Platform::KEYTYPE_S))
         {
 			current += -pTransform->GetForward() * m_movementSpeed * dt;
         }
 
-        if (Platform::GetKey(Platform::KEYCODE_D))
+        if (Platform::GetKey(Platform::KEYTYPE_D))
         {
 			current += pTransform->GetRight() * m_movementSpeed * dt;
         }
 
-        if (Platform::GetKey(Platform::KEYCODE_Q))
+        if (Platform::GetKey(Platform::KEYTYPE_Q))
         {
 			current += pTransform->GetUp() * m_movementSpeed * dt;
         }
 
-        if (Platform::GetKey(Platform::KEYCODE_E))
+        if (Platform::GetKey(Platform::KEYTYPE_E))
         {
 			current += -pTransform->GetUp() * m_movementSpeed * dt;
         }
