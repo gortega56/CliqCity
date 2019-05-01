@@ -39,15 +39,6 @@
     <ClCompile Include="LzAssert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Platform\WindowsPlatform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Platform\Window.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Platform\WindowsMessageCenter.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp">
       <Filter>Graphics\DirectX12</Filter>
     </ClCompile>
@@ -96,16 +87,25 @@
     <ClCompile Include="Graphics\DirectX12\Dx12CommandStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Platform\WindowsPlatformTypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Platform\PlatformTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Platform\PlatformInput.cpp">
+    <ClCompile Include="Platform\Win64\Platform_Win64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Win64\PlatformInput_Win64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Win64\PlatformTypes_Win64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Win64\PlatformWindow_Win64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Win64\PlatformEvents_Win64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -148,12 +148,6 @@
     </ClInclude>
     <ClInclude Include="Platform\Platform.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Platform\WindowsMessageCenter.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Platform\Window.h">
-      <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Graphics.h">
       <Filter>Header Files</Filter>
@@ -206,14 +200,20 @@
     <ClInclude Include="Graphics\CommandStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Platform\WindowsPlatformTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Platform\PlatformTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Platform\PlatformInput.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\PlatformWindow.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Win64\PlatformTypes_Win64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\PlatformEvents.h">
+      <Filter>Windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

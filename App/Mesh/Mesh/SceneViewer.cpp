@@ -6,7 +6,7 @@
 #include <memory>
 #include "Resource\Fbx.h"
 #include "Resource\ObjResource.h"
-#include "Platform\Window.h"
+#include "Platform\PlatformWindow.h"
 #include "Graphics.h"
 #include "CommandStream.h"
 #include "Platform\PlatformInput.h"
@@ -128,7 +128,7 @@ static int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std
 static void ConsoleThread();
 
 SceneViewer::SceneViewer()
-    : m_window(nullptr)
+    : m_window(-1)
 	, m_pScene(nullptr)
 	, m_pStagingScene(nullptr)
     , m_frameIndex(0)
@@ -168,21 +168,26 @@ SceneViewer::~SceneViewer()
 
 bool SceneViewer::Initialize()
 {
-    m_window = Window::Create("Scene Viewer", s_window_width, s_window_height, false);
+    m_window = Platform::MakeWindow("Scene Viewer", s_window_width, s_window_height, false);
 
-    if (!Graphics::Initialize(m_window.get(), s_nSwapChainTargets))
+    if (!Graphics::Initialize(m_window, s_nSwapChainTargets))
     {
         return false;
     }
 
 	LoadScene("sponza.scene", 0);
 
-    m_cameraController = CameraController();
+	Platform::Window window;
+	Platform::GetWindow(m_window, window);
+
+	m_cameraController = CameraController();
+	m_cameraController.SetWindowWidth(window.Width);
+	m_cameraController.SetWindowHeight(window.Height);
 
     PerspectiveCamera* pCamera = m_cameraController.GetCamera();
     pCamera->GetTransform()->SetPosition(0.0f, 0.0f, -15.0f);
     pCamera->SetFieldOfView(3.14f * 0.5f);
-    pCamera->SetAspectRatio(m_window->AspectRatio());
+    pCamera->SetAspectRatio(window.Aspect);
     pCamera->SetNear(0.1f);
     pCamera->SetFar(3000.0f);
 
@@ -464,7 +469,7 @@ bool SceneViewer::Initialize()
     params.hRadiancePixelShader = m_psRadianceMap;
     params.hIrradiancePixelShader = m_psIrradianceMap;
     params.hDfgPixelShader = m_psLUT;
-    params.AspectRatio = m_window->AspectRatio();
+    params.AspectRatio = window.Aspect;
     params.pCommandStream = &m_commandStream;
     ProcessEnvironmentLighting(params);
 

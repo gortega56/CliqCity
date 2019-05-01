@@ -2,7 +2,8 @@
 #include "Platform.h"
 
 #ifdef WINXX
-#include "WindowsPlatformTypes.h"
+#include "PlatformTypes_Win64.h"
+#include "PlatformEvents.h"
 #include "PlatformInput.h"
 
 namespace Platform
@@ -17,16 +18,18 @@ namespace Platform
         s_nShowCmd = va_arg(args, int);
         va_end(args);
 
-        auto quit = [](const WindowsMessage& wm)
+		Initialize_Events();
+
+		Initialize_Input();
+
+		auto quit = [](const Message& wm)
         {
             s_quit.store(true);
         };
 
-        s_messageBus.GetEvent(WM_QUIT)->Bind(quit);
-        s_messageBus.GetEvent(WM_CLOSE)->Bind(quit);
-        s_messageBus.GetEvent(WM_DESTROY)->Bind([](const WindowsMessage& wm) { PostQuitMessage(0); });
-
-		Initialize_Input();
+        GetEvent(PLATFORM_EVENT_TYPE_WINDOW_QUIT)->Bind(quit);
+        GetEvent(PLATFORM_EVENT_TYPE_WINDOW_CLOSE)->Bind(quit);
+        GetEvent(PLATFORM_EVENT_TYPE_WINDOW_DESTROY)->Bind([](const Message& wm) { PostQuitMessage(0); });
 
         return 1;
     }
@@ -39,8 +42,8 @@ namespace Platform
     void BeginUpdate(double time, double delta)
     {
 		// Route os messages at the beginning of the frame
-		s_messageBus.PeekMessages();
-    }
+		Update_Events(delta);
+	}
 
     void EndUpdate(double time, double delta)
 	{
@@ -50,72 +53,6 @@ namespace Platform
     bool Running()
     {
         return !s_quit.load();
-    }
-
-    std::shared_ptr<::Window> CreateWindow0(std::string caption, i32 width, i32 height, bool fullscreen)
-    {
-        WNDCLASSEX wc;
-
-        wc.cbSize = sizeof(WNDCLASSEX);
-        wc.style = CS_HREDRAW | CS_VREDRAW;
-        wc.lpfnWndProc = WinProc;
-        wc.cbClsExtra = NULL;
-        wc.cbWndExtra = NULL;
-        wc.hInstance = s_hInstance;
-        wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-        wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-        wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 2);
-        wc.lpszMenuName = NULL;
-        wc.lpszClassName = L"BaseWindow";
-        wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-
-        if (fullscreen)
-        {
-            HWND hwnd = { 0 };
-            HMONITOR hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            MONITORINFO mi = { sizeof(mi) };
-            GetMonitorInfo(hmon, &mi);
-
-            width = mi.rcMonitor.right - mi.rcMonitor.left;
-            height = mi.rcMonitor.bottom - mi.rcMonitor.top;
-            wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
-        }
-        else
-        {
-            RECT R = { 0, 0, width, height };
-            AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
-            width = R.right - R.left;
-            height = R.bottom - R.top;
-        }
-
-        if (!RegisterClassEx(&wc))
-        {
-            MessageBox(nullptr, L"RegisterClass Failed", nullptr, 0);
-        }
-
-        HWND hwnd = CreateWindowEx(NULL,
-            L"BaseWindow",
-            std::wstring(caption.begin(), caption.end()).c_str(),
-            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-            GetSystemMetrics(SM_CXSCREEN) / 2 - width / 2,
-            GetSystemMetrics(SM_CYSCREEN) / 2 - height / 2,
-            width, height,
-            NULL,
-            NULL,
-            s_hInstance,
-            NULL);
-
-        if (!hwnd)
-        {
-            MessageBox(NULL, L"Error creating window",
-                L"Error", MB_OK | MB_ICONERROR);
-            return false;
-        }
-
-        ShowWindow(hwnd, SW_SHOW);
-        UpdateWindow(hwnd);
-
-        return std::make_shared<Window>(hwnd, width, height, fullscreen);
     }
 
     int CreateConsole()

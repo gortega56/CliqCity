@@ -149,7 +149,7 @@ public:
 
     static constexpr u32 s_nFrameResources = s_nSwapChainTargets;
 
-	std::shared_ptr<Window> m_window;
+	Platform::WindowHandle m_window;
 
 	std::shared_ptr<Scene> m_pScene;
 

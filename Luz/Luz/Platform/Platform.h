@@ -52,8 +52,6 @@ namespace Platform
 
     LUZ_API bool Running();
 
-    LUZ_API std::shared_ptr<::Window> CreateWindow0(std::string caption, i32 width, i32 height, bool fullscreen);
-
     LUZ_API int CreateConsole();
 
     LUZ_API int ClearConsole();

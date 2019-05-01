@@ -464,18 +464,18 @@ namespace Graphics
         return handle;
     }
 
-    bool Initialize(Window* pWindow, u32 numBackBuffers)
+    bool Initialize(const Platform::WindowHandle hWindow, u32 numBackBuffers)
     {
 #ifdef DX_DEBUG
         LUZASSERT(SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&s_device.pDebug))));
         s_device.pDebug->EnableDebugLayer();
 #endif
 
-        auto pPlatformWindow = dynamic_cast<Platform::Window*>(pWindow);
-        auto handle = pPlatformWindow->Handle();
-        auto width = pPlatformWindow->Width();
-        auto height = pPlatformWindow->Height();
-        auto fullScreen = pPlatformWindow->FullScreen();
+        auto pPlatformWindow = &Platform::s_pWindows[hWindow];
+		auto width = pPlatformWindow->Width;
+        auto height = pPlatformWindow->Height;
+        auto fullScreen = pPlatformWindow->bFullScreen;
+		auto handle = pPlatformWindow->hwnd;
 
         // Create Factory
         HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&s_device.pFactory4));

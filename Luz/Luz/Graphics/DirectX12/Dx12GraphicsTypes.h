@@ -2,8 +2,8 @@
 #ifndef DX12GRAPHICSTYPES_H
 #define DX12GRAPHICSTYPES_H
 
-#ifndef WINDOWSPLATFORMTYPES_H
-#include "Platform/WindowsPlatformTypes.h"
+#ifndef PLATFORMTYPES_WIN64_H
+#include "Platform/Win64/PlatformTypes_Win64.h"
 #endif
 
 #pragma comment(lib, "d3d12.lib")

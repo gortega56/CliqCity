@@ -31,6 +31,10 @@ namespace Luz
 
         LUZ_API void SetVerticalTurnSpeed(const float speed);
 
+		LUZ_API void SetWindowWidth(const unsigned int width);
+
+		LUZ_API void SetWindowHeight(const unsigned int height);
+
     private:
         PerspectiveCamera m_camera;
 
@@ -39,6 +43,8 @@ namespace Luz
         float m_verticalTurnSpeed;
         float m_mouseX;
         float m_mouseY;
+		unsigned short m_windowWidth;
+		unsigned short m_windowHeight;
     };
 
     inline PerspectiveCamera* CameraController::GetCamera()
@@ -75,5 +81,15 @@ namespace Luz
     {
         m_verticalTurnSpeed = speed;
     }
+
+	inline void CameraController::SetWindowWidth(const unsigned int width)
+	{
+		m_windowWidth = static_cast<unsigned short>(width);
+	}
+
+	inline void CameraController::SetWindowHeight(const unsigned int height)
+	{
+		m_windowHeight = static_cast<unsigned short>(height);
+	}
 }
 #endif

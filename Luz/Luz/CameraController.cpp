@@ -2,6 +2,7 @@
 #include "CameraController.h"
 #include "Platform.h"
 #include "PlatformInput.h"
+#include "PlatformWindow.h"
 
 using namespace lina;
 

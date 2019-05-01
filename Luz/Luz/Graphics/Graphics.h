@@ -17,13 +17,18 @@
 #else
 #endif
 
-class Window;
+namespace Platform
+{
+	typedef int8_t WindowHandle;
+}
 
 namespace Graphics
 {
+	typedef int8_t WindowHandle;
+
     class CommandStream;
 
-    LUZ_API bool Initialize(Window* pWindow, u32 numBackBuffers);
+    LUZ_API bool Initialize(const Platform::WindowHandle hWindow, u32 numBackBuffers);
 
     LUZ_API void Shutdown();
 

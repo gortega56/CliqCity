@@ -3,7 +3,7 @@
 
 namespace Platform
 {
-    ScreenPoint::ScreenPoint() 
+    ScreenPoint::ScreenPoint() : ScreenPoint(-1,-1)
     {
 
     }

@@ -210,18 +210,18 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Engine.cpp" />
-    <ClCompile Include="Platform\PlatformInput.cpp" />
     <ClCompile Include="Platform\PlatformTypes.cpp" />
-    <ClCompile Include="Platform\WindowsPlatform.cpp" />
-    <ClCompile Include="Platform\WindowsPlatformTypes.cpp" />
+    <ClCompile Include="Platform\Win64\PlatformEvents_Win64.cpp" />
+    <ClCompile Include="Platform\Win64\PlatformInput_Win64.cpp" />
+    <ClCompile Include="Platform\Win64\PlatformTypes_Win64.cpp" />
+    <ClCompile Include="Platform\Win64\PlatformWindow_Win64.cpp" />
+    <ClCompile Include="Platform\Win64\Platform_Win64.cpp" />
     <ClCompile Include="Resource\Fbx.cpp" />
     <ClCompile Include="Resource\MeshResourceUtility.cpp" />
     <ClCompile Include="Resource\MtlResource.cpp" />
     <ClCompile Include="Resource\ObjResource.cpp" />
     <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Platform\Window.cpp" />
-    <ClCompile Include="Platform\WindowsMessageCenter.cpp" />
     <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -245,7 +245,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="Platform\PlatformInput.h" />
     <ClInclude Include="Platform\Platform.h" />
     <ClInclude Include="Platform\PlatformTypes.h" />
-    <ClInclude Include="Platform\WindowsPlatformTypes.h" />
+    <ClInclude Include="Platform\Win64\PlatformTypes_Win64.h" />
     <ClInclude Include="Resource\Fbx.h" />
     <ClInclude Include="Resource\MeshResourceUtility.h" />
     <ClInclude Include="Resource\MtlResource.h" />
@@ -257,8 +257,8 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="TypeDefs.h" />
-    <ClInclude Include="Platform\Window.h" />
-    <ClInclude Include="Platform\WindowsMessageCenter.h" />
+    <ClInclude Include="Platform\PlatformWindow.h" />
+    <ClInclude Include="Platform\PlatformEvents.h" />
     <ClInclude Include="VertexTraits.h" />
   </ItemGroup>
   <ItemGroup>

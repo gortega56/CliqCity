@@ -6,11 +6,11 @@
 #include "PlatformTypes.h"
 #endif
 
-struct WindowsMessage;
-
 namespace Platform
 {
 	LUZ_API ScreenPoint GetMousePosition();
+
+	LUZ_API void SetMousePosition(const int x, const int y);
 
 	LUZ_API bool IsMouseActive();
 
@@ -30,18 +30,17 @@ namespace Platform
 
 	LUZ_API bool GetMouseButton(MouseButton button);
 
-	//LUZ_API bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-	//
-	//LUZ_API bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-	//
-	//LUZ_API bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
-	//
-	//LUZ_API float GetGamepadAxis(GamepadAxis axis, short id);
+	LUZ_API bool GetGamepadButtonDown(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+	
+	LUZ_API bool GetGamepadButtonUp(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+	
+	LUZ_API bool GetGamepadButton(GamepadButton buttonMask, bool isAdditive = true, short id = -1);
+	
+	LUZ_API float GetGamepadAxis(GamepadAxis axis, short id);
 
 	void Initialize_Input();
 
 	void Update_Input(double delta);
-
 }
 
 #endif

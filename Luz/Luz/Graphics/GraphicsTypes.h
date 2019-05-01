@@ -244,7 +244,6 @@ namespace Graphics
     inline constexpr ResourceStates operator ^ (ResourceStates a, ResourceStates b) throw() { return ResourceStates(((std::underlying_type<ResourceStates>::type)a) ^ ((std::underlying_type<ResourceStates>::type)b)); }
     inline ResourceStates &operator ^= (ResourceStates &a, ResourceStates b) throw() { return (ResourceStates &)(((std::underlying_type<ResourceStates>::type &)a) ^= ((std::underlying_type<ResourceStates>::type)b)); }
 
-
     struct LUZ_API BufferDesc
     {
         uint64_t Alignment;

@@ -1,6 +1,11 @@
 #include "stdafx.h"
 #include "PlatformInput.h"
-#include "WindowsPlatformTypes.h"
+#include "PlatformEvents.h"
+#include "Platform.h"
+
+#ifdef WINXX
+
+#include "PlatformTypes_Win64.h"
 
 #define PREV_KEY_STATE_BIT 0x40000000
 
@@ -40,49 +45,37 @@ namespace Platform
 		return (s_frameState.nFrames - 1) % FrameState::s_nInputStates;
 	}
 
-	static KeyType KeyTypeFromWParam(WPARAM wParam)
-	{
-		// any exception from wParam value to KeyType value
-		// must be done here
-		//switch (wParam)
-		//{
-		//default:
-		//	return static_cast<KeyType>(wParam);
-		//}
-
-		return GetKeyType(static_cast<UINT>(wParam));
-	}
-
-	static void OnKeyDown(WPARAM wParam, LPARAM lParam)
+	static void OnKeyDown(const Message message)
 	{
 		// if the previous state is set to 1
 		// the keydown event is recurrent
 		// and there is no need for processing it
-		if (lParam & PREV_KEY_STATE_BIT)
+		if (message.Keyboard.bRecurrent)
+		{
 			return;
+		}
 
-		KeyType eKey = KeyTypeFromWParam(wParam);
+		KeyType eKey = message.Keyboard.eKey;
 
 		s_pInputStates[s_frameState.iFrame].pKeysDown[eKey] = 1;
-		printf("keydown %u\n", s_pInputStates[s_frameState.iFrame].pKeysDown[eKey]);
 	}
 
-	static void OnKeyUp(WPARAM wParam, LPARAM lParam)
+	static void OnKeyUp(const Message message)
 	{
-		KeyType eKey = KeyTypeFromWParam(wParam);
+		KeyType eKey = message.Keyboard.eKey;
 
 		s_pInputStates[s_frameState.iFrame].pKeysDown[eKey] = 0;
 		s_pInputStates[s_frameState.iFrame].pKeysUp[eKey] = 1;
 	}
 
-	static void OnMouseDown(MouseButton button, WPARAM wParam, LPARAM lParam)
+	static void OnMouseDown(MouseButton button, const Message message)
 	{
 		short mouseButtonState = 0;
 
 		if (button == MOUSEBUTTON_X)
 		{
 			// GET_XBUTTON_WPARAM returns n for XBUTTON n
-			short xButton = GET_XBUTTON_WPARAM(wParam);
+			short xButton = message.MouseClick.Code;
 
 			// shift xButton to 4 bits to the left
 			// before adding to curr state
@@ -96,14 +89,14 @@ namespace Platform
 		s_pInputStates[s_frameState.iFrame].MouseState.Button = mouseButtonState;
 	}
 
-	static void OnMouseUp(MouseButton button, WPARAM wParam, LPARAM lParam)
+	static void OnMouseUp(MouseButton button, const Message message)
 	{
 		short mouseButtonState = 0;
 
 		if (button == MOUSEBUTTON_X)
 		{
 			// GET_XBUTTON_WPARAM returns n for XBUTTON n
-			short xButton = GET_XBUTTON_WPARAM(wParam);
+			short xButton = message.MouseClick.Code;
 
 			// shift xButton to 4 bits to the left
 			// before adding to curr state
@@ -117,58 +110,59 @@ namespace Platform
 		s_pInputStates[s_frameState.iFrame].MouseState.Button = mouseButtonState;
 	}
 
-	static void OnMouseMove(WPARAM wParam, LPARAM lParam)
+	static void OnMouseMove(const Message message)
 	{
-		s_pInputStates[s_frameState.iFrame].MouseState.Position.x = GET_X_LPARAM(lParam);
-		s_pInputStates[s_frameState.iFrame].MouseState.Position.y = GET_Y_LPARAM(lParam);
+		s_pInputStates[s_frameState.iFrame].MouseState.Position.x = message.MouseMove.PositionX;
+		s_pInputStates[s_frameState.iFrame].MouseState.Position.y = message.MouseMove.PositionY;
 	}
 
-	static void OnMouseWheel(WPARAM wparam, LPARAM lparam)
+	static void OnMouseWheel(const Message message)
 	{
-		s_pInputStates[s_frameState.iFrame].MouseState.Wheel += (float)GET_WHEEL_DELTA_WPARAM(wparam);
+		s_pInputStates[s_frameState.iFrame].MouseState.Wheel += message.MouseWheel.Delta;
 	}
 
-	static void OnWindowsMessage(const WindowsMessage& wm)
+	static void OnEventMessage(const Message& message)
 	{
-		switch (wm.msg)
+		switch (message.eEventType)
 		{
-		case WM_LBUTTONDOWN:
-			OnMouseDown(MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_LBUTTONDOWN:
+			OnMouseDown(MOUSEBUTTON_LEFT, message);
 			break;
-		case WM_MBUTTONDOWN:
-			OnMouseDown(MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_MBUTTONDOWN:
+			OnMouseDown(MOUSEBUTTON_MIDDLE, message);
 			break;
-		case WM_RBUTTONDOWN:
-			OnMouseDown(MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_RBUTTONDOWN:
+			OnMouseDown(MOUSEBUTTON_RIGHT, message);
 			break;
-		case WM_XBUTTONDOWN:
-			OnMouseDown(MOUSEBUTTON_X, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_XBUTTONDOWN:
+			OnMouseDown(MOUSEBUTTON_X, message);
 			break;
-		case WM_LBUTTONUP:
-			OnMouseUp(MOUSEBUTTON_LEFT, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_LBUTTONUP:
+			OnMouseUp(MOUSEBUTTON_LEFT, message);
 			break;
-		case WM_MBUTTONUP:
-			OnMouseUp(MOUSEBUTTON_MIDDLE, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_MBUTTONUP:
+			OnMouseUp(MOUSEBUTTON_MIDDLE, message);
 			break;
-		case WM_RBUTTONUP:
-			OnMouseUp(MOUSEBUTTON_RIGHT, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_RBUTTONUP:
+			OnMouseUp(MOUSEBUTTON_RIGHT, message);
 			break;
-		case WM_XBUTTONUP:
-			OnMouseUp(MOUSEBUTTON_X, wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_XBUTTONUP:
+			OnMouseUp(MOUSEBUTTON_X, message);
 			break;
-		case WM_MOUSEMOVE:
-			OnMouseMove(wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_MOVE:
+			OnMouseMove(message);
 			break;
-		case WM_KEYDOWN:
-		case WM_SYSKEYDOWN: // key down if alt key is presed
-			OnKeyDown(wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_MOUSE_WHEEL:
+			OnMouseWheel(message);
 			break;
-		case WM_KEYUP:
-		case WM_SYSKEYUP: // key up if alt key is pressed
-			OnKeyUp(wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_KEYBOARD_KEYDOWN:
+		case PLATFORM_EVENT_TYPE_KEYBOARD_SYSKEYDOWN: // key down if alt key is presed
+			OnKeyDown(message);
 			break;
-		case WM_MOUSEWHEEL:
-			OnMouseWheel(wm.wparam, wm.lparam);
+		case PLATFORM_EVENT_TYPE_KEYBOARD_KEYUP:
+		case PLATFORM_EVENT_TYPE_KEYBOARD_SYSKEYUP: // key up if alt key is pressed
+			OnKeyUp(message);
+			break;
 		default:
 			break;
 		}
@@ -177,6 +171,11 @@ namespace Platform
 	ScreenPoint GetMousePosition()
 	{
 		return s_pInputStates[s_frameState.iFrame].MouseState.Position;
+	}
+
+	void SetMousePosition(const int x, const int y)
+	{
+		::SetCursorPos(x, y);
 	}
 
 	bool IsMouseActive()
@@ -496,30 +495,30 @@ namespace Platform
 	void Initialize_Input()
 	{
 		// Mouse Down
-		Platform::s_messageBus.GetEvent(WM_LBUTTONDOWN)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_MBUTTONDOWN)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_RBUTTONDOWN)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_XBUTTONDOWN)->Bind<Platform::OnWindowsMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_LBUTTONDOWN)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_MBUTTONDOWN)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_RBUTTONDOWN)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_XBUTTONDOWN)->Bind<Platform::OnEventMessage>();
 
 		// Mouse Up
-		Platform::s_messageBus.GetEvent(WM_LBUTTONUP)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_MBUTTONUP)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_RBUTTONUP)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_XBUTTONUP)->Bind<Platform::OnWindowsMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_LBUTTONUP)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_MBUTTONUP)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_RBUTTONUP)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_XBUTTONUP)->Bind<Platform::OnEventMessage>();
 
 		// Mouse Move
-		Platform::s_messageBus.GetEvent(WM_MOUSEMOVE)->Bind<Platform::OnWindowsMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_MOVE)->Bind<Platform::OnEventMessage>();
 
 		// Mouse Wheel
-		Platform::s_messageBus.GetEvent(WM_MOUSEWHEEL)->Bind<Platform::OnWindowsMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_MOUSE_WHEEL)->Bind<Platform::OnEventMessage>();
 
 		// Key Down
-		Platform::s_messageBus.GetEvent(WM_KEYDOWN)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_SYSKEYDOWN)->Bind<Platform::OnWindowsMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_KEYBOARD_KEYDOWN)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_KEYBOARD_SYSKEYDOWN)->Bind<Platform::OnEventMessage>();
 
 		// Key Up
-		Platform::s_messageBus.GetEvent(WM_KEYUP)->Bind<Platform::OnWindowsMessage>();
-		Platform::s_messageBus.GetEvent(WM_SYSKEYUP)->Bind<Platform::OnWindowsMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_KEYBOARD_KEYUP)->Bind<Platform::OnEventMessage>();
+		GetEvent(PLATFORM_EVENT_TYPE_KEYBOARD_SYSKEYUP)->Bind<Platform::OnEventMessage>();
 	}
 
 	void Update_Input(double delta)
@@ -528,7 +527,7 @@ namespace Platform
 		// the current frame we need to prepare for the next
 		// frame by caching any relevant data
 		unsigned int curr = s_frameState.iFrame;
-		
+
 		// Flip for next frame
 		s_frameState.nFrames += 1;
 
@@ -568,3 +567,5 @@ namespace Platform
 		}
 	}
 }
+
+#endif
