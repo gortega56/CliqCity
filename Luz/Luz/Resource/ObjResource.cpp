@@ -320,7 +320,7 @@ namespace Resource
             Mtl::MaterialDesc md;
             for (auto mtl : mtls)
             {
-                if (mtl->TryGetMaterialDesc(materialName, md))
+                if (mtl->TryGetMaterialDesc(materialName.c_str(), md))
                 {
                     materials.push_back(md);
                 }

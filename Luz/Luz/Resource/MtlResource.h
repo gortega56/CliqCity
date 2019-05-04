@@ -43,11 +43,9 @@ namespace Resource
 
         ~Mtl();
 
-		const LUZ_API char* GetTexture(int i) const;
-
         LUZ_API u32 NumMaterials() const;
 
-        LUZ_API bool TryGetMaterialDesc(const std::string name, Mtl::MaterialDesc& desc) const;
+        LUZ_API bool TryGetMaterialDesc(const char* pName, Mtl::MaterialDesc& desc) const;
 
         static LUZ_API std::shared_ptr<const Mtl> Load(const Desc desc);
 
@@ -63,23 +61,33 @@ namespace Resource
             float Specular[3];            // Ks
             float Emissive[3];            // Ke
             float TransmissionFilter[3];  // Tf
-            i8 IlluminationModel;         // illum
+			float Roughness;			  // Pr
+			float Metallic;				  // Pm
+			float Sheen;				  // Ps
+			float ClearcoatThickness;	  // Pc
+			float ClearcoatRoughness;	  // Pcr
+			float Anisotropy;			  // aniso
+			float AnisotropyRotation;	  // anisor
+			short IlluminationModel;      // illum
 
-            int iName;
-            int iAmbient			= -1;	// map_Ka
-            int iDiffuse			= -1;	// map_Kd
-            int iSpecular			= -1;	// map_Ks
-            int iSpecularPower		= -1;	// map_Ns
-            int iDissolve			= -1;	// map_d
-            int iBump0				= -1;	// bump
-            int iBump1				= -1;	// map_bump
-        };
+            short iName				= -1;
+            short iAmbient			= -1;	// map_Ka
+            short iDiffuse			= -1;	// map_Kd
+            short iSpecular			= -1;	// map_Ks
+            short iSpecularPower	= -1;	// map_Ns
+            short iDissolve			= -1;	// map_d
+            short iBump0			= -1;	// bump
+            short iBump1			= -1;	// map_bump
+			short iRoughness		= -1;	// map_Pr
+			short iMetallic			= -1;	// map_Pm
+			short iSheen			= -1;	// map_Ps
+			short iEmissive			= -1;	// map_Ke
+			short iNormal			= -1;	// norm
+		};
 
 		std::string m_name;
-		std::vector<std::string> m_textures;
-        std::unordered_map<std::string, Material> m_materials;
-
-        Material* FindOrCreateMaterial(const std::string& name);
+		std::vector<std::string> m_strings;
+		std::vector<Material> m_materials;
     };
 }
 
