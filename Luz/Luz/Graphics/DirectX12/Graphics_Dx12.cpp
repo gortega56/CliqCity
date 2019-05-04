@@ -3,13 +3,12 @@
 #include "CommandStream.h"
 
 #ifdef DX12
-#include "Dx12GraphicsTypes.h"
+#include "GraphicsTypes_Dx12.h"
 
 #include "ResourceCollection.h"
 
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
-#include <tchar.h>
 
 #define DX_DEBUG
 
@@ -26,18 +25,18 @@ void ErrorDescription(HRESULT hr)
 {
     if (FACILITY_WINDOWS == HRESULT_FACILITY(hr))
         hr = HRESULT_CODE(hr);
-    TCHAR* szErrMsg;
+    CHAR* szErrMsg;
 
-    if (FormatMessage(
+    if (FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR)&szErrMsg, 0, NULL) != 0)
+        (LPSTR)&szErrMsg, 0, NULL) != 0)
     {
-        _tprintf(TEXT("%s"), szErrMsg);
+        printf("%s", szErrMsg);
         LocalFree(szErrMsg);
     }
     else
-        _tprintf(TEXT("[Could not find a description for error # %#x.]\n"), hr);
+        printf("[Could not find a description for error # %#x.]\n", hr);
 }
 
 namespace Internal
@@ -295,28 +294,37 @@ namespace Graphics
 
     static constexpr uint64_t s_allocatorInUse = (std::numeric_limits<uint64_t>::max)();
 
-    static Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors);
+	static void WaitOnFence(ID3D12Fence* pFence, UINT64 signal)
+	{
+		LUZASSERT(signal != s_allocatorInUse);
 
-    static CommandContext AllocateCommandContext(const CommandQueueType eQueueType);
+		// if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
+		// the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
+		UINT64 fenceValue = pFence->GetCompletedValue();
 
-    static void AdvanceExecution(std::atomic_uint64_t* pExecution, const uint64_t execution);
+		if (fenceValue < signal)
+		{
+			HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+			LUZASSERT(eventHandle);
 
-    static uint64_t ExecuteCommandList(ID3D12GraphicsCommandList* pGraphicsCommandList, const CommandQueueType& eQueueType);
+			HRESULT hr = pFence->SetEventOnCompletion(signal, eventHandle);
+			if (SUCCEEDED(hr))
+			{
+				// We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
+				// has reached "fenceValue", we know the command queue has finished executing
+				WaitForSingleObject(eventHandle, INFINITE);
+			}
 
-    static void SignalQueue(const CommandQueueType& eQueueType, uint64_t signal, bool wait);
+			CloseHandle(eventHandle);
+		}
+	}
 
-    static void WaitOnFence(ID3D12Fence* pFence, UINT64 signal);
-
-    static ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target);
-
-    static CommandStreamHandle CreateGraphicsCommandList(const PipelineStateHandle pipelineHandle);
-
-    Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
+    static Descriptor AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE eType, const u32 nDescriptors)
     {
         return s_descriptorAllocatorCollection[eType].Allocate(nDescriptors);
     }
 
-    CommandContext AllocateCommandContext(const CommandQueueType eQueueType)
+	static CommandContext AllocateCommandContext(const CommandQueueType eQueueType)
     {
         CommandContextPool& pool = s_commandContextPools[eQueueType];
         CommandQueue& commandQueue = s_commandQueues[eQueueType];
@@ -355,13 +363,13 @@ namespace Graphics
         return ctx;
     }
 
-    void AdvanceExecution(std::atomic_uint64_t* pExecution, const uint64_t execution)
+	static void AdvanceExecution(std::atomic_uint64_t* pExecution, const uint64_t execution)
     {
         uint64_t lastExecution = pExecution->exchange(execution);
         LUZASSERT(lastExecution == s_allocatorInUse);
     }
 
-    uint64_t ExecuteCommandList(ID3D12GraphicsCommandList* pGraphicsCommandList, const CommandQueueType& eQueueType)
+	static uint64_t ExecuteCommandList(ID3D12GraphicsCommandList* pGraphicsCommandList, const CommandQueueType& eQueueType)
     {
         HRESULT hr = pGraphicsCommandList->Close();
         LUZASSERT(SUCCEEDED(hr));
@@ -376,7 +384,7 @@ namespace Graphics
         return commandQueue.Executions.fetch_add(1ULL) + 1ULL;
     }
 
-    void SignalQueue(const CommandQueueType& eQueueType, uint64_t signal, bool wait)
+	static void SignalQueue(const CommandQueueType& eQueueType, uint64_t signal, bool wait)
     { 
         CommandQueue& commandQueue = s_commandQueues[eQueueType];
         HRESULT hr = commandQueue.pCommandQueue->Signal(commandQueue.pFence, signal);
@@ -388,32 +396,7 @@ namespace Graphics
         }
     }
 
-    void WaitOnFence(ID3D12Fence* pFence, UINT64 signal)
-    {
-        LUZASSERT(signal != s_allocatorInUse);
-
-        // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
-        // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-        UINT64 fenceValue = pFence->GetCompletedValue();
-
-        if (fenceValue < signal)
-        {
-            HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-            LUZASSERT(eventHandle);
-
-            HRESULT hr = pFence->SetEventOnCompletion(signal, eventHandle);
-            if (SUCCEEDED(hr))
-            {
-                // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
-                // has reached "fenceValue", we know the command queue has finished executing
-                WaitForSingleObject(eventHandle, INFINITE);
-            }
-
-            CloseHandle(eventHandle);
-        }
-    }
-
-    ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target)
+	static ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target)
     {
         auto handle = s_shaderCollection.AllocateHandle();
         if (handle != GPU_RESOURCE_HANDLE_INVALID)
@@ -430,7 +413,7 @@ namespace Graphics
         return handle;
     }
 
-    CommandStreamHandle CreateGraphicsCommandList(const PipelineStateHandle pipelineHandle)
+	static CommandStreamHandle CreateGraphicsCommandList(const PipelineStateHandle pipelineHandle)
     {
         CommandStreamHandle handle = s_commandListCollection.AllocateHandle(GFX_COMMAND_QUEUE_TYPE_DRAW, s_nCommandQueueTypeBits);
         LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);

@@ -199,15 +199,15 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraController.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Dx12CommandStream.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Dx12DescriptorAllocator.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Dx12GraphicsTypes.cpp" />
+    <ClCompile Include="Graphics\DirectX12\CommandStream_Dx12.cpp" />
+    <ClCompile Include="Graphics\DirectX12\DescriptorAllocator_Dx12.cpp" />
+    <ClCompile Include="Graphics\DirectX12\GraphicsTypes_Dx12.cpp" />
+    <ClCompile Include="Graphics\DirectX12\Graphics_Dx12.cpp" />
     <ClCompile Include="Graphics\GraphicsTypes.cpp" />
     <ClCompile Include="Graphics\PipelineStates.cpp" />
     <ClCompile Include="Graphics\ResourceCollection.cpp" />
     <ClCompile Include="IApplication.cpp" />
     <ClCompile Include="LzAssert.cpp" />
-    <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Platform\PlatformTypes.cpp" />
@@ -230,8 +230,9 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GeneralMacros.h" />
     <ClInclude Include="Graphics\CommandStream.h" />
-    <ClInclude Include="Graphics\DirectX12\Dx12DescriptorAllocator.h" />
+    <ClInclude Include="Graphics\DirectX12\DescriptorAllocator_Dx12.h" />
     <ClInclude Include="Graphics\DirectX12\Dx12GraphicsTypes.h" />
+    <ClInclude Include="Graphics\DirectX12\GraphicsTypes_Dx12.h" />
     <ClInclude Include="Graphics\Graphics.h" />
     <ClInclude Include="Graphics\GraphicsTypes.h" />
     <ClInclude Include="Graphics\PipelineStates.h" />

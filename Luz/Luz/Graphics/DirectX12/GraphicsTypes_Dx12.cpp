@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "Dx12GraphicsTypes.h"
+#include "GraphicsTypes_Dx12.h"
 
 namespace Graphics
 {

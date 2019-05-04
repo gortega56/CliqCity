@@ -1,6 +1,6 @@
 #include "stdafx.h"
-#include "Dx12DescriptorAllocator.h"
-#include "Dx12GraphicsTypes.h"
+#include "DescriptorAllocator_Dx12.h"
+#include "GraphicsTypes_Dx12.h"
 
 namespace Graphics
 {

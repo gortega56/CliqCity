@@ -2,8 +2,8 @@
 #include "CommandStream.h"
 
 #ifdef DX12
-#include "Dx12GraphicsTypes.h"
-#include "Dx12DescriptorAllocator.h"
+#include "GraphicsTypes_Dx12.h"
+#include "DescriptorAllocator_Dx12.h"
 
 namespace Graphics
 {

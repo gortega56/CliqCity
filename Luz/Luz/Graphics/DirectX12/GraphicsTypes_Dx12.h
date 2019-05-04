@@ -54,7 +54,7 @@
 #endif
 
 #ifndef DX12DESCRIPTORALLOCATOR_H
-#include "Dx12DescriptorAllocator.h"
+#include "DescriptorAllocator_Dx12.h"
 #endif
 
 #define PIPELINE_MAX 32

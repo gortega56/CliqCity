@@ -39,9 +39,6 @@
     <ClCompile Include="LzAssert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\Dx12Graphics.cpp">
-      <Filter>Graphics\DirectX12</Filter>
-    </ClCompile>
     <ClCompile Include="Resource\Fbx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -78,15 +75,6 @@
     <ClCompile Include="Graphics\PipelineStates.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\Dx12GraphicsTypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\Dx12DescriptorAllocator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX12\Dx12CommandStream.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Platform\PlatformTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -106,6 +94,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Platform\Win64\PlatformEvents_Win64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\CommandStream_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\Graphics_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\GraphicsTypes_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DirectX12\DescriptorAllocator_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -194,9 +194,6 @@
     <ClInclude Include="Graphics\PipelineStates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\DirectX12\Dx12DescriptorAllocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\CommandStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -214,6 +211,12 @@
     </ClInclude>
     <ClInclude Include="Platform\PlatformEvents.h">
       <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX12\DescriptorAllocator_Dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX12\GraphicsTypes_Dx12.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
