@@ -235,7 +235,6 @@ namespace Graphics
         ID3D12CommandAllocator* ppCommandAllocators[Capacity];
         ID3D12DescriptorHeap* ppDescriptorHeaps[Capacity];
         std::atomic_uint16_t NextContext = 0;
-        std::atomic_flag Lock = ATOMIC_FLAG_INIT;
     };
 
     enum DescriptorHandleType
