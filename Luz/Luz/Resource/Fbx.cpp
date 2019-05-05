@@ -11,12 +11,6 @@
 
 namespace Resource
 {
-    enum TriWindingOrder
-    {
-        TRI_WINDING_ORDER_CW,
-        TRI_WINDING_ORDER_CCW
-    };
-
     static bool g_convertCoordinate = false;
     static bool g_reverseWindingOrder = false;
 
@@ -41,12 +35,6 @@ namespace Resource
 		bool bConvertYUp;
 		bool bNegateZ;
     };
-
-    static void ConvertCoordinateSystem(FbxVector4& vector);
-
-    static void ConvertCoordinateSystem(FbxVector2& vector);
-
-    static void ConvertCoordinateSystem(FbxAMatrix& matrix);
 
 	static void InvertTextureCoordinatesU(Fbx::UV* pUVs, unsigned int nUVs)
 	{
@@ -73,36 +61,18 @@ namespace Resource
 		}
 	}
 
-    template<typename ... Args> static std::string string_format(const std::string& format, Args ... args);
-    
-    static std::string ToString(FbxVector4& vector);
-    
-    static std::string ToString(FbxVector2& vector);
-    
-    static std::string ToString(float(&vector)[4]);
-    
-    static std::string ToString(float(&vector)[3]);
-    
-    static std::string ToString(float(&vector)[2]);
-
-    static void GetNodeAttributes(FbxNode* pNode, FbxContext* pContext);
-
-    static void GetNodeAttributesRecursively(FbxNode* pNode, FbxContext* pContext);
-
-    static void GetMeshAttributes(FbxNode* pNode, FbxContext* pContext);
-
-    void ConvertCoordinateSystem(FbxVector4& vector)
+	static void ConvertCoordinateSystem(FbxVector4& vector)
     {
         // Negate x-axis
         vector.mData[0] = -vector.mData[0];
     }
 
-    void ConvertCoordinateSystem(FbxVector2& vector)
+	static void ConvertCoordinateSystem(FbxVector2& vector)
     {
         vector.mData[0] = 1.0 - vector.mData[0];
     }
 
-    void ConvertCoordinateSystem(FbxAMatrix& matrix)
+	static void ConvertCoordinateSystem(FbxAMatrix& matrix)
     {
         auto pDouble = static_cast<double*>(matrix);
 
@@ -118,7 +88,7 @@ namespace Resource
     }
 
     template<size_t N>
-    void ExtractFloats(const FbxDouble* pIn, float* pOut)
+	static void ExtractFloats(const FbxDouble* pIn, float* pOut)
     {
         for (size_t i = 0; i < N; ++i)
         {
@@ -127,7 +97,7 @@ namespace Resource
     }
 
     template<typename ... Args>
-    std::string string_format(const std::string& format, Args ... args)
+	static std::string string_format(const std::string& format, Args ... args)
     {
         size_t size = 64;
         std::unique_ptr<char[]> buf(new char[size]);
@@ -135,32 +105,32 @@ namespace Resource
         return std::string(buf.get(), buf.get() + size); // We don't want the '\0' inside
     }
 
-    std::string ToString(FbxVector4& vector)
+	static std::string ToString(FbxVector4& vector)
     {
         return string_format("(%f, %f, %f, %f)", vector.mData[0], vector.mData[1], vector.mData[2], vector.mData[3]);
     }
     
-    std::string ToString(FbxVector2& vector)
+	static std::string ToString(FbxVector2& vector)
     {
         return string_format("(%f, %f)", vector.mData[0], vector.mData[1]);
     }
     
-    std::string ToString(float(&vector)[4])
+	static std::string ToString(float(&vector)[4])
     {
         return string_format("(%f, %f, %f, %f)", vector[0], vector[1], vector[2], vector[3]);
     }
 
-    std::string ToString(float(&vector)[3])
+	static std::string ToString(float(&vector)[3])
     {
         return string_format("(%f, %f, %f)", vector[0], vector[1], vector[2]);
     }
 
-    std::string ToString(float(&vector)[2])
+	static std::string ToString(float(&vector)[2])
     {
         return string_format("(%f, %f)", vector[0], vector[1]);
     }
 
-	const char* TrimFileName(const char* pFileName)
+	static const char* TrimFileName(const char* pFileName)
 	{
 		size_t i = strlen(pFileName);
 
@@ -182,7 +152,7 @@ namespace Resource
 		return pFileName;
 	}
 
-	short CreateUniqueMaterialByName(const char* pName, std::vector<Fbx::Material>* pMaterials)
+	static short CreateUniqueMaterialByName(const char* pName, std::vector<Fbx::Material>* pMaterials)
 	{
 		short n = static_cast<short>(pMaterials->size());
 		for (short i = 0; i < n; ++i)
@@ -199,7 +169,7 @@ namespace Resource
 		return n;
 	}
 
-	short CreateUniqueTextureFileName(const char* pName, std::vector<std::string>* pTextureFileNames)
+	static short CreateUniqueTextureFileName(const char* pName, std::vector<std::string>* pTextureFileNames)
 	{
 		short n = static_cast<short>(pTextureFileNames->size());
 		for (short i = 0; i < n; ++i)
@@ -215,62 +185,7 @@ namespace Resource
 		return n;
 	}
 
-    void GetNodeAttributes(FbxNode* pNode, FbxContext* pContext)
-    {
-        LUZASSERT(pContext && pNode);
-
-        for (int i = 0, n = pNode->GetNodeAttributeCount(); i < n; ++i)
-        {
-            if (FbxNodeAttribute* pNodeAttribute = pNode->GetNodeAttributeByIndex(i))
-            {
-                FbxNodeAttribute::EType type = pNodeAttribute->GetAttributeType();
-                switch (type) {
-                case FbxNodeAttribute::eUnknown:
-                case FbxNodeAttribute::eNull:
-                case FbxNodeAttribute::eMarker:
-                case FbxNodeAttribute::eSkeleton:
-                    break;
-                case FbxNodeAttribute::eMesh:
-                    GetMeshAttributes(pNode, pContext);
-                    break;
-                case FbxNodeAttribute::eNurbs:
-                case FbxNodeAttribute::ePatch:
-                case FbxNodeAttribute::eCamera:
-                case FbxNodeAttribute::eCameraStereo:
-                case FbxNodeAttribute::eCameraSwitcher:
-                case FbxNodeAttribute::eLight:
-                case FbxNodeAttribute::eOpticalReference:
-                case FbxNodeAttribute::eOpticalMarker:
-                case FbxNodeAttribute::eNurbsCurve:
-                case FbxNodeAttribute::eTrimNurbsSurface:
-                case FbxNodeAttribute::eBoundary:
-                case FbxNodeAttribute::eNurbsSurface:
-                case FbxNodeAttribute::eShape:
-                case FbxNodeAttribute::eLODGroup:
-                case FbxNodeAttribute::eSubDiv:
-                default:
-                    break;
-                }
-            }
-        }
-    }
-
-    void GetNodeAttributesRecursively(FbxNode* pNode, FbxContext* pContext)
-    {
-        LUZASSERT(pContext);
-
-        if (pNode)
-        {
-            GetNodeAttributes(pNode, pContext);
-
-            for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
-            {
-                GetNodeAttributesRecursively(pNode->GetChild(i), pContext);
-            }
-        }
-    }
-
-	void GetMeshAttributes(FbxNode* pNode, FbxContext* pContext)
+	static void GetMeshAttributes(FbxNode* pNode, FbxContext* pContext)
 	{
 		FbxMesh* pMesh = pNode->GetMesh();
 		LUZASSERT(pMesh);
@@ -301,7 +216,7 @@ namespace Resource
 			pExportMaterial->iDisplacement = -1;
 			pExportMaterial->iDisplacementVector = -1;
 
-			if (FbxSurfaceLambert* pLambert = FbxCast<FbxSurfaceLambert>(pSurfaceMaterial))
+			if (FbxSurfaceLambert * pLambert = FbxCast<FbxSurfaceLambert>(pSurfaceMaterial))
 			{
 				ExtractFloats<3>(pLambert->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
 				ExtractFloats<3>(pLambert->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
@@ -322,7 +237,7 @@ namespace Resource
 
 				pExportMaterial->eSurface = Fbx::FBX_SURFACE_TYPE_LAMBERT;
 
-				if (FbxSurfacePhong* pPhong = FbxCast<FbxSurfacePhong>(pLambert))
+				if (FbxSurfacePhong * pPhong = FbxCast<FbxSurfacePhong>(pLambert))
 				{
 					ExtractFloats<3>(pPhong->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
 					ExtractFloats<3>(pPhong->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
@@ -477,14 +392,14 @@ namespace Resource
 				FbxVector4 normal;
 				pMesh->GetPolygonVertexNormal(iPolygon, iVertex, normal);
 				ExtractFloats<3>(normal.mData, pContext->pNormals->emplace_back().Data);
-				
+
 				for (int iUVSet = 0, nUVSets = uvSetNames.GetCount(); iUVSet < nUVSets; ++iUVSet)
-				{					
+				{
 					bool bUnmapped;
 					FbxVector2 uv;
 					pMesh->GetPolygonVertexUV(iPolygon, iVertex, uvSetNames.GetStringAt(iUVSet), uv, bUnmapped);
 					ExtractFloats<2>(uv.mData, pContext->pUVs->emplace_back().Data);
-				
+
 					if (pContext->eFlags & Fbx::FBX_FLAG_PACK_MATERIAL_TEXTUREW)
 					{
 						pContext->pUVs->back().Data[2] = static_cast<float>(iExportMaterial);
@@ -549,6 +464,61 @@ namespace Resource
 		surface.bHasUVs = true;
 		surface.Material = iExportMaterial;
 	}
+
+    static void GetNodeAttributes(FbxNode* pNode, FbxContext* pContext)
+    {
+        LUZASSERT(pContext && pNode);
+
+        for (int i = 0, n = pNode->GetNodeAttributeCount(); i < n; ++i)
+        {
+            if (FbxNodeAttribute* pNodeAttribute = pNode->GetNodeAttributeByIndex(i))
+            {
+                FbxNodeAttribute::EType type = pNodeAttribute->GetAttributeType();
+                switch (type) {
+                case FbxNodeAttribute::eUnknown:
+                case FbxNodeAttribute::eNull:
+                case FbxNodeAttribute::eMarker:
+                case FbxNodeAttribute::eSkeleton:
+                    break;
+                case FbxNodeAttribute::eMesh:
+                    GetMeshAttributes(pNode, pContext);
+                    break;
+                case FbxNodeAttribute::eNurbs:
+                case FbxNodeAttribute::ePatch:
+                case FbxNodeAttribute::eCamera:
+                case FbxNodeAttribute::eCameraStereo:
+                case FbxNodeAttribute::eCameraSwitcher:
+                case FbxNodeAttribute::eLight:
+                case FbxNodeAttribute::eOpticalReference:
+                case FbxNodeAttribute::eOpticalMarker:
+                case FbxNodeAttribute::eNurbsCurve:
+                case FbxNodeAttribute::eTrimNurbsSurface:
+                case FbxNodeAttribute::eBoundary:
+                case FbxNodeAttribute::eNurbsSurface:
+                case FbxNodeAttribute::eShape:
+                case FbxNodeAttribute::eLODGroup:
+                case FbxNodeAttribute::eSubDiv:
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+	static void GetNodeAttributesRecursively(FbxNode* pNode, FbxContext* pContext)
+    {
+        LUZASSERT(pContext);
+
+        if (pNode)
+        {
+            GetNodeAttributes(pNode, pContext);
+
+            for (int i = 0, n = pNode->GetChildCount(); i < n; ++i)
+            {
+                GetNodeAttributesRecursively(pNode->GetChild(i), pContext);
+            }
+        }
+    }
 
 	const char* Fbx::GetDirectory() const
 	{
