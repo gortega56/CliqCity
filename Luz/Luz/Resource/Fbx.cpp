@@ -24,6 +24,10 @@ namespace Resource
     static constexpr size_t s_szNormal = sizeof(float) * 3;
     static constexpr size_t s_szUV = sizeof(float) * 3;
 
+	static constexpr int s_nLayerChannels = FbxLayerElement::eTypeCount;
+	static constexpr int s_iTextureCoordinateStartIndex = FbxLayerElement::eTextureDiffuse;
+	static constexpr int s_nTextureCoordinateChannels = s_nLayerChannels - s_iTextureCoordinateStartIndex;
+
     struct FbxContext
     {
         std::vector<Fbx::Position>* pPositions;
@@ -33,6 +37,9 @@ namespace Resource
         std::vector<Fbx::Surface>* pSurfaces;
         std::vector<Fbx::Material>* pMaterials;
         std::vector<std::string>* pTextures;
+		Fbx::Flags eFlags;
+		bool bConvertYUp;
+		bool bNegateZ;
     };
 
     static void ConvertCoordinateSystem(FbxVector4& vector);
@@ -294,10 +301,8 @@ namespace Resource
 			pExportMaterial->iDisplacement = -1;
 			pExportMaterial->iDisplacementVector = -1;
 
-			if (pSurfaceMaterial->GetClassId().Is(FbxSurfaceLambert::ClassId))
+			if (FbxSurfaceLambert* pLambert = FbxCast<FbxSurfaceLambert>(pSurfaceMaterial))
 			{
-				FbxSurfaceLambert* pLambert = static_cast<FbxSurfaceLambert*>(pSurfaceMaterial);
-
 				ExtractFloats<3>(pLambert->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
 				ExtractFloats<3>(pLambert->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
 				ExtractFloats<3>(pLambert->Diffuse.Get().mData, pExportMaterial->DiffuseColor.Data);
@@ -316,38 +321,33 @@ namespace Resource
 				pExportMaterial->VectorDisplacementFactor = static_cast<float>(pLambert->VectorDisplacementFactor.Get());
 
 				pExportMaterial->eSurface = Fbx::FBX_SURFACE_TYPE_LAMBERT;
-			}
-			else if (pSurfaceMaterial->GetClassId().Is(FbxSurfacePhong::ClassId))
-			{
-				FbxSurfacePhong* pPhong = static_cast<FbxSurfacePhong*>(pSurfaceMaterial);
 
-				ExtractFloats<3>(pPhong->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
-				ExtractFloats<3>(pPhong->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
-				ExtractFloats<3>(pPhong->Diffuse.Get().mData, pExportMaterial->DiffuseColor.Data);
-				ExtractFloats<3>(pPhong->NormalMap.Get().mData, pExportMaterial->NormalMap.Data);
-				ExtractFloats<3>(pPhong->Bump.Get().mData, pExportMaterial->Bump.Data);
-				ExtractFloats<3>(pPhong->TransparentColor.Get().mData, pExportMaterial->TransparentColor.Data);
-				ExtractFloats<3>(pPhong->DisplacementColor.Get().mData, pExportMaterial->DisplacementColor.Data);
-				ExtractFloats<3>(pPhong->VectorDisplacementColor.Get().mData, pExportMaterial->VectorDisplacementColor.Data);
-				ExtractFloats<3>(pPhong->Specular.Get().mData, pExportMaterial->SpecularColor.Data);
-				ExtractFloats<3>(pPhong->Reflection.Get().mData, pExportMaterial->ReflectionColor.Data);
+				if (FbxSurfacePhong* pPhong = FbxCast<FbxSurfacePhong>(pLambert))
+				{
+					ExtractFloats<3>(pPhong->Emissive.Get().mData, pExportMaterial->EmissiveColor.Data);
+					ExtractFloats<3>(pPhong->Ambient.Get().mData, pExportMaterial->AmbientColor.Data);
+					ExtractFloats<3>(pPhong->Diffuse.Get().mData, pExportMaterial->DiffuseColor.Data);
+					ExtractFloats<3>(pPhong->NormalMap.Get().mData, pExportMaterial->NormalMap.Data);
+					ExtractFloats<3>(pPhong->Bump.Get().mData, pExportMaterial->Bump.Data);
+					ExtractFloats<3>(pPhong->TransparentColor.Get().mData, pExportMaterial->TransparentColor.Data);
+					ExtractFloats<3>(pPhong->DisplacementColor.Get().mData, pExportMaterial->DisplacementColor.Data);
+					ExtractFloats<3>(pPhong->VectorDisplacementColor.Get().mData, pExportMaterial->VectorDisplacementColor.Data);
+					ExtractFloats<3>(pPhong->Specular.Get().mData, pExportMaterial->SpecularColor.Data);
+					ExtractFloats<3>(pPhong->Reflection.Get().mData, pExportMaterial->ReflectionColor.Data);
 
-				pExportMaterial->EmissiveFactor = static_cast<float>(pPhong->EmissiveFactor.Get());
-				pExportMaterial->AmbientFactor = static_cast<float>(pPhong->AmbientFactor.Get());
-				pExportMaterial->DiffuseFactor = static_cast<float>(pPhong->DiffuseFactor.Get());
-				pExportMaterial->BumpFactor = static_cast<float>(pPhong->BumpFactor.Get());
-				pExportMaterial->TransparencyFactor = static_cast<float>(pPhong->TransparencyFactor.Get());
-				pExportMaterial->DisplacementFactor = static_cast<float>(pPhong->DisplacementFactor.Get());
-				pExportMaterial->VectorDisplacementFactor = static_cast<float>(pPhong->VectorDisplacementFactor.Get());
-				pExportMaterial->SpecularFactor = static_cast<float>(pPhong->SpecularFactor.Get());
-				pExportMaterial->Shininess = static_cast<float>(pPhong->Shininess.Get());
-				pExportMaterial->ReflectionFactor = static_cast<float>(pPhong->ReflectionFactor.Get());
+					pExportMaterial->EmissiveFactor = static_cast<float>(pPhong->EmissiveFactor.Get());
+					pExportMaterial->AmbientFactor = static_cast<float>(pPhong->AmbientFactor.Get());
+					pExportMaterial->DiffuseFactor = static_cast<float>(pPhong->DiffuseFactor.Get());
+					pExportMaterial->BumpFactor = static_cast<float>(pPhong->BumpFactor.Get());
+					pExportMaterial->TransparencyFactor = static_cast<float>(pPhong->TransparencyFactor.Get());
+					pExportMaterial->DisplacementFactor = static_cast<float>(pPhong->DisplacementFactor.Get());
+					pExportMaterial->VectorDisplacementFactor = static_cast<float>(pPhong->VectorDisplacementFactor.Get());
+					pExportMaterial->SpecularFactor = static_cast<float>(pPhong->SpecularFactor.Get());
+					pExportMaterial->Shininess = static_cast<float>(pPhong->Shininess.Get());
+					pExportMaterial->ReflectionFactor = static_cast<float>(pPhong->ReflectionFactor.Get());
 
-				pExportMaterial->eSurface = Fbx::FBX_SURFACE_TYPE_PHONG;
-			}
-			else
-			{
-				LUZASSERT(0);
+					pExportMaterial->eSurface = Fbx::FBX_SURFACE_TYPE_PHONG;
+				}
 			}
 
 			int iTextureChannelName;
@@ -414,34 +414,53 @@ namespace Resource
 
 		/* Get geometry for this mesh */
 
-		// Check for normals, uvs by checking first vertex
-		FbxStringList uvSetNames;
-		FbxVector4 normal;
-		FbxVector2 uv;
-		bool bUnmapped;
-
-		pMesh->GetUVSetNames(uvSetNames);
-
-		unsigned int triStart = static_cast<unsigned int>(pContext->pTris->size());
-		bool bHasNormals = pMesh->GetPolygonVertexNormal(0, 0, normal);
-		bool bHasUVs = (uvSetNames.GetCount() != 0 && pMesh->GetPolygonVertexUV(0, 0, uvSetNames.GetStringAt(0), uv, bUnmapped));
-
-		// Reserve the memory if we can easily predict it
-		bool bIsTriangleMesh = pMesh->IsTriangleMesh();
-		if (bIsTriangleMesh)
+		if (!pMesh->GetElementNormal())
 		{
-			pContext->pPositions->reserve(pContext->pPositions->size() + static_cast<size_t>(pMesh->GetPolygonCount()) * 3);
-
-			if (bHasNormals)
+			if (pContext->eFlags & Fbx::FBX_FLAG_GEN_NORMALS)
 			{
-				pContext->pNormals->reserve(pContext->pNormals->size() + static_cast<size_t>(pMesh->GetPolygonCount()) * 3);
-			}
-
-			if (bHasUVs)
-			{
-				pContext->pUVs->reserve(pContext->pUVs->size() + static_cast<size_t>(pMesh->GetPolygonCount()) * 3);
+				pMesh->InitNormals();
+				pMesh->GenerateNormals();
 			}
 		}
+
+		if (!pMesh->GetElementTangent())
+		{
+			if (pContext->eFlags & Fbx::FBX_FLAG_GEN_TANGENTS)
+			{
+				pMesh->InitTangents();
+				pMesh->GenerateTangentsDataForAllUVSets();
+			}
+		}
+
+		FbxStringList uvSetNames;
+		pMesh->GetUVSetNames(uvSetNames);
+		LUZASSERT(uvSetNames.GetCount() <= 1 /*Only support one uv set at the moment*/);
+
+		// Reserve the memory. If we aren't a tri mesh assume quads
+		{
+			size_t szPolygons = static_cast<size_t>(pMesh->GetPolygonCount());
+			size_t szElements, szTris;
+
+			bool bIsTriangleMesh = pMesh->IsTriangleMesh();
+			if (bIsTriangleMesh)
+			{
+				szElements = szPolygons * 3;
+				szTris = szPolygons;
+			}
+			else
+			{
+				szElements = szPolygons * 4;
+				szTris = szPolygons * 2;
+			}
+
+			pContext->pPositions->reserve(pContext->pPositions->size() + szElements);
+			pContext->pNormals->reserve(pContext->pNormals->size() + szElements);
+			pContext->pUVs->reserve(pContext->pUVs->size() + szElements);
+			pContext->pTris->reserve(pContext->pTris->size() + szTris);
+		}
+
+
+		unsigned int iTriStart = static_cast<unsigned int>(pContext->pTris->size());
 
 		for (int iPolygon = 0, nPolygon = pMesh->GetPolygonCount(); iPolygon < nPolygon; ++iPolygon)
 		{
@@ -452,34 +471,24 @@ namespace Resource
 			{
 				int iControlPoint = pMesh->GetPolygonVertex(iPolygon, iVertex);
 
-				FbxVector4 fbxPosition = pMesh->GetControlPointAt(iControlPoint);
-				Fbx::Position& position = pContext->pPositions->emplace_back();
-				ExtractFloats<3>(fbxPosition.mData, position.Data);
+				FbxVector4 position = pMesh->GetControlPointAt(iControlPoint);
+				ExtractFloats<3>(position.mData, pContext->pPositions->emplace_back().Data);
 
-				FbxVector4 fbxNormal;
-				if (pMesh->GetPolygonVertexNormal(iPolygon, iVertex, fbxNormal))
-				{
-					Fbx::Normal& normal = pContext->pNormals->emplace_back();
-					ExtractFloats<3>(fbxNormal.mData, normal.Data);
-				}
-				else
-				{
-					LUZASSERT(!bHasNormals);
-				}
-
-				FbxVector2 fbxUV;
-				if (pMesh->GetPolygonVertexUV(iPolygon, iVertex, uvSetNames.GetStringAt(0), fbxUV, bUnmapped))
-				{
-					Fbx::UV& uv = pContext->pUVs->emplace_back();
-					ExtractFloats<2>(fbxUV.mData, uv.Data);
-
-					// TODO: This is specific to SceneViewer. Maybe some options on how
-					// we want to associate materials with geometry
-					uv.Data[2] = static_cast<float>(iExportMaterial);
-				}
-				else
-				{
-					LUZASSERT(!bHasUVs);
+				FbxVector4 normal;
+				pMesh->GetPolygonVertexNormal(iPolygon, iVertex, normal);
+				ExtractFloats<3>(normal.mData, pContext->pNormals->emplace_back().Data);
+				
+				for (int iUVSet = 0, nUVSets = uvSetNames.GetCount(); iUVSet < nUVSets; ++iUVSet)
+				{					
+					bool bUnmapped;
+					FbxVector2 uv;
+					pMesh->GetPolygonVertexUV(iPolygon, iVertex, uvSetNames.GetStringAt(iUVSet), uv, bUnmapped);
+					ExtractFloats<2>(uv.mData, pContext->pUVs->emplace_back().Data);
+				
+					if (pContext->eFlags & Fbx::FBX_FLAG_PACK_MATERIAL_TEXTUREW)
+					{
+						pContext->pUVs->back().Data[2] = static_cast<float>(iExportMaterial);
+					}
 				}
 			}
 
@@ -534,10 +543,10 @@ namespace Resource
 		// Add the surface
 		Fbx::Surface& surface = pContext->pSurfaces->emplace_back();
 		surface.Name = pMesh->GetName();
-		surface.TriStart = triStart;
-		surface.NumTris = static_cast<unsigned int>(pContext->pTris->size()) - triStart;
-		surface.bHasNormals = bHasNormals;
-		surface.bHasUVs = bHasUVs;
+		surface.TriStart = iTriStart;
+		surface.NumTris = static_cast<unsigned int>(pContext->pTris->size()) - iTriStart;
+		surface.bHasNormals = true;
+		surface.bHasUVs = true;
 		surface.Material = iExportMaterial;
 	}
 
@@ -616,62 +625,37 @@ namespace Resource
 		return (i > -1) ? m_names[i].c_str() : nullptr;
 	}
 
-    void Fbx::ConvertCoordinateSystem()
-    {
-        for (int i = 0, n = static_cast<int>(m_positions.size()); i < n; ++i)
-        {
-            m_positions[i].Data[0] = -m_positions[i].Data[0];
-        }
-
-        for (int i = 0, n = static_cast<int>(m_normals.size()); i < n; ++i)
-        {
-            m_normals[i].Data[0] = -m_normals[i].Data[0];
-        }
-
-        for (int i = 0, n = static_cast<int>(m_uvs.size()); i < n; ++i)
-        {
-            m_uvs[i].Data[0] = 1.0f - m_uvs[i].Data[0];
-        }
-    }
-
-    void Fbx::ReverseWindingOrder()
-    {
-        auto swap = [](unsigned int* p1, unsigned int* p2)
-        {
-            unsigned int temp = *p1;
-            *p1 = *p2;
-            *p2 = temp;
-        };
-
-        for (int i = 0, n = static_cast<int>(m_triangles.size()); i < n; ++i)
-        {
-            swap(&m_triangles[i].Positions[1], &m_triangles[i].Positions[2]);
-            swap(&m_triangles[i].Normals[1], &m_triangles[i].Normals[2]);
-            swap(&m_triangles[i].UVs[1], &m_triangles[i].UVs[2]);
-        }
-    }
-
     std::shared_ptr<const Fbx> Fbx::Load(const Desc& desc)
     {
         std::shared_ptr<Fbx> pResource = nullptr;
 
-        FbxManager* fbxManager = FbxManager::Create();
+        FbxManager* pManager = FbxManager::Create();
 
-        FbxIOSettings* ios = FbxIOSettings::Create(fbxManager, IOSROOT);
-        fbxManager->SetIOSettings(ios);
+        FbxIOSettings* pSettings = FbxIOSettings::Create(pManager, IOSROOT);
+		pManager->SetIOSettings(pSettings);
 
-        FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
-        if (fbxImporter->Initialize(desc.pFileName, -1, fbxManager->GetIOSettings()))
+        FbxImporter* pImporter = FbxImporter::Create(pManager, "");
+        if (pImporter->Initialize(desc.pFileName, -1, pManager->GetIOSettings()))
         {
             pResource = std::make_shared<Fbx>();
 			pResource->iTextureDirectory = CreateUniqueTextureFileName(desc.pTextureDirectory, &pResource->m_names);
 
-            FbxScene* fbxScene = FbxScene::Create(fbxManager, "");
-            fbxImporter->Import(fbxScene);
-            fbxImporter->Destroy();
+            FbxScene* pScene = FbxScene::Create(pManager, "");
+			pImporter->Import(pScene);
+			pImporter->Destroy();
 
-            FbxNode* rootNode = fbxScene->GetRootNode();
-            if (rootNode)
+			FbxAxisSystem axis = pScene->GetGlobalSettings().GetAxisSystem();
+			FbxAxisSystem::MayaYUp.ConvertScene(pScene);
+
+			int sign;
+			FbxAxisSystem::EUpVector up = axis.GetUpVector(sign);
+			bool bConvertYUp = (up == FbxAxisSystem::eZAxis);
+
+			FbxAxisSystem::EFrontVector fwd = axis.GetFrontVector(sign);
+			bool bNegateZ = (sign == -1);
+
+            FbxNode* pNode = pScene->GetRootNode();
+            if (pNode)
             {
                 FbxContext ctx;
                 ctx.pPositions = &pResource->m_positions;
@@ -681,29 +665,28 @@ namespace Resource
                 ctx.pSurfaces = &pResource->m_surfaces;
                 ctx.pTextures = &pResource->m_names;
                 ctx.pMaterials = &pResource->m_materials;
+				ctx.eFlags = desc.eFlags;
+				ctx.bConvertYUp = bConvertYUp;
+				ctx.bNegateZ = bNegateZ;
 
-                GetNodeAttributesRecursively(rootNode, &ctx);
+                GetNodeAttributesRecursively(pNode, &ctx);
             }
 
-            fbxScene->Destroy();
+            pScene->Destroy();
         }
 
-        fbxManager->Destroy();
+		pManager->Destroy();
 
-        if (desc.bConvertCoordinateSystem) pResource->ConvertCoordinateSystem();
-
-        if (desc.bReverseWindingOrder) pResource->ReverseWindingOrder();
-
-		if (desc.eFlags & Fbx::FBX_FLAG_INVERT_UV_X)
+		if (desc.eFlags & Fbx::FBX_FLAG_INVERT_TEXTUREU)
 		{
 			InvertTextureCoordinatesU(pResource->m_uvs.data(), (unsigned int)pResource->m_uvs.size());
 		}
-		else if (desc.eFlags & Fbx::FBX_FLAG_INVERT_UV_Y)
+		else if (desc.eFlags & Fbx::FBX_FLAG_INVERT_TEXTUREV)
 		{
 			InvertTextureCoordinatesV(pResource->m_uvs.data(), (unsigned int)pResource->m_uvs.size());
 
 		}
-		else if (desc.eFlags & Fbx::FBX_FLAG_INVERT_UV)
+		else if (desc.eFlags & Fbx::FBX_FLAG_INVERT_TEXTUREUV)
 		{
 			InvertTextureCoordinates(pResource->m_uvs.data(), (unsigned int)pResource->m_uvs.size());
 		}

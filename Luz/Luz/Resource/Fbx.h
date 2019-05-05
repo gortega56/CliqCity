@@ -20,9 +20,13 @@ namespace Resource
 		enum Flags
 		{
 			FBX_FLAG_NONE = 0,
-			FBX_FLAG_INVERT_UV_X = 1,
-			FBX_FLAG_INVERT_UV_Y = 2,
-			FBX_FLAG_INVERT_UV	 = FBX_FLAG_INVERT_UV_X | FBX_FLAG_INVERT_UV_Y
+			FBX_FLAG_INVERT_TEXTUREU	= 1 << 1,
+			FBX_FLAG_INVERT_TEXTUREV	= 1 << 2,
+			FBX_FLAG_INVERT_TEXTUREUV	= FBX_FLAG_INVERT_TEXTUREU | FBX_FLAG_INVERT_TEXTUREV,
+			FBX_FLAG_GEN_NORMALS	= 1 << 3,
+			FBX_FLAG_GEN_TANGENTS	= 1 << 4,
+			FBX_FLAG_GEN_BINORMALS	= 1 << 5,
+			FBX_FLAG_PACK_MATERIAL_TEXTUREW = 1 << 6
 		};
 
         struct LUZ_API JointBlend
@@ -136,10 +140,6 @@ namespace Resource
 		const LUZ_API Material* GetMaterials() const;
 
 		const LUZ_API char* GetTextureFileName(int i) const;
-
-        LUZ_API void ConvertCoordinateSystem();
-
-        LUZ_API void ReverseWindingOrder();
         
         static LUZ_API std::shared_ptr<const Fbx> Load(const Desc& desc);
 
@@ -157,6 +157,18 @@ namespace Resource
 		int iDirectory = -1;
 		int iTextureDirectory = -1;
     };
+
+	inline Fbx::Flags operator|(const Fbx::Flags a, const Fbx::Flags b)
+	{
+		return static_cast<Fbx::Flags>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
+	}
+
+	inline Fbx::Flags operator&(const Fbx::Flags a, const Fbx::Flags b)
+	{
+		return static_cast<Fbx::Flags>(static_cast<unsigned>(a) & static_cast<unsigned>(b));
+	}
 }
+
+
 
 #endif // !FBXRESOURCE_H

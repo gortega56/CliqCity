@@ -175,7 +175,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 
-	LoadScene("sponza.scene", 0);
+	LoadScene("cerberus.scene", 0);
 
 	Platform::Window window;
 	Platform::GetWindow(m_window, window);
@@ -825,7 +825,7 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
                     Resource::Fbx::Desc desc;
                     desc.pFileName = filePath;
 					desc.pTextureDirectory = texturePath;
-					desc.eFlags = Resource::Fbx::FBX_FLAG_INVERT_UV_X;
+					desc.eFlags = Resource::Fbx::FBX_FLAG_PACK_MATERIAL_TEXTUREW;
 
                     loadingFbxs.push_back(Resource::Async<Resource::Fbx>::Load(desc));
                 }
