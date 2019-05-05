@@ -625,7 +625,8 @@ void SceneViewer::Update(double dt)
             Graphics::UpdateConstantBuffer(&pConsts->ShadowConsts, sizeof(CameraConstants), pConsts->hShadow);
 
             auto& cs = m_commandStream;
-            cs.SetPipeline(m_shadowPipeline);
+			Graphics::ResetCommandStream(&cs, m_shadowPipeline);
+
             cs.SetRenderTargets(0, nullptr, m_txShadow);
             cs.ClearDepthStencil(1.0f, 0, m_txShadow);
             cs.SetViewport(s_shadow_vp);
@@ -647,7 +648,8 @@ void SceneViewer::Update(double dt)
         {
             auto& cs = m_commandStream;
             // cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            cs.SetPipeline(m_fullScreenPipeline);
+			Graphics::ResetCommandStream(&cs, m_fullScreenPipeline);
+
             cs.SetRenderTargets();
             cs.ClearRenderTarget(clear);
             cs.ClearDepthStencil(1.0f, 0);
@@ -688,9 +690,10 @@ void SceneViewer::Update(double dt)
             Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
 
             auto& cs = m_commandStream;
+			Graphics::ResetCommandStream(&cs, m_opaquePipeline);
+
             cs.TransitionRenderTarget(Graphics::GFX_RESOURCE_STATE_PRESENT, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
             cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            cs.SetPipeline(m_opaquePipeline);
             cs.SetRenderTargets();
             cs.ClearRenderTarget(clear);
             cs.ClearDepthStencil(1.0f, 0);
@@ -713,7 +716,7 @@ void SceneViewer::Update(double dt)
             Graphics::SubmitCommandStream(&cs);
 
             // Draw cube map
-            cs.SetPipeline(m_cubemapPipeline);
+			Graphics::ResetCommandStream(&cs, m_cubemapPipeline);
             cs.SetRenderTargets();
             cs.SetViewport(vp);
             cs.SetScissorRect(scissor);
@@ -1020,9 +1023,9 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
     }
 
     Graphics::CommandStream* pCommandStream = params.pCommandStream;
+	Graphics::ResetCommandStream(pCommandStream, hRadiance);
 
-    pCommandStream->SetPipeline(hRadiance);
-    pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
     pCommandStream->SetDescriptorTable(2, &params.hCubeTexture, 1);
 
@@ -1046,8 +1049,8 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
     }
 
     Graphics::SubmitCommandStream(pCommandStream);
+	Graphics::ResetCommandStream(pCommandStream, hIrradiance);
 
-    pCommandStream->SetPipeline(hIrradiance);
     pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pCommandStream->SetDescriptorTable(1, &params.hCubeTexture, 1);
 
@@ -1068,13 +1071,13 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
     }
 
     Graphics::SubmitCommandStream(pCommandStream);
+	Graphics::ResetCommandStream(pCommandStream, hBrdf);
 
     pCommandStream->TransitionTexture(params.hRenderTarget, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     // brdf integration
     pCommandStream->TransitionTexture(params.hDfgRenderTarget, Graphics::GFX_RESOURCE_STATE_GENERIC_READ, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
 
-    pCommandStream->SetPipeline(hBrdf);
     pCommandStream->SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pCommandStream->SetRenderTargets(1, &params.hDfgRenderTarget, nullptr, nullptr, 0);
     pCommandStream->SetViewport(0.0f, 0.0f, 512.0, 512.0, 0.0, 1.0);

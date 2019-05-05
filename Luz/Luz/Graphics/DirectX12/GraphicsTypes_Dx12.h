@@ -200,13 +200,6 @@ namespace Graphics
         uint64_t Execution[GFX_COMMAND_QUEUE_TYPE_NUM_TYPES];
     };
 
-    struct CommandContext
-    {
-        ID3D12CommandAllocator* pCommandAllocator;
-        ID3D12DescriptorHeap* pDescriptorHeap;
-        std::atomic_uint64_t* pExecution;
-    };
-
     struct CommandList
     {
         union
@@ -216,7 +209,7 @@ namespace Graphics
         };
 
         ID3D12DescriptorHeap* pDescriptorHeap;
-        std::atomic_uint64_t* pExecution;
+		uint64_t iAllocator;
         CommandQueueType eType;
     };
 
@@ -230,12 +223,20 @@ namespace Graphics
     struct CommandContextPool
     {
         static constexpr uint16_t DescriptorHeapCapacity = 256;
-        static constexpr uint16_t Capacity = 16;
-        std::atomic_uint64_t pCommandContextExecutions[Capacity];
+        static constexpr uint16_t Capacity = 8;
+        uint64_t pCommandContextExecutions[Capacity];
         ID3D12CommandAllocator* ppCommandAllocators[Capacity];
         ID3D12DescriptorHeap* ppDescriptorHeaps[Capacity];
-        std::atomic_uint16_t NextContext = 0;
-    };
+		std::atomic_uint64_t Usage = ATOMIC_VAR_INIT((1ULL << (Capacity - 1)) | ((1ULL << (Capacity - 1)) - 1));
+	};
+
+	struct CommandContext
+	{
+		ID3D12CommandAllocator* pCommandAllocator;
+		ID3D12DescriptorHeap* pDescriptorHeap;
+		uint32_t Index;
+		CommandQueueType eQueueType;
+	};
 
     enum DescriptorHandleType
     {
@@ -290,6 +291,8 @@ namespace Graphics
     extern CommandListCollection s_commandListCollection;
 
     extern const uint32_t s_nDescriptorTypeBits;
+
+	extern const uint32_t s_nCommandQueueTypeBits;
 
     DXGI_FORMAT GetDxgiFormat(const Format format);
     
