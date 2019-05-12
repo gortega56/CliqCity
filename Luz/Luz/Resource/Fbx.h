@@ -11,11 +11,13 @@ namespace Resource
     class Fbx
     {
     public:
-		using Float3 = TArray<float, 3>;
-        using Position = Float3;
-        using Normal =Float3;
-        using UV = Float3;
-        using Color = Float3;
+		using Float4x4	 = TArray<float, 16>;
+		using Float3x3	 = TArray<float, 9>;
+		using Float3	 = TArray<float, 3>;
+        using Position	 = Float3;
+        using Normal	 = Float3;
+        using UV		 = Float3;
+        using Color		 = Float3;
 
 		enum Flags
 		{
@@ -29,17 +31,38 @@ namespace Resource
 			FBX_FLAG_PACK_MATERIAL_TEXTUREW = 1 << 6
 		};
 
-        struct LUZ_API JointBlend
-        {
-            unsigned int Index;
-            unsigned int Weight;
-        };
+		struct LUZ_API Skeleton
+		{
+			unsigned short Name;
+			unsigned short JointStart;
+			unsigned short NumJoints;
+		};
+
+		struct LUZ_API Joint
+		{
+			short Name;
+			short InverseBindPose;
+			short Parent;
+		};
+
+		struct LUZ_API BlendWeight
+		{
+			int Joint;
+			float Weight;
+		};
+
+		struct LUZ_API Influence
+		{
+			unsigned short BlendWeightStart;
+			unsigned short NumBlendWeights;
+		};
 
         struct LUZ_API Triangle
         {
             unsigned int Positions[3];
             unsigned int Normals[3];
             unsigned int UVs[3];
+			unsigned int Influences[3];
         };
 
         struct LUZ_API Surface
@@ -48,8 +71,10 @@ namespace Resource
             unsigned int TriStart;
             unsigned int NumTris;
             short Material;
+			short MaxBlends;
             bool bHasNormals;
             bool bHasUVs;
+			bool bHasBlends;
         };
 
         struct LUZ_API Desc
@@ -147,12 +172,15 @@ namespace Resource
         std::vector<Position> m_positions;
         std::vector<Normal> m_normals;
         std::vector<UV> m_uvs;
-        std::vector<Triangle> m_triangles;
+		std::vector<Joint> m_joints;
+		std::vector<Skeleton> m_skeletons;
+		std::vector<Float4x4> m_transforms;
+		std::vector<Influence> m_influences;
+		std::vector<BlendWeight> m_blendWeights;
+		std::vector<Triangle> m_triangles;
         std::vector<Surface> m_surfaces;
         std::vector<Material> m_materials;
-        std::vector<std::string> m_names;
-        std::unordered_map<i32, u32> m_indicesByControlPointIndex;
-        std::unordered_map<i32, JointBlend> m_blendByControlPointIndex;
+		std::vector<std::string> m_strings;
 
 		int iDirectory = -1;
 		int iTextureDirectory = -1;
