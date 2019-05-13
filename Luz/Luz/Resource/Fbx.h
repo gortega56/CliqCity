@@ -13,6 +13,7 @@ namespace Resource
     public:
 		using Float4x4	 = TArray<float, 16>;
 		using Float3x3	 = TArray<float, 9>;
+		using Float4	 = TArray<float, 4>;
 		using Float3	 = TArray<float, 3>;
         using Position	 = Float3;
         using Normal	 = Float3;
@@ -31,33 +32,58 @@ namespace Resource
 			FBX_FLAG_PACK_MATERIAL_TEXTUREW = 1 << 6
 		};
 
-		struct LUZ_API Skeleton
+		struct Skeleton
 		{
 			unsigned short Name;
 			unsigned short JointStart;
 			unsigned short NumJoints;
 		};
 
-		struct LUZ_API Joint
+		struct Joint
 		{
 			short Name;
 			short InverseBindPose;
 			short Parent;
 		};
 
-		struct LUZ_API BlendWeight
+		struct KeyFrame
+		{
+			Float4 Quaternion;
+			Float3 Translation;
+			Float3 Scale;
+			float Time;
+		};
+
+		struct Motion
+		{
+			unsigned short KeyFrameStart;
+			unsigned short NumKeyFrames;
+			unsigned short Joint;
+		};
+
+		struct Animation
+		{
+			unsigned short Name;
+			unsigned short Skeleton;
+			unsigned short MotionsStart;
+			unsigned short NumMotions;
+			unsigned short NumFrames;
+			float Duration;
+		};
+
+		struct BlendWeight
 		{
 			int Joint;
 			float Weight;
 		};
 
-		struct LUZ_API Influence
+		struct Influence
 		{
 			unsigned short BlendWeightStart;
 			unsigned short NumBlendWeights;
 		};
 
-        struct LUZ_API Triangle
+        struct Triangle
         {
             unsigned int Positions[3];
             unsigned int Normals[3];
@@ -65,7 +91,7 @@ namespace Resource
 			unsigned int Influences[3];
         };
 
-        struct LUZ_API Surface
+        struct Surface
         {
             const char* Name;
             unsigned int TriStart;
@@ -152,6 +178,8 @@ namespace Resource
 
 		LUZ_API unsigned int GetNumMaterials() const;
 
+		LUZ_API unsigned int GetNumKeyFrames() const;
+
 		const LUZ_API Position* GetPositions() const;
 
 		const LUZ_API Normal* GetNormals() const;
@@ -166,6 +194,8 @@ namespace Resource
 
 		const LUZ_API char* GetTextureFileName(int i) const;
         
+		const LUZ_API KeyFrame* GetKeyFrames() const;
+
         static LUZ_API std::shared_ptr<const Fbx> Load(const Desc& desc);
 
     private:
@@ -177,6 +207,9 @@ namespace Resource
 		std::vector<Float4x4> m_transforms;
 		std::vector<Influence> m_influences;
 		std::vector<BlendWeight> m_blendWeights;
+		std::vector<KeyFrame> m_keyFrames;
+		std::vector<Motion> m_motions;
+		std::vector<Animation> m_animations;
 		std::vector<Triangle> m_triangles;
         std::vector<Surface> m_surfaces;
         std::vector<Material> m_materials;

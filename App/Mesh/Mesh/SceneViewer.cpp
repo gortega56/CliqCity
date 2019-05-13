@@ -175,7 +175,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 
-	LoadScene("cerberus.scene", 0);
+	LoadScene("Animated.scene", 0);
 
 	Platform::Window window;
 	Platform::GetWindow(m_window, window);

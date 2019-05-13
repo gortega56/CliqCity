@@ -29,6 +29,9 @@ namespace Resource
 		std::vector<Fbx::Float4x4>* pTransforms;
 		std::vector<Fbx::Influence>* pInfluences;
 		std::vector<Fbx::BlendWeight>* pBlendWeights;
+		std::vector<Fbx::KeyFrame>* pKeyFrames;
+		std::vector<Fbx::Motion>* pMotions;
+		std::vector<Fbx::Animation>* pAnimations;
         std::vector<Fbx::Triangle>* pTris;
         std::vector<Fbx::Surface>* pSurfaces;
         std::vector<Fbx::Material>* pMaterials;
@@ -263,16 +266,15 @@ namespace Resource
 	static void GetMeshAttributes(FbxNode* pNode, FbxContext* pContext, int iNode, int iParent)
 	{
 		// Get node materials
-		short iMaterial = -1;
+		short iSurfaceMaterial = -1;
 		{
 			pContext->pMaterials->reserve(pContext->pMaterials->size() + static_cast<size_t>(pNode->GetMaterialCount()));
-
 
 			for (int iMaterial = 0, nMaterials = pNode->GetMaterialCount(); iMaterial < nMaterials; ++iMaterial)
 			{
 				FbxSurfaceMaterial* pSurfaceMaterial = pNode->GetMaterial(iMaterial);
 
-				iMaterial = CreateUniqueMaterialByName(pSurfaceMaterial->GetName(), pContext->pMaterials);
+				iSurfaceMaterial = CreateUniqueMaterialByName(pSurfaceMaterial->GetName(), pContext->pMaterials);
 
 				Fbx::Material& material = (*pContext->pMaterials)[iMaterial];
 
@@ -528,7 +530,7 @@ namespace Resource
 
 						if (pContext->eFlags & Fbx::FBX_FLAG_PACK_MATERIAL_TEXTUREW)
 						{
-							pContext->pUVs->back().Data[2] = static_cast<float>(iMaterial);
+							pContext->pUVs->back().Data[2] = static_cast<float>(iSurfaceMaterial);
 						}
 					}
 
@@ -610,7 +612,7 @@ namespace Resource
 		surface.Name = pMesh->GetName();
 		surface.TriStart = iTriStart;
 		surface.NumTris = static_cast<unsigned int>(pContext->pTris->size()) - iTriStart;
-		surface.Material = iMaterial;
+		surface.Material = iSurfaceMaterial;
 		surface.MaxBlends = maxBlends;
 		surface.bHasNormals = bHasNormals;
 		surface.bHasUVs = bHasUVs;
@@ -689,6 +691,90 @@ namespace Resource
 		}
     }
 
+	static void GetAnimations(FbxScene* pScene, FbxContext* pContext)
+	{
+		for (int iAnimStack = 0, nAnimStacks = pScene->GetSrcObjectCount<FbxAnimStack>(); iAnimStack < nAnimStacks; ++iAnimStack)
+		{
+			FbxAnimStack* pAnimStack = pScene->GetSrcObject<FbxAnimStack>(iAnimStack);			
+			
+			FbxTime singleFrameDuration;
+			singleFrameDuration.SetTime(0, 0, 0, 1, 0, pScene->GetGlobalSettings().GetTimeMode());
+
+			double frameDuration = singleFrameDuration.GetSecondDouble();
+			double frameSampleRate = frameDuration / 1.0f; // one sample per frame... expose this
+			LUZASSERT(frameDuration > 0.0);
+
+			unsigned short nFrames;
+			double startTime, stopTime;
+			if (FbxTakeInfo* pTakeInfo = pScene->GetTakeInfo(pAnimStack->GetName()))
+			{
+				FbxTimeSpan& span = pTakeInfo->mLocalTimeSpan;
+				startTime = span.GetStart().GetSecondDouble();
+				stopTime = span.GetStop().GetSecondDouble();
+				nFrames = static_cast<unsigned short>(span.GetStop().GetFrameCount(pScene->GetGlobalSettings().GetTimeMode()));
+			}
+			else
+			{
+				FbxTimeSpan span;
+				pScene->GetGlobalSettings().GetTimelineDefaultTimeSpan(span);
+				startTime = span.GetStart().GetSecondDouble();
+				stopTime = span.GetStop().GetSecondDouble();
+				nFrames = static_cast<unsigned short>(span.GetStop().GetFrameCount(pScene->GetGlobalSettings().GetTimeMode()));
+			}
+			
+			double animDuration = stopTime - startTime;
+			
+			for (int iSkeleton = 0, nSkeletons = static_cast<int>(pContext->pSkeletons->size()); iSkeleton < nSkeletons; ++iSkeleton)
+			{
+				Fbx::Skeleton& skeleton = (*pContext->pSkeletons)[iSkeleton];
+
+				unsigned short motionsStart = static_cast<unsigned short>(pContext->pMotions->size());
+
+				for (int iJoint = skeleton.JointStart; iJoint < skeleton.NumJoints; ++iSkeleton)
+				{
+					unsigned short keyFrameStart = static_cast<unsigned short>(pContext->pKeyFrames->size());
+
+					// Process an entire sequence of key frame for each joint. We want to preserve this order
+					// on extraction because on play back we need 2 key frames for interpolation
+					double currentTime = startTime;
+
+					while (currentTime <= stopTime)
+					{
+						FbxTime animTime;
+						animTime.SetSecondDouble(currentTime);
+
+						// need nooooooddddeee indexxxx.
+						FbxAMatrix pose = pScene->GetAnimationEvaluator()->GetNodeGlobalTransform(nullptr, animTime);
+						FbxQuaternion q = pose.GetQ();
+						FbxVector4 t = pose.GetT();
+						FbxVector4 s = pose.GetS();
+
+						Fbx::KeyFrame& keyFrame = pContext->pKeyFrames->emplace_back();
+						ExtractFloats<4>(q.mData, keyFrame.Quaternion.Data);
+						ExtractFloats<3>(t.mData, keyFrame.Translation.Data);
+						ExtractFloats<3>(s.mData, keyFrame.Scale.Data);
+						keyFrame.Time = static_cast<float>(currentTime);
+
+						currentTime += frameSampleRate;
+					}
+
+					Fbx::Motion& motion = pContext->pMotions->emplace_back();
+					motion.Joint = iJoint;
+					motion.KeyFrameStart = keyFrameStart;
+					motion.NumKeyFrames = static_cast<unsigned short>(pContext->pKeyFrames->size()) - keyFrameStart;
+				}
+
+				Fbx::Animation& anim = pContext->pAnimations->emplace_back();
+				anim.Name = FindOrPushString(pAnimStack->GetName(), pContext->pStrings);
+				anim.Skeleton = iSkeleton;
+				anim.MotionsStart = motionsStart;
+				anim.NumMotions = static_cast<unsigned short>(pContext->pMotions->size()) - motionsStart;
+				anim.Duration = static_cast<float>(animDuration);
+				anim.NumFrames = nFrames;
+			}
+		}
+	}
+
 	static void FinalizeContext(FbxContext* pContext)
 	{
 		unsigned short iJoint = 0;
@@ -740,6 +826,11 @@ namespace Resource
 		return static_cast<unsigned int>(m_materials.size());
 	}
 
+	unsigned int Fbx::GetNumKeyFrames() const
+	{
+		return static_cast<int>(m_keyFrames.size());
+	}
+
 	const Fbx::Position* Fbx::GetPositions() const
 	{
 		return m_positions.data();
@@ -773,6 +864,11 @@ namespace Resource
 	const char* Fbx::GetTextureFileName(int i) const
 	{
 		return (i > -1) ? m_strings[i].c_str() : nullptr;
+	}
+
+	const Fbx::KeyFrame* Fbx::GetKeyFrames() const
+	{
+		return m_keyFrames.data();
 	}
 
     std::shared_ptr<const Fbx> Fbx::Load(const Desc& desc)
@@ -816,6 +912,9 @@ namespace Resource
 				ctx.pTransforms = &pResource->m_transforms;
 				ctx.pBlendWeights = &pResource->m_blendWeights;
 				ctx.pInfluences = &pResource->m_influences;
+				ctx.pKeyFrames = &pResource->m_keyFrames;
+				ctx.pMotions = &pResource->m_motions;
+				ctx.pAnimations = &pResource->m_animations;
                 ctx.pTris = &pResource->m_triangles;
                 ctx.pSurfaces = &pResource->m_surfaces;
                 ctx.pStrings = &pResource->m_strings;
@@ -829,6 +928,8 @@ namespace Resource
 				GetNodeAttributesRecursively(pNode, FbxNodeAttribute::eMesh, &ctx, 0, -1, nSkeletonNodes);
 
 				FinalizeContext(&ctx);
+
+				GetAnimations(pScene, &ctx);
             }
 			
             pScene->Destroy();
