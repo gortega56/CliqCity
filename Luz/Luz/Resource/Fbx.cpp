@@ -743,8 +743,11 @@ namespace Resource
 						FbxTime animTime;
 						animTime.SetSecondDouble(currentTime);
 
-						// need nooooooddddeee indexxxx.
-						FbxAMatrix pose = pScene->GetAnimationEvaluator()->GetNodeGlobalTransform(nullptr, animTime);
+						Fbx::Joint& joint = (*pContext->pJoints)[iJoint];
+						const char* pNodeName = (*pContext->pStrings)[joint.Name].c_str();
+						FbxNode* pNode = pScene->FindNodeByName(pNodeName);
+
+						FbxAMatrix pose = pScene->GetAnimationEvaluator()->GetNodeGlobalTransform(pNode, animTime);
 						FbxQuaternion q = pose.GetQ();
 						FbxVector4 t = pose.GetT();
 						FbxVector4 s = pose.GetS();
