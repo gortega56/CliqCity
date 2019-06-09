@@ -15,7 +15,7 @@
 #endif
 
 #ifndef FBXRESOURCE_H
-#include "Resource/Fbx.h"
+#include "Resource/FbxResource.h"
 #endif
 
 #ifndef OBJRESOURCE_H

@@ -4,7 +4,7 @@
 
 #include "Resource/ResourceManager.h"
 #include "Resource/ObjResource.h"
-#include "Resource/Fbx.h"
+#include "Resource/FbxResource.h"
 
 #include <fstream>
 #include <string>

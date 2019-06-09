@@ -216,7 +216,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClCompile Include="Platform\Win64\PlatformTypes_Win64.cpp" />
     <ClCompile Include="Platform\Win64\PlatformWindow_Win64.cpp" />
     <ClCompile Include="Platform\Win64\Platform_Win64.cpp" />
-    <ClCompile Include="Resource\Fbx.cpp" />
+    <ClCompile Include="Resource\FbxResource.cpp" />
     <ClCompile Include="Resource\MeshResourceUtility.cpp" />
     <ClCompile Include="Resource\MtlResource.cpp" />
     <ClCompile Include="Resource\ObjResource.cpp" />
@@ -247,7 +247,7 @@ xcopy "$(ProjectDir)Library\DirectXTex\Bin\Desktop_2017_Win10\$(Platform)\$(Conf
     <ClInclude Include="Platform\Platform.h" />
     <ClInclude Include="Platform\PlatformTypes.h" />
     <ClInclude Include="Platform\Win64\PlatformTypes_Win64.h" />
-    <ClInclude Include="Resource\Fbx.h" />
+    <ClInclude Include="Resource\FbxResource.h" />
     <ClInclude Include="Resource\MeshResourceUtility.h" />
     <ClInclude Include="Resource\MtlResource.h" />
     <ClInclude Include="Resource\ObjResource.h" />

@@ -4,7 +4,7 @@
 #include "Mesh.h"
 #include <functional>
 #include <memory>
-#include "Resource\Fbx.h"
+#include "Resource\FbxResource.h"
 #include "Resource\ObjResource.h"
 #include "Platform\PlatformWindow.h"
 #include "Graphics.h"
@@ -175,7 +175,7 @@ bool SceneViewer::Initialize()
         return false;
     }
 
-	LoadScene("Animated.scene", 0);
+	LoadScene("Sponza.scene", 0);
 
 	Platform::Window window;
 	Platform::GetWindow(m_window, window);
@@ -420,6 +420,7 @@ bool SceneViewer::Initialize()
         pd.Rasterizer.DepthBias = 100000;
         pd.Rasterizer.DepthBiasClamp = 0.0f;
         pd.Rasterizer.SlopeScaledDepthBias = 1.0f;
+		pd.Rasterizer.DepthClipEnable = false;
 
         m_shadowPipeline = Graphics::CreateGraphicsPipelineState(pd);
 

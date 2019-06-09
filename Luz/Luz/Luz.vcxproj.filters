@@ -39,9 +39,6 @@
     <ClCompile Include="LzAssert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Resource\Fbx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="IApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -108,6 +105,9 @@
     <ClCompile Include="Graphics\DirectX12\DescriptorAllocator_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Resource\FbxResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IApplication.h">
@@ -150,9 +150,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Graphics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource\Fbx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LuzExport.h">
@@ -216,6 +213,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\DirectX12\GraphicsTypes_Dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\FbxResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
