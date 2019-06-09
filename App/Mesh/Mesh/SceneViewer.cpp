@@ -11,6 +11,11 @@
 #include "CommandStream.h"
 #include "Platform\PlatformInput.h"
 #include "SceneResource.h"
+
+#include "Platform/PlatformImgui.h"
+#include "GraphicsImgui.h"
+#include "imgui.h"
+
 #include <iostream>
 #include <sstream>
 
@@ -18,10 +23,14 @@
 #define MAX_PATH 260
 #endif
 
-#define CUBE_MAP_PATH ".\\Assets\\satara_night.dds"
+#define ASSETS_DIRECTORY "C:\\Users\\Gabriel Ortega\\Desktop\\CliqCity\\Assets\\"
+
+#define CUBEMAP_FILENAME "C:\\Users\\Gabriel Ortega\\Desktop\\CliqCity\\Assets\\satara_night.dds"
 
 using namespace Luz;
 using namespace lina;
+
+
 
 Vertex::Vertex(
     float px, float py, float pz,
@@ -77,7 +86,7 @@ struct TextureOverrides
 	const char* Normal;
 };
 
-const char* s_pAssetDirectory = ".\\Assets\\";
+const char* s_pAssetDirectory = ASSETS_DIRECTORY;
 
 static int s_window_width = 1600;
 
@@ -87,7 +96,7 @@ static float s_lightMoveSpeed = 0.2f;
 
 static bool s_shadowFullScreen = false;
 
-static bool s_bDebugConsole = true;
+static bool s_bDebugConsole = false;
 
 static ShaderOptions s_shaderOptions =
 {
@@ -170,9 +179,23 @@ bool SceneViewer::Initialize()
 {
     m_window = Platform::MakeWindow("Scene Viewer", s_window_width, s_window_height, false);
 
-    if (!Graphics::Initialize(m_window, s_nSwapChainTargets))
+    bool success = Graphics::Initialize(m_window, s_nSwapChainTargets);
+    LUZASSERT(success);
+
+    // imgui
     {
-        return false;
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+        ImGui::StyleColorsDark();
+
+        success = Platform::Initialize_Imgui(m_window);
+        LUZASSERT(success);
+
+        success = Graphics::Initialize_Imgui(s_nSwapChainTargets);
+        LUZASSERT(success);
     }
 
 	LoadScene("Sponza.scene", 0);
@@ -193,18 +216,36 @@ bool SceneViewer::Initialize()
 
     // Shaders
     {
-        m_vsScene = Graphics::CreateVertexShader("scene_model_vs.hlsl");
-        m_psScene = Graphics::CreatePixelShader("scene_model_ps.hlsl");
+        if (IsDebuggerPresent())
+        {
+            m_vsScene = Graphics::CreateVertexShader("Shaders\\scene_model_vs.hlsl");
+            m_psScene = Graphics::CreatePixelShader("Shaders\\scene_model_ps.hlsl");
 
-        m_vsFullScreen = Graphics::CreateVertexShader("FS_Tri_VS.hlsl");
-        m_psFullScreen = Graphics::CreatePixelShader("FS_Tri_PS.hlsl");
+            m_vsFullScreen = Graphics::CreateVertexShader("Shaders\\FS_Tri_VS.hlsl");
+            m_psFullScreen = Graphics::CreatePixelShader("Shaders\\FS_Tri_PS.hlsl");
 
-        m_vsCubeMap = Graphics::CreateVertexShader("cube_map_vs.hlsl");
-        m_psCubeMap = Graphics::CreatePixelShader("cube_map_ps.hlsl");
+            m_vsCubeMap = Graphics::CreateVertexShader("Shaders\\cube_map_vs.hlsl");
+            m_psCubeMap = Graphics::CreatePixelShader("Shaders\\cube_map_ps.hlsl");
 
-        m_psRadianceMap = Graphics::CreatePixelShader("radiance_map_ps.hlsl");
-        m_psIrradianceMap = Graphics::CreatePixelShader("irradiance_map_ps.hlsl");
-        m_psLUT = Graphics::CreatePixelShader("brdf_integration_ps.hlsl");
+            m_psRadianceMap = Graphics::CreatePixelShader("Shaders\\radiance_map_ps.hlsl");
+            m_psIrradianceMap = Graphics::CreatePixelShader("Shaders\\irradiance_map_ps.hlsl");
+            m_psLUT = Graphics::CreatePixelShader("Shaders\\brdf_integration_ps.hlsl");
+        }
+        else
+        {
+            m_vsScene = Graphics::CreateVertexShader("scene_model_vs.cso");
+            m_psScene = Graphics::CreatePixelShader("scene_model_ps.cso");
+
+            m_vsFullScreen = Graphics::CreateVertexShader("FS_Tri_VS.cso");
+            m_psFullScreen = Graphics::CreatePixelShader("FS_Tri_PS.cso");
+
+            m_vsCubeMap = Graphics::CreateVertexShader("cube_map_vs.cso");
+            m_psCubeMap = Graphics::CreatePixelShader("cube_map_ps.cso");
+
+            m_psRadianceMap = Graphics::CreatePixelShader("radiance_map_ps.cso");
+            m_psIrradianceMap = Graphics::CreatePixelShader("irradiance_map_ps.cso");
+            m_psLUT = Graphics::CreatePixelShader("brdf_integration_ps.cso");
+        }
     }
 
     // Static geometry
@@ -335,7 +376,7 @@ bool SceneViewer::Initialize()
         // Sky box
         {
             Graphics::TextureFileDesc fd;
-            fd.Filename = CUBE_MAP_PATH;
+            fd.Filename = CUBEMAP_FILENAME;
             fd.GenMips = false;
             m_txCubeMap = Graphics::CreateTexture(fd);
         }
@@ -420,7 +461,7 @@ bool SceneViewer::Initialize()
         pd.Rasterizer.DepthBias = 100000;
         pd.Rasterizer.DepthBiasClamp = 0.0f;
         pd.Rasterizer.SlopeScaledDepthBias = 1.0f;
-		pd.Rasterizer.DepthClipEnable = false;
+        pd.Rasterizer.DepthClipEnable = false;
 
         m_shadowPipeline = Graphics::CreateGraphicsPipelineState(pd);
 
@@ -478,7 +519,7 @@ bool SceneViewer::Initialize()
     {
         std::thread(ConsoleThread).detach();
     }
-
+    
     return true;
 }
 
@@ -488,6 +529,12 @@ int SceneViewer::Shutdown()
     {
         if (thread.joinable()) thread.join();
     }
+
+    Graphics::Flush();
+
+    Graphics::Shutdown_Imgui();
+    Platform::Shutdown_Imgui();
+    ImGui::DestroyContext();
 
     for (u32 i = 0; i < s_nFrameResources; ++i)
     {
@@ -526,6 +573,8 @@ int SceneViewer::Shutdown()
 
     Graphics::ReleaseCommandStream(&m_commandStream);
     Graphics::Shutdown();
+
+    Platform::FreeWindow(m_window);
 
     return 0;
 }
@@ -571,28 +620,28 @@ void SceneViewer::Update(double dt)
 		float3 dim = pScene->Bounds.max - pScene->Bounds.min;
 		float3 lp = dim * -normalize(shaderOptions.LightDirection);
 		float3x3 lv = float3x3::orientation_lh(shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
-
+        
 		s_lighting.GetTransform()->SetPosition(lp);
 		s_lighting.GetTransform()->SetRotation(quaternion::create(lv));
-
+        
 		float4x4 view = m_cameraController.GetCamera()->GetView();
 		float4x4 proj = m_cameraController.GetCamera()->GetProjection();
-
+        
 		FrameConstants* pConsts = &m_frameConsts[m_frameIndex];
-
+        
 		pConsts->CameraConsts.View = view.transpose();
 		pConsts->CameraConsts.Proj = proj.transpose();
 		pConsts->CameraConsts.InverseView = view.inverse().transpose();
 		pConsts->CameraConsts.InverseProj = proj.inverse().transpose();
-
+        
 		view = s_lighting.GetView();
 		proj = s_lighting.GetProjection();
-
+        
 		pConsts->ShadowConsts.View = view.transpose();
 		pConsts->ShadowConsts.Proj = proj.transpose();
 		pConsts->ShadowConsts.InverseView = view.inverse().transpose();
 		pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
-
+        
 		pConsts->LightingConsts.Color = shaderOptions.LightColor;
 		pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
 		pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
@@ -607,33 +656,33 @@ void SceneViewer::Update(double dt)
 		pConsts->LightingConsts.MicrofacetEnabled = shaderOptions.MicrofacetEnabled;
 		pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
 		pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
-
+        
 		static const Graphics::Viewport vp = { 0.0f, 0.0f, static_cast<float>(s_window_width), static_cast<float>(s_window_height), 0.0f, 1.0f };
 		static const Graphics::Rect scissor = { 0, 0, static_cast<u32>(s_window_width), static_cast<u32>(s_window_height) };
 		float clear[4] =
 		{
-			shaderOptions.LightColor.x,
-			shaderOptions.LightColor.y,
-			shaderOptions.LightColor.z,
-			1.0f,
+		    shaderOptions.LightColor.x,
+		    shaderOptions.LightColor.y,
+		    shaderOptions.LightColor.z,
+		    1.0f,
 		};
 
         if (shaderOptions.ShadowEnabled)
         {
             static const Graphics::Viewport s_shadow_vp = { 0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f };
             static const Graphics::Rect s_shadow_scissor = { 0, 0, 2048, 2048 };
-
+            
             Graphics::UpdateConstantBuffer(&pConsts->ShadowConsts, sizeof(CameraConstants), pConsts->hShadow);
-
+            
             auto& cs = m_commandStream;
-			Graphics::ResetCommandStream(&cs, m_shadowPipeline);
-
+            Graphics::ResetCommandStream(&cs, m_shadowPipeline);
+            
             cs.SetRenderTargets(0, nullptr, m_txShadow);
             cs.ClearDepthStencil(1.0f, 0, m_txShadow);
             cs.SetViewport(s_shadow_vp);
             cs.SetScissorRect(s_shadow_scissor);
             cs.SetConstantBuffer(0, pConsts->hShadow);
-
+            
             cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             for (auto& surface : pScene->Surfaces)
             {
@@ -641,29 +690,29 @@ void SceneViewer::Update(double dt)
                 cs.SetIndexBuffer(surface.ib);
                 cs.DrawInstanceIndexed(surface.ib);
             }
-
+            
             Graphics::SubmitCommandStream(&cs);
         }
-
+        
         if (s_shadowFullScreen)
         {
             auto& cs = m_commandStream;
             // cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			Graphics::ResetCommandStream(&cs, m_fullScreenPipeline);
-
+        	Graphics::ResetCommandStream(&cs, m_fullScreenPipeline);
+        
             cs.SetRenderTargets();
             cs.ClearRenderTarget(clear);
             cs.ClearDepthStencil(1.0f, 0);
             cs.SetViewport(vp);
             cs.SetScissorRect(scissor);
             cs.SetDescriptorTable(0, &m_txLUT, 1);
-
+        
             cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             cs.SetVertexBuffer(0);
             cs.SetIndexBuffer(m_ibFullScreen);
             cs.DrawInstanceIndexed(m_ibFullScreen);
             // cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
-
+        
             Graphics::SubmitCommandStream(&cs);
         }
         else
@@ -672,7 +721,7 @@ void SceneViewer::Update(double dt)
             unsigned int nTextures = static_cast<unsigned int>(pScene->Textures.size());
             size_t szConstants = sizeof(Graphics::GpuResourceHandle) * nConstants;
             size_t szTextures = sizeof(Graphics::GpuResourceHandle) * nTextures;
-
+        
             Graphics::DescriptorTableRange pRanges[3];
             pRanges[0].Register = 3;
             pRanges[0].nHandles = nConstants;
@@ -685,14 +734,14 @@ void SceneViewer::Update(double dt)
             pRanges[2].pHandles[2] = m_txEnvMap;
             memcpy_s(pRanges[0].pHandles, szConstants, pScene->Constants.data(), szConstants);
             memcpy_s(pRanges[1].pHandles, szTextures, pScene->Textures.data(), szTextures);
-
+        
             // Main visual
             Graphics::UpdateConstantBuffer(&pConsts->CameraConsts, sizeof(CameraConstants), pConsts->hCamera);
             Graphics::UpdateConstantBuffer(&pConsts->LightingConsts, sizeof(LightingConstants), pConsts->hLighting);
-
+        
             auto& cs = m_commandStream;
-			Graphics::ResetCommandStream(&cs, m_opaquePipeline);
-
+        	Graphics::ResetCommandStream(&cs, m_opaquePipeline);
+        
             cs.TransitionRenderTarget(Graphics::GFX_RESOURCE_STATE_PRESENT, Graphics::GFX_RESOURCE_STATE_RENDER_TARGET);
             cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             cs.SetRenderTargets();
@@ -704,7 +753,7 @@ void SceneViewer::Update(double dt)
             cs.SetConstantBuffer(1, pConsts->hShadow);
             cs.SetConstantBuffer(2, pConsts->hLighting);
             cs.SetDescriptorTable(pRanges, 3);
-
+        
             cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             for (auto& surface : pScene->Surfaces)
             {
@@ -712,26 +761,45 @@ void SceneViewer::Update(double dt)
                 cs.SetIndexBuffer(surface.ib);
                 cs.DrawInstanceIndexed(surface.ib);
             }
-
+        
             cs.TransitionDepthStencil(m_txShadow, Graphics::GFX_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | Graphics::GFX_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, Graphics::GFX_RESOURCE_STATE_DEPTH_WRITE);
             Graphics::SubmitCommandStream(&cs);
-
+        
             // Draw cube map
-			Graphics::ResetCommandStream(&cs, m_cubemapPipeline);
+        	Graphics::ResetCommandStream(&cs, m_cubemapPipeline);
             cs.SetRenderTargets();
             cs.SetViewport(vp);
             cs.SetScissorRect(scissor);
             cs.SetConstantBuffer(0, pConsts->hCamera);
             cs.SetDescriptorTable(1, &m_txCubeMap, 1);
-
+        
             cs.SetPrimitiveTopology(Graphics::GFX_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             cs.SetVertexBuffer(m_vbCubeMap);
             cs.SetIndexBuffer(m_ibCubeMap);
             cs.DrawInstanceIndexed(m_ibCubeMap);
-
+        
             Graphics::SubmitCommandStream(&cs);
-        }
+        
+            //imgui
+            {
+                Graphics::Update_Imgui();
+                Platform::Update_Imgui();
+                ImGui::NewFrame();
 
+                ImGui::Begin("Hello, world!");
+                ImGui::Text("This is some text.");
+                ImGui::End();
+
+                auto& cs = m_commandStream;
+                Graphics::ResetCommandStream(&cs, 0);
+                cs.SetRenderTargets(false);
+                Graphics::Render_Imgui(&cs);
+
+                Graphics::SubmitCommandStream(&cs);
+            }
+        
+        }
+        
         Graphics::Present();
     }
         

@@ -24,8 +24,6 @@ namespace Platform
 
 namespace Graphics
 {
-	typedef int8_t WindowHandle;
-
     class CommandStream;
 
     LUZ_API bool Initialize(const Platform::WindowHandle hWindow, u32 numBackBuffers);

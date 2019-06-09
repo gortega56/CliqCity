@@ -23,15 +23,15 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="FS_Tri_PS.hlsl" />
-    <FxCompile Include="FS_Tri_VS.hlsl" />
-    <FxCompile Include="cube_map_ps.hlsl" />
-    <FxCompile Include="cube_map_vs.hlsl" />
-    <FxCompile Include="irradiance_map_ps.hlsl" />
-    <FxCompile Include="radiance_map_ps.hlsl" />
-    <FxCompile Include="brdf_integration_ps.hlsl" />
-    <FxCompile Include="scene_model_ps.hlsl" />
-    <FxCompile Include="scene_model_vs.hlsl" />
+    <FxCompile Include="Shaders\brdf_integration_ps.hlsl" />
+    <FxCompile Include="Shaders\cube_map_ps.hlsl" />
+    <FxCompile Include="Shaders\cube_map_vs.hlsl" />
+    <FxCompile Include="Shaders\FS_Tri_PS.hlsl" />
+    <FxCompile Include="Shaders\FS_Tri_VS.hlsl" />
+    <FxCompile Include="Shaders\irradiance_map_ps.hlsl" />
+    <FxCompile Include="Shaders\radiance_map_ps.hlsl" />
+    <FxCompile Include="Shaders\scene_model_ps.hlsl" />
+    <FxCompile Include="Shaders\scene_model_vs.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SceneViewer.h">

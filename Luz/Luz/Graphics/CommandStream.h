@@ -36,7 +36,7 @@ namespace Graphics
 
         void SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle);
 
-        void SetRenderTargets();    // Sets swap chain
+        void SetRenderTargets(bool bDepth = true);    // Sets swap chain
 
         void SetViewport(const Viewport& viewport);
 

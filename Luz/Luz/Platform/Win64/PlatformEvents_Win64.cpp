@@ -299,7 +299,6 @@ namespace Platform
 		message.eEventType = eEvent;
 
 		s_pEvents[eEvent].Broadcast(message);
-
 	}
 
 	Event* GetEvent(const EventType eEvent)
@@ -353,8 +352,21 @@ namespace Platform
 		}
 	}
 
+    typedef LRESULT(*WinProcOverride)(HWND, UINT, WPARAM, LPARAM);
+    static WinProcOverride s_pWinProcOverride = nullptr;
+
+    void Register_EventFunction(void* pFunction)
+    {
+        s_pWinProcOverride = static_cast<WinProcOverride>(pFunction);
+    }
+
 	LRESULT CALLBACK WinProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
+        if (s_pWinProcOverride)
+        {
+            s_pWinProcOverride(hwnd, msg, wparam, lparam);
+        }
+
 		BroadcastMessage(hwnd, msg, wparam, lparam);
 
 		return DefWindowProc(hwnd, msg, wparam, lparam);

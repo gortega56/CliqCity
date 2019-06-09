@@ -36,7 +36,7 @@ namespace Platform
 
     void Shutdown()
     {
-
+        Shutdown_Windows();
     }
 
     void BeginUpdate(double time, double delta)

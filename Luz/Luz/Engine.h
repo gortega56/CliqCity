@@ -18,6 +18,8 @@
 #include "Platform/Platform.h"
 #endif
 
+#include <iostream>
+
 namespace Engine
 {
     template<class Application, class... Args>

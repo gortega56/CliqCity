@@ -154,6 +154,8 @@ namespace Platform
 	void Initialize_Events();
 
 	void Update_Events(double delta);
+
+    void Register_EventFunction(void* pFunction);
 }
 
 #endif

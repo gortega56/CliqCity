@@ -113,11 +113,13 @@ namespace Graphics
         m_ds = dsHandle;
     }
 
-    void CommandStream::SetRenderTargets()
+    void CommandStream::SetRenderTargets(bool bDepth /*= true*/)
     {
         CommandList& cl = s_commandListCollection.GetData(m_handle);
         
-        cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], TRUE, &s_swapChain.DepthStencilViewHandle);
+        (bDepth)
+            ? cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], TRUE, &s_swapChain.DepthStencilViewHandle)
+            : cl.pGraphicsCommandList->OMSetRenderTargets(1, &s_swapChain.RenderTargetViewHandles[s_swapChain.FrameIndex], TRUE, NULL);
     }
 
     void CommandStream::SetViewport(const Viewport& viewport)

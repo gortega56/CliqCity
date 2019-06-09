@@ -47,7 +47,7 @@ float Shadow_Factor(Texture2D shadow_texture, SamplerComparisonState shadow_samp
 
 float3 Linear_to_Gamma(float3 color)
 {
-    return pow(color, 1.0f / 2.2f);
+    return pow(max(float3(0, 0, 0), color), 1.0f / 2.2f);
 }
 
 float3 Gamma_to_Linear(float3 color)

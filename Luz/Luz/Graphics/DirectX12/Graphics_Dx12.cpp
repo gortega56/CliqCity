@@ -80,8 +80,6 @@ namespace Internal
         delete[] buffer;
         return S_OK;
     }
-
-    static std::wstring ConvertCString(const char* cstr);
     
     static void ConfigureDebugLayer(ID3D12Device* pDevice);
 
@@ -94,16 +92,6 @@ namespace Internal
     static bool LoadTgaImage(std::wstring filename, DirectX::ScratchImage& outImage, bool genMipsIfNecessary = false);
     
     static HRESULT GenerateMips(DirectX::ScratchImage& inImage, DirectX::ScratchImage& outImage);
-
-    std::wstring ConvertCString(const char* cstr)
-    {
-        std::wstring ws;
-        ws.resize(strlen(cstr));
-
-        MultiByteToWideChar(CP_UTF8, 0, cstr, -1, ws.data(), static_cast<int>(ws.size()));
-
-        return ws;
-    }
 
     void ConfigureDebugLayer(ID3D12Device* pDevice)
     {
@@ -159,7 +147,7 @@ namespace Internal
 
     bool CompileShader(const char* filename, const char* entryPoint, const char* target, ID3DBlob** ppCode)
     {
-        ID3DBlob* pError;
+        ID3DBlob* pError = nullptr;
         UINT flags1 = 0;
 
 #if _DEBUG
@@ -168,11 +156,23 @@ namespace Internal
 
         flags1 |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
 
+        wchar_t pWide[MAX_PATH];
+        MultiByteToWideChar(CP_UTF8, 0, filename, -1, pWide, static_cast<int>(strlen(filename) + 1));
+
         ShaderInclude include;
-        HRESULT hr = D3DCompileFromFile(ConvertCString(filename).c_str(), nullptr, &include, entryPoint, target, flags1, 0, ppCode, &pError);
+        HRESULT hr = D3DCompileFromFile(pWide, nullptr, &include, entryPoint, target, flags1, 0, ppCode, &pError);
         if (FAILED(hr))
         {
-            OutputDebugStringA((char*)pError->GetBufferPointer());
+            if (pError)
+            {
+                LuzAssert_Msg(0, (char*)pError->GetBufferPointer());
+
+            }
+            else
+            {
+                LUZASSERT(0);
+            }
+
             return false;
         }
 
@@ -325,8 +325,6 @@ namespace Graphics
 		// grab a context that is in use by another cpu thread. So we
 		// check via bit vector for availability. 1 means available.
 
-		
-
         CommandContextPool& pool = s_commandContextPools[eQueueType];
         CommandQueue& commandQueue = s_commandQueues[eQueueType];
         
@@ -432,19 +430,50 @@ namespace Graphics
 
 	static ShaderHandle CreateShader(const char* filename, const char* entryPoint, const char* target)
     {
-        auto handle = s_shaderCollection.AllocateHandle();
-        if (handle != GPU_RESOURCE_HANDLE_INVALID)
-        {
-            Shader& shader = s_shaderCollection.GetData(handle);
-            Internal::CompileShader(filename, entryPoint, target, &shader.pShader);
-            if (shader.pShader)
-            {
-                shader.ByteCode.BytecodeLength = shader.pShader->GetBufferSize();
-                shader.ByteCode.pShaderBytecode = shader.pShader->GetBufferPointer();
-            }
-        }
+        wchar_t pWide[MAX_PATH];
+        MultiByteToWideChar(CP_UTF8, 0, filename, -1, pWide, static_cast<int>(strlen(filename) + 1));
 
-        return handle;
+        LPCWSTR extension = PathFindExtension(pWide);
+
+        if (_wcsicmp(extension, L".cso") == 0)
+        {
+            auto handle = s_shaderCollection.AllocateHandle();
+            if (handle != GPU_RESOURCE_HANDLE_INVALID)
+            {
+                Shader& shader = s_shaderCollection.GetData(handle);
+                HRESULT hr = D3DReadFileToBlob(pWide, &shader.pShader);
+                LUZASSERT(SUCCEEDED(hr));
+
+                if (shader.pShader)
+                {
+                    shader.ByteCode.BytecodeLength = shader.pShader->GetBufferSize();
+                    shader.ByteCode.pShaderBytecode = shader.pShader->GetBufferPointer();
+                }
+            }
+
+            return handle;
+        }
+        else if (_wcsicmp(extension, L".hlsl") == 0)
+        {
+            auto handle = s_shaderCollection.AllocateHandle();
+            if (handle != GPU_RESOURCE_HANDLE_INVALID)
+            {
+                Shader& shader = s_shaderCollection.GetData(handle);
+                Internal::CompileShader(filename, entryPoint, target, &shader.pShader);
+                if (shader.pShader)
+                {
+                    shader.ByteCode.BytecodeLength = shader.pShader->GetBufferSize();
+                    shader.ByteCode.pShaderBytecode = shader.pShader->GetBufferPointer();
+                }
+            }
+
+            return handle;
+        }
+        else
+        {
+            LUZASSERT(0);
+            return GPU_RESOURCE_HANDLE_INVALID;
+        }
     }
 
 	//static CommandStreamHandle CreateGraphicsCommandList(const PipelineStateHandle pipelineHandle)
@@ -938,7 +967,10 @@ namespace Graphics
 
             pso.pRootSignature = pipeline.pSignature;
 
-            pso.pRootSignature->SetName(Internal::ConvertCString(desc.Signature.GetName()).c_str());
+            const char* pSignatureName = desc.Signature.GetName();
+            wchar_t pWide[MAX_PATH];
+            MultiByteToWideChar(CP_UTF8, 0, pSignatureName, -1, pWide, static_cast<int>(strlen(pSignatureName) + 1));
+            pso.pRootSignature->SetName(pWide);
 
             // Shaders
             LUZASSERT(desc.VertexShaderHandle != GPU_RESOURCE_HANDLE_INVALID);
@@ -1497,22 +1529,24 @@ namespace Graphics
 			}
 		}
 
-		std::wstring filename = Internal::ConvertCString(desc.Filename);
-		LPCWSTR extension = PathFindExtension(filename.c_str());
+        wchar_t pWide[MAX_PATH];
+        MultiByteToWideChar(CP_UTF8, 0, desc.Filename, -1, pWide, static_cast<int>(strlen(desc.Filename) + 1));
+
+		LPCWSTR extension = PathFindExtension(pWide);
 		DirectX::ScratchImage image;
 		bool bImageLoaded = false;
 
 		if (_wcsicmp(L".dds", extension) == 0)
 		{
-			bImageLoaded = Internal::LoadDDSImage(filename, image, desc.GenMips);
+			bImageLoaded = Internal::LoadDDSImage(pWide, image, desc.GenMips);
 		}
 		else if (_wcsicmp(L".tga", extension) == 0)
 		{
-			bImageLoaded = Internal::LoadTgaImage(filename, image, desc.GenMips);
+			bImageLoaded = Internal::LoadTgaImage(pWide, image, desc.GenMips);
 		}
 		else
 		{
-			bImageLoaded = Internal::LoadWICImage(filename, image, desc.GenMips);
+			bImageLoaded = Internal::LoadWICImage(pWide, image, desc.GenMips);
 		}
 
 		LUZASSERT(bImageLoaded);
@@ -1528,7 +1562,7 @@ namespace Graphics
             HRESULT hr = DirectX::CreateTexture(s_device.pDevice, imageMetadata, &tex.pResource);
             LUZASSERT(SUCCEEDED(hr));
 
-            tex.pResource->SetName(filename.c_str());
+            tex.pResource->SetName(pWide);
 
             std::vector<D3D12_SUBRESOURCE_DATA> subresources;
             hr = PrepareUpload(s_device.pDevice, image.GetImages(), image.GetImageCount(), imageMetadata, subresources);
