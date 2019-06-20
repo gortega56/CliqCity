@@ -360,6 +360,9 @@ namespace Graphics
             WaitOnFence(commandQueue.pFence, lastExecution);
         }
 
+        HRESULT hr = pool.ppCommandAllocators[index]->Reset();
+        LUZASSERT(SUCCEEDED(hr));
+
         CommandContext ctx;
         ctx.pCommandAllocator = pool.ppCommandAllocators[index];
         ctx.pDescriptorHeap = pool.ppDescriptorHeaps[index];
