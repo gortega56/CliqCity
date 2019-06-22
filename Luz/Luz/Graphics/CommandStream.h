@@ -80,34 +80,15 @@ namespace Graphics
 
         void DrawInstanceIndexed(const IndexBufferHandle handle, const u32 instanceCount = 1, const u32 startIndex = 0, const i32 baseVertexLocation = 0, const u32 startInstanceLocation = 0);
 
+        void SetExecution(const CommandQueueType eQueueType, const uint64_t execution);
+
         inline const CommandStreamHandle GetHandle() const
         {
             return m_handle;
         }
 
-        void SetExecution(const CommandQueueType eQueueType, const uint64_t execution);
-
     private:
         CommandStreamHandle m_handle;
-
-        static constexpr unsigned int sm_max_rts = 8;
-        static constexpr unsigned int sm_max_vbs = 1024;
-        static constexpr unsigned int sm_max_ibs = 1024;
-        static constexpr unsigned int sm_max_cbs = 1024;
-        static constexpr unsigned int sm_max_txs = 1024;
-
-        DepthStencilHandle m_ds;
-        RenderTargetHandle m_rts[sm_max_rts];
-        VertexBufferHandle m_vbs[sm_max_vbs];
-        IndexBufferHandle m_ibs[sm_max_ibs];
-        ConstantBufferHandle m_cbs[sm_max_cbs];
-        TextureHandle m_txs[sm_max_txs];
-
-        unsigned int m_num_rts;
-        unsigned int m_num_vbs;
-        unsigned int m_num_ibs;
-        unsigned int m_num_cbs;
-        unsigned int m_num_txs;
     };
 
 }

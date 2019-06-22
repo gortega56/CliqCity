@@ -311,7 +311,8 @@ namespace Graphics
 				WaitForSingleObject(eventHandle, INFINITE);
 			}
 
-			CloseHandle(eventHandle);
+			BOOL bSuccess = CloseHandle(eventHandle);
+            LUZASSERT(bSuccess);
 		}
 	}
 
@@ -479,40 +480,6 @@ namespace Graphics
         }
     }
 
-	//static CommandStreamHandle CreateGraphicsCommandList(const PipelineStateHandle pipelineHandle)
-    //{
-    //    CommandStreamHandle handle = s_commandListCollection.AllocateHandle(GFX_COMMAND_QUEUE_TYPE_DRAW, s_nCommandQueueTypeBits);
-    //    LUZASSERT(handle != GPU_RESOURCE_HANDLE_INVALID);
-	//
-    //    ID3D12PipelineState* pPipelineState = nullptr;
-    //    if (pipelineHandle != GPU_RESOURCE_HANDLE_INVALID)
-    //    {
-    //        pPipelineState = s_pipelineCollection.GetData(pipelineHandle).pPipelineState;
-    //    }
-	//
-    //    CommandContext ctx = AllocateCommandContext(GFX_COMMAND_QUEUE_TYPE_DRAW);
-    //    LUZASSERT(ctx.pCommandAllocator);
-    //    LUZASSERT(ctx.pDescriptorHeap);
-	//
-    //    CommandList& cl = s_commandListCollection.GetData(handle);
-    //    if (!cl.pGraphicsCommandList)
-    //    {
-    //        HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, ctx.pCommandAllocator, pPipelineState, IID_PPV_ARGS(&cl.pGraphicsCommandList));
-    //        LUZASSERT(SUCCEEDED(hr));
-    //    }
-    //    else
-    //    {
-    //        HRESULT hr = cl.pGraphicsCommandList->Reset(ctx.pCommandAllocator, pPipelineState);
-    //        LUZASSERT(SUCCEEDED(hr));
-    //    }
-	//
-    //    cl.pDescriptorHeap = ctx.pDescriptorHeap;
-	//	cl.iAllocator = ctx.Index;
-    //    cl.eType = GFX_COMMAND_QUEUE_TYPE_DRAW;
-	//
-    //    return handle;
-    //}
-
     bool Initialize(const Platform::WindowHandle hWindow, u32 numBackBuffers)
     {
 #ifdef DX_DEBUG
@@ -521,10 +488,15 @@ namespace Graphics
 #endif
 
         auto pPlatformWindow = &Platform::s_pWindows[hWindow];
-		auto width = pPlatformWindow->Width;
-        auto height = pPlatformWindow->Height;
+        auto handle = pPlatformWindow->hwnd;
+
+        RECT rect;
+        bool success = ::GetClientRect(handle, &rect);
+        LUZASSERT(success);
+
+		auto width = rect.right - rect.left;
+        auto height = rect.bottom - rect.top;
         auto fullScreen = pPlatformWindow->bFullScreen;
-		auto handle = pPlatformWindow->hwnd;
 
         // Create Factory
         HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&s_device.pFactory4));
@@ -1731,13 +1703,7 @@ namespace Graphics
 
         uint64_t execution = ExecuteCommandList(cl.pGraphicsCommandList, cl.eType);
 		FreeCommandContext(cl.iAllocator, execution, cl.eType);
-		pCommandStream->SetExecution(cl.eType, execution);
         SignalQueue(cl.eType, execution, wait);
-
-        //CommandContext ctx = AllocateCommandContext(cl.eType);
-        //cl.pGraphicsCommandList->Reset(ctx.pCommandAllocator, nullptr);
-        //cl.pDescriptorHeap = ctx.pDescriptorHeap;
-        //cl.iAllocator = ctx.Index;
     }
 
     void Present()
@@ -1768,7 +1734,7 @@ namespace Graphics
         uint64_t execution = ExecuteCommandList(s_swapChain.pGraphicsCommandList, ctx.eQueueType);
 		FreeCommandContext(ctx.Index, execution, ctx.eQueueType);
 
-        hr = s_swapChain.pSwapChain3->Present(0, 0);
+        hr = s_swapChain.pSwapChain3->Present(1, 0);
         CHECK_DEVICE_REMOVED(hr);
 
         s_swapChain.FrameIndex = s_swapChain.pSwapChain3->GetCurrentBackBufferIndex();
@@ -1824,14 +1790,14 @@ namespace Graphics
 		LUZASSERT(ctx.pDescriptorHeap);
 
 		CommandList& cl = s_commandListCollection.GetData(handle);
-		if (!cl.pGraphicsCommandList)
+		if (cl.pGraphicsCommandList)
 		{
-			HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, ctx.pCommandAllocator, pPipelineState, IID_PPV_ARGS(&cl.pGraphicsCommandList));
+            HRESULT hr = cl.pGraphicsCommandList->Reset(ctx.pCommandAllocator, pPipelineState);
 			LUZASSERT(SUCCEEDED(hr));
 		}
 		else
 		{
-			HRESULT hr = cl.pGraphicsCommandList->Reset(ctx.pCommandAllocator, pPipelineState);
+            HRESULT hr = s_device.pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, ctx.pCommandAllocator, pPipelineState, IID_PPV_ARGS(&cl.pGraphicsCommandList));
 			LUZASSERT(SUCCEEDED(hr));
 		}
 

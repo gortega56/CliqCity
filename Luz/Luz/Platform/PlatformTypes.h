@@ -18,6 +18,11 @@ namespace Platform
         ScreenPoint& operator= (const ScreenPoint& Int2);
     };
 
+    struct LUZ_API Rect
+    {
+        unsigned short X, Y, Width, Height;
+    };
+
     enum LUZ_API GamepadButton : int
     {
         GAMEPADBUTTON_UP = 0x0001,

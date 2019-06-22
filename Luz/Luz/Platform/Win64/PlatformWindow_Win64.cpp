@@ -112,6 +112,49 @@ namespace Platform
 		return false;
 	}
 
+    bool GetDisplay(const WindowHandle handle, Window& window)
+    {
+        if (0 <= handle && handle < s_nWindows.load())
+        {            
+            RECT rect;
+            bool success = ::GetClientRect(s_pWindows[handle].hwnd, &rect);
+            LUZASSERT(success);
+
+            window.Width = rect.right - rect.left;
+            window.Height = rect.bottom - rect.top;
+            window.Aspect = static_cast<float>(window.Width) / static_cast<float>(window.Height);
+            window.bFullScreen = s_pWindows[handle].bFullScreen;
+            return true;
+        }
+
+        return false;
+    }
+
+    void GetWindow(const WindowHandle handle, Rect& rect)
+    {
+        LUZASSERT(0 <= handle && handle < s_nWindows.load());
+
+        Window_Win64* pWindow = &s_pWindows[handle];
+        rect.X = 0;
+        rect.Y = 0;
+        rect.Width = pWindow->Width;
+        rect.Height = pWindow->Height;
+    }
+
+    void GetDisplay(const WindowHandle handle, Rect& rect)
+    {
+        LUZASSERT(0 <= handle && handle < s_nWindows.load());
+
+        RECT r;
+        bool success = ::GetClientRect(s_pWindows[handle].hwnd, &r);
+        LUZASSERT(success);
+
+        rect.X = static_cast<unsigned short>(r.left);
+        rect.Y = static_cast<unsigned short>(r.bottom);
+        rect.Width = static_cast<unsigned short>(r.right - r.left);
+        rect.Height = static_cast<unsigned short>(r.bottom - r.top);
+    }
+
 	void Shutdown_Windows()
 	{
 		for (unsigned int i = 0, n = s_nWindows.load(); i < n; ++i)

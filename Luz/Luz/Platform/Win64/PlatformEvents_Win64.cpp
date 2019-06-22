@@ -364,7 +364,7 @@ namespace Platform
 	{
         if (s_pWinProcOverride)
         {
-            s_pWinProcOverride(hwnd, msg, wparam, lparam);
+           s_pWinProcOverride(hwnd, msg, wparam, lparam);
         }
 
 		BroadcastMessage(hwnd, msg, wparam, lparam);

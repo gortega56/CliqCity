@@ -14,6 +14,21 @@
 
 namespace lina
 {
+    MATH_INLINE float length(const float x, const float y)
+    {
+        return sqrtf((x * x) + (y * y));
+    }
+
+    MATH_INLINE float length(const float x, const float y, const float z)
+    {
+        return sqrtf((x * x) + (y * y) + (z * z));
+    }
+
+    MATH_INLINE float length(const float x, const float y, const float z, const float w)
+    {
+        return sqrtf((x * x) + (y * y) + (z * z) + (w * w));
+    }
+
 #pragma region vector template
 
     template<typename T, unsigned int N>

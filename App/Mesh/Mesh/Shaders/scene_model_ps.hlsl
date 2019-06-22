@@ -469,7 +469,6 @@ float4 Shade_GGX(ShadingFrame frame)
         {
             base = textures[iDiffuse].Sample(aniso_wrap_sampler, frame.UV);
             clip(base.a - 0.1f);
-            //base.xyz = SRGB_to_Linear(base.xyz);
             base.xyz = Gamma_to_Linear(base.xyz);
         }
 
@@ -492,7 +491,6 @@ float4 Shade_GGX(ShadingFrame frame)
         {
             roughness = textures[iRough].Sample(linear_wrap_sampler, frame.UV).x;
         }
-
 
         float NoV = saturate(dot(N, frame.V));// abs(dot(N, frame.V)) + 1e-5;
         float NoL = saturate(dot(N, frame.L));

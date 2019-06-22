@@ -96,8 +96,6 @@ static float s_lightMoveSpeed = 0.2f;
 
 static bool s_shadowFullScreen = false;
 
-static bool s_bDebugConsole = false;
-
 static ShaderOptions s_shaderOptions =
 {
     float3(1.0f, 0.96f, 0.95f),
@@ -134,7 +132,117 @@ static void ProcessEnvironmentLighting(const EnvironmentParameters& params);
 
 static int FindOrPushBackTextureName(std::vector<std::string>& textureNames, std::string textureName);
 
-static void ConsoleThread();
+static void UpdateShaderOptionsUI(ShaderOptions& shaderOptions, double dt)
+{
+    shaderOptions = s_shaderOptions;
+
+    ImGui::NewFrame();
+
+    bool bExpanded = ImGui::Begin("Scene Viewer");
+    if (bExpanded)
+    {
+        ImGui::Text("Shading:");
+        static const char* s_pLightingModeNames[] =
+        {
+            "Non-Physical (Blinn-Phong)",
+            "Blinn-Phong",
+            "Beckmann",
+            "GGX"
+        };
+
+        if (ImGui::BeginCombo("Method", s_pLightingModeNames[shaderOptions.LightingMode]))
+        {
+            if (ImGui::Selectable(s_pLightingModeNames[SceneResource::ShadingMode::SHADING_MODE_DEFAULT]))
+            {
+                shaderOptions.LightingMode = SceneResource::ShadingMode::SHADING_MODE_DEFAULT;
+            }
+
+            if (ImGui::Selectable(s_pLightingModeNames[SceneResource::ShadingMode::SHADING_MODE_BLINN_PHONG]))
+            {
+                shaderOptions.LightingMode = SceneResource::ShadingMode::SHADING_MODE_BLINN_PHONG;
+            }
+
+            if (ImGui::Selectable(s_pLightingModeNames[SceneResource::ShadingMode::SHADING_MODE_BECKMANN]))
+            {
+                shaderOptions.LightingMode = SceneResource::ShadingMode::SHADING_MODE_BECKMANN;
+            }
+
+            if (ImGui::Selectable(s_pLightingModeNames[SceneResource::ShadingMode::SHADING_MODE_GGX]))
+            {
+                shaderOptions.LightingMode = SceneResource::ShadingMode::SHADING_MODE_GGX;
+            }
+
+            ImGui::EndCombo();
+        }
+
+        static const char* s_pBumpModeName[] =
+        {
+            "Height",
+            "Normal"
+        };
+
+        if (ImGui::BeginCombo("Bump Mapping", s_pBumpModeName[shaderOptions.BumpMode]))
+        {
+            if (ImGui::Selectable(s_pBumpModeName[SceneResource::BUMP_MODE_HEIGHT]))
+            {
+                shaderOptions.BumpMode = SceneResource::BUMP_MODE_HEIGHT;
+            }
+
+            if (ImGui::Selectable(s_pBumpModeName[SceneResource::BUMP_MODE_NORMAL]))
+            {
+                shaderOptions.BumpMode = SceneResource::BUMP_MODE_NORMAL;
+            }
+
+            ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Lighting:");
+        ImGui::ColorPicker3("Color", shaderOptions.LightColor.p_cols);
+
+        float3 p = shaderOptions.LightDirection;
+        float y = atan2f(p.x, p.z);
+        float xz = lina::length(p.x, p.z);
+        float x = atan2(-p.y, xz);
+        float2 polar = float2(x, y);
+        
+        float pi = 3.14159265359f;
+        ImGui::DragFloat("Sun Theta", &polar.y, 0.01f, -pi, pi);
+        ImGui::DragFloat("Sun Phi", &polar.x, 0.01f, -(pi * 0.5f), pi * 0.5f);
+        shaderOptions.LightDirection = lina::normalize(lina::quaternion::create(polar.x, polar.y, 0.0f) * float3(0.0f, 0.0f, 1.0f));
+
+
+        ImGui::Text("Non-Physical:");
+        ImGui::DragFloat("Ambient Intensity", &shaderOptions.LightIntensity.x, 0.01f, 0.0f, 100.0f);
+        ImGui::DragFloat("Diffuse Intensity", &shaderOptions.LightIntensity.y, 0.01f, 0.0f, 100.0f);
+        ImGui::DragFloat("Specular Intensity", &shaderOptions.LightIntensity.z, 0.01f, 0.0f, 100.0f);
+        ImGui::Text("Physical:");
+        ImGui::DragFloat("Lux", &shaderOptions.LightIntensity.w, 0.01f, 0.0f, 100.0f);
+
+        ImGui::Separator();
+
+        ImGui::Text("Camera:");
+        ImGui::DragFloat("Exposure", &shaderOptions.Exposure, 0.1f, 0.0f, 32.0f);
+
+        ImGui::Separator();
+
+        ImGui::Text("Options:");
+        ImGui::Checkbox("Enable Ambient", &shaderOptions.AmbientEnabled);
+        ImGui::Checkbox("Enable Diffuse", &shaderOptions.DiffuseEnabled);
+        ImGui::Checkbox("Enable Specular", &shaderOptions.SpecEnabled);
+        ImGui::Checkbox("Enable Bump Mapping", &shaderOptions.BumpEnabled);
+        ImGui::Checkbox("Enable Shadows", &shaderOptions.ShadowEnabled);
+        ImGui::Checkbox("Enable NDF (D)", &shaderOptions.MicrofacetEnabled);
+        ImGui::Checkbox("Enable Visibility (G)", &shaderOptions.MaskingEnabled);
+        ImGui::Checkbox("Enable Fresnel (F)", &shaderOptions.FresnelEnabled);
+    }
+    ImGui::End();
+
+    ImGui::EndFrame();
+
+    s_shaderOptions = shaderOptions;
+}
 
 SceneViewer::SceneViewer()
     : m_window(-1)
@@ -182,26 +290,29 @@ bool SceneViewer::Initialize()
     bool success = Graphics::Initialize(m_window, s_nSwapChainTargets);
     LUZASSERT(success);
 
+//    Platform::CreateConsole();
+
     // imgui
     {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-        ImGui::StyleColorsDark();
-
-        success = Platform::Initialize_Imgui(m_window);
-        LUZASSERT(success);
-
-        success = Graphics::Initialize_Imgui(s_nSwapChainTargets);
-        LUZASSERT(success);
+      IMGUI_CHECKVERSION();
+      ImGui::CreateContext();
+      ImGuiIO& io = ImGui::GetIO();
+      io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+      io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+      
+      ImGui::StyleColorsDark();
+      
+      success = Platform::Initialize_Imgui(m_window);
+      LUZASSERT(success);
+      
+      success = Graphics::Initialize_Imgui(s_nSwapChainTargets);
+      LUZASSERT(success);
     }
 
-	LoadScene("Sponza.scene", 0);
+	LoadScene("cerberus.scene", 0);
 
 	Platform::Window window;
-	Platform::GetWindow(m_window, window);
+	Platform::GetDisplay(m_window, window);
 
 	m_cameraController = CameraController();
 	m_cameraController.SetWindowWidth(window.Width);
@@ -514,11 +625,6 @@ bool SceneViewer::Initialize()
     params.AspectRatio = window.Aspect;
     params.pCommandStream = &m_commandStream;
     ProcessEnvironmentLighting(params);
-
-    if (s_bDebugConsole)
-    {
-        std::thread(ConsoleThread).detach();
-    }
     
     return true;
 }
@@ -578,6 +684,7 @@ int SceneViewer::Shutdown()
 
     return 0;
 }
+static bool bShadows = false;
 
 void SceneViewer::Update(double dt)
 {
@@ -609,63 +716,63 @@ void SceneViewer::Update(double dt)
 		s_shaderOptions.BumpMode = pScene->eBump;
 	}
 
-	ShaderOptions shaderOptions;
-	{
-		std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-		shaderOptions = s_shaderOptions;
-	}
+    Graphics::Update_Imgui();
+    Platform::Update_Imgui();
+
+    ShaderOptions shaderOptions;
+    UpdateShaderOptionsUI(shaderOptions, dt);
+
+    static const Graphics::Viewport vp = { 0.0f, 0.0f, static_cast<float>(s_window_width), static_cast<float>(s_window_height), 0.0f, 1.0f };
+    static const Graphics::Rect scissor = { 0, 0, static_cast<u32>(s_window_width), static_cast<u32>(s_window_height) };
+    float clear[4] =
+    {
+        shaderOptions.LightColor.x,
+        shaderOptions.LightColor.y,
+        shaderOptions.LightColor.z,
+        1.0f,
+    };
 
     if (pScene)
     {
-		float3 dim = pScene->Bounds.max - pScene->Bounds.min;
-		float3 lp = dim * -normalize(shaderOptions.LightDirection);
-		float3x3 lv = float3x3::orientation_lh(shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
-        
-		s_lighting.GetTransform()->SetPosition(lp);
-		s_lighting.GetTransform()->SetRotation(quaternion::create(lv));
-        
-		float4x4 view = m_cameraController.GetCamera()->GetView();
-		float4x4 proj = m_cameraController.GetCamera()->GetProjection();
-        
-		FrameConstants* pConsts = &m_frameConsts[m_frameIndex];
-        
-		pConsts->CameraConsts.View = view.transpose();
-		pConsts->CameraConsts.Proj = proj.transpose();
-		pConsts->CameraConsts.InverseView = view.inverse().transpose();
-		pConsts->CameraConsts.InverseProj = proj.inverse().transpose();
-        
-		view = s_lighting.GetView();
-		proj = s_lighting.GetProjection();
-        
-		pConsts->ShadowConsts.View = view.transpose();
-		pConsts->ShadowConsts.Proj = proj.transpose();
-		pConsts->ShadowConsts.InverseView = view.inverse().transpose();
-		pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
-        
-		pConsts->LightingConsts.Color = shaderOptions.LightColor;
-		pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
-		pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
-		pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
-		pConsts->LightingConsts.LightingMode = shaderOptions.LightingMode;
-		pConsts->LightingConsts.BumpMode = shaderOptions.BumpMode;
-		pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
-		pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
-		pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
-		pConsts->LightingConsts.EnableBump = shaderOptions.BumpEnabled;
-		pConsts->LightingConsts.EnableShadow = shaderOptions.ShadowEnabled;
-		pConsts->LightingConsts.MicrofacetEnabled = shaderOptions.MicrofacetEnabled;
-		pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
-		pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
-        
-		static const Graphics::Viewport vp = { 0.0f, 0.0f, static_cast<float>(s_window_width), static_cast<float>(s_window_height), 0.0f, 1.0f };
-		static const Graphics::Rect scissor = { 0, 0, static_cast<u32>(s_window_width), static_cast<u32>(s_window_height) };
-		float clear[4] =
-		{
-		    shaderOptions.LightColor.x,
-		    shaderOptions.LightColor.y,
-		    shaderOptions.LightColor.z,
-		    1.0f,
-		};
+        float3 dim = pScene->Bounds.max - pScene->Bounds.min;
+        float3 lp = dim * -normalize(shaderOptions.LightDirection);
+        float3x3 lv = float3x3::orientation_lh(shaderOptions.LightDirection, float3(0.0f, 0.0f, 1.0f));
+
+        s_lighting.GetTransform()->SetPosition(lp);
+        s_lighting.GetTransform()->SetRotation(quaternion::create(lv));
+
+        float4x4 view = m_cameraController.GetCamera()->GetView();
+        float4x4 proj = m_cameraController.GetCamera()->GetProjection();
+
+        FrameConstants* pConsts = &m_frameConsts[m_frameIndex];
+
+        pConsts->CameraConsts.View = view.transpose();
+        pConsts->CameraConsts.Proj = proj.transpose();
+        pConsts->CameraConsts.InverseView = view.inverse().transpose();
+        pConsts->CameraConsts.InverseProj = proj.inverse().transpose();
+
+        view = s_lighting.GetView();
+        proj = s_lighting.GetProjection();
+
+        pConsts->ShadowConsts.View = view.transpose();
+        pConsts->ShadowConsts.Proj = proj.transpose();
+        pConsts->ShadowConsts.InverseView = view.inverse().transpose();
+        pConsts->ShadowConsts.InverseProj = proj.inverse().transpose();
+
+        pConsts->LightingConsts.Color = shaderOptions.LightColor;
+        pConsts->LightingConsts.Direction = shaderOptions.LightDirection;
+        pConsts->LightingConsts.Intensity = shaderOptions.LightIntensity;
+        pConsts->LightingConsts.Exposure = shaderOptions.Exposure;
+        pConsts->LightingConsts.LightingMode = shaderOptions.LightingMode;
+        pConsts->LightingConsts.BumpMode = shaderOptions.BumpMode;
+        pConsts->LightingConsts.EnableAmbient = shaderOptions.AmbientEnabled;
+        pConsts->LightingConsts.EnableDiffuse = shaderOptions.DiffuseEnabled;
+        pConsts->LightingConsts.EnableSpec = shaderOptions.SpecEnabled;
+        pConsts->LightingConsts.EnableBump = shaderOptions.BumpEnabled;
+        pConsts->LightingConsts.EnableShadow = shaderOptions.ShadowEnabled;
+        pConsts->LightingConsts.MicrofacetEnabled = shaderOptions.MicrofacetEnabled;
+        pConsts->LightingConsts.MaskingEnabled = shaderOptions.MaskingEnabled;
+        pConsts->LightingConsts.FresnelEnabled = shaderOptions.FresnelEnabled;
 
         if (shaderOptions.ShadowEnabled)
         {
@@ -779,17 +886,9 @@ void SceneViewer::Update(double dt)
             cs.DrawInstanceIndexed(m_ibCubeMap);
         
             Graphics::SubmitCommandStream(&cs);
-        
+
             //imgui
             {
-                Graphics::Update_Imgui();
-                Platform::Update_Imgui();
-                ImGui::NewFrame();
-
-                ImGui::Begin("Hello, world!");
-                ImGui::Text("This is some text.");
-                ImGui::End();
-
                 auto& cs = m_commandStream;
                 Graphics::ResetCommandStream(&cs, 0);
                 cs.SetRenderTargets(false);
@@ -797,12 +896,11 @@ void SceneViewer::Update(double dt)
 
                 Graphics::SubmitCommandStream(&cs);
             }
-        
-        }
-        
+        }   
+
         Graphics::Present();
     }
-        
+
     m_frameIndex = (m_frameIndex + 1) % s_nFrameResources;
 }
 
@@ -1460,163 +1558,5 @@ void DestroyScene(const Scene* pScene)
     for (auto& hTexture : pScene->Textures)
     {
         Graphics::ReleaseTexture(hTexture);
-    }
-}
-
-void ConsoleThread()
-{
-    Platform::CreateConsole();
-
-    while (Platform::Running())
-    {
-        int iter = 0, nDots = 3;
-        while (s_loading.load())
-        {
-            Platform::ClearConsole();
-            iter = (iter + 1) % nDots;
-
-            switch (iter)
-            {
-            case 0: std::cout << "Loading." << std::endl; break;
-            case 1: std::cout << "Loading.." << std::endl; break;
-            case 2: std::cout << "Loading..." << std::endl; break;
-            default: LUZASSERT(false);
-            }
-
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-
-		ShaderOptions shaderOptions;
-		{
-			std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-			shaderOptions = s_shaderOptions;
-		}
-
-        std::cout << ">: ";
-
-        std::string input;
-        getline(std::cin, input);
-
-        std::stringstream ss = std::stringstream(input);
-
-        std::string cmd;
-        ss >> cmd;
-        if (strcmp(cmd.c_str(), "exit") == 0)
-        {
-            break;
-        }
-        else if (strcmp(cmd.c_str(), "setlightcolor") == 0)
-        {
-            ss >> shaderOptions.LightColor.x >> shaderOptions.LightColor.y >> shaderOptions.LightColor.z;
-        }
-        else if (strcmp(cmd.c_str(), "setexposure") == 0)
-        {
-            ss >> shaderOptions.Exposure;
-        }
-        else if (strcmp(cmd.c_str(), "setambient") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.x;
-        }
-        else if (strcmp(cmd.c_str(), "setdiffuse") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.y;
-        }
-        else if (strcmp(cmd.c_str(), "setspecular") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.z;
-        }
-        else if (strcmp(cmd.c_str(), "setlux") == 0)
-        {
-            ss >> shaderOptions.LightIntensity.w;
-        }
-        else if (strcmp(cmd.c_str(), "toggleambient") == 0)
-        {
-            shaderOptions.AmbientEnabled = !shaderOptions.AmbientEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "togglediffuse") == 0)
-        {
-            shaderOptions.DiffuseEnabled = !shaderOptions.DiffuseEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "togglespecular") == 0)
-        {
-            shaderOptions.SpecEnabled = !shaderOptions.SpecEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggleshadow") == 0)
-        {
-            shaderOptions.ShadowEnabled = !shaderOptions.ShadowEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "togglebump") == 0)
-        {
-            shaderOptions.BumpEnabled = !shaderOptions.BumpEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "toggled") == 0)
-        {
-            shaderOptions.MicrofacetEnabled = !shaderOptions.MicrofacetEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "togglev") == 0)
-        {
-            shaderOptions.MaskingEnabled = !shaderOptions.MaskingEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "togglef") == 0)
-        {
-            shaderOptions.FresnelEnabled = !shaderOptions.FresnelEnabled;
-        }
-        else if (strcmp(cmd.c_str(), "shadedefault") == 0)
-        {
-            shaderOptions.LightingMode = 0;
-        }
-        else if (strcmp(cmd.c_str(), "shadeblinnphong") == 0)
-        {
-            shaderOptions.LightingMode = 1;
-        }
-        else if (strcmp(cmd.c_str(), "shadebeckmann") == 0)
-        {
-            shaderOptions.LightingMode = 2;
-        }
-        else if (strcmp(cmd.c_str(), "shadeggx") == 0)
-        {
-            shaderOptions.LightingMode = 3;
-        }
-        else if (strcmp(cmd.c_str(), "setbumpheight") == 0)
-        {
-            shaderOptions.BumpMode = 0;
-        }
-        else if (strcmp(cmd.c_str(), "setbumpnormal") == 0)
-        {
-            shaderOptions.BumpMode = 1;
-        }
-        else if (strcmp(cmd.c_str(), "reset") == 0)
-        {
-            shaderOptions.AmbientEnabled = true;
-            shaderOptions.DiffuseEnabled = true;
-            shaderOptions.SpecEnabled = true;
-            shaderOptions.BumpEnabled = true;
-            shaderOptions.ShadowEnabled = true;
-            shaderOptions.MaskingEnabled = true;
-            shaderOptions.MicrofacetEnabled = true;
-            shaderOptions.FresnelEnabled = true;
-        }
-        else if (strcmp(cmd.c_str(), "loadscene") == 0)
-        {
-            if (!s_loading.load())
-            {
-                std::string filename;
-                ss >> filename;
-                s_pSceneViewer->LoadScene(filename,0);
-            }
-            else
-            {
-                std::cout << "scene is already queued" << std::endl;
-            }
-        }
-        else
-        {
-            continue;
-        }
-
-		{
-			std::lock_guard<std::mutex> lock(s_shaderOptionMutex);
-			s_shaderOptions = shaderOptions;
-		}
     }
 }

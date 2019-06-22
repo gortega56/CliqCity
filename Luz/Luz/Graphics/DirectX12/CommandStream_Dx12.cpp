@@ -78,13 +78,6 @@ namespace Graphics
         }
 
         cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, pDsHandle);
-
-        for (u32 i = 0; i < numRenderTargets; ++i)
-        {
-            m_txs[m_num_txs++] = pTextureHandles[i];
-        }
-
-        m_ds = dsHandle;
     }
 
     void CommandStream::SetRenderTargets(const u32 numRenderTargets, const RenderTargetHandle* pRtHandles, const DepthStencilHandle dsHandle)
@@ -104,13 +97,6 @@ namespace Graphics
         }
 
         cl.pGraphicsCommandList->OMSetRenderTargets(numRenderTargets, pHandles, FALSE, pDsHandle);
-
-        for (u32 i = 0; i < numRenderTargets; ++i)
-        {
-            m_rts[m_num_rts++] = pRtHandles[i];
-        }
-
-        m_ds = dsHandle;
     }
 
     void CommandStream::SetRenderTargets(bool bDepth /*= true*/)
@@ -226,8 +212,6 @@ namespace Graphics
         UINT numViews = (handle == GPU_RESOURCE_HANDLE_INVALID) ? 0 : 1;
 
         cl.pGraphicsCommandList->IASetVertexBuffers(0, numViews, pView);
-
-        m_vbs[m_num_vbs++] = handle;
     }
 
     void CommandStream::SetIndexBuffer(const IndexBufferHandle handle)
@@ -236,8 +220,6 @@ namespace Graphics
         IndexBuffer& ib = s_indexBufferCollection.GetData(handle);
 
         cl.pGraphicsCommandList->IASetIndexBuffer(&ib.View);
-
-        m_ibs[m_num_ibs++] = handle;
     }
 
     void CommandStream::SetConstantBuffer(const u32 param, const ConstantBufferHandle handle)
@@ -246,8 +228,6 @@ namespace Graphics
         ConstantBuffer cb = s_constantBufferCollection.GetData(handle);
 
         cl.pGraphicsCommandList->SetGraphicsRootConstantBufferView(static_cast<UINT>(param), cb.GpuVirtualAddress);
-
-        m_cbs[m_num_cbs++] = handle;
     }
 
     void CommandStream::SetTexture(const u32 param, const TextureHandle handle)
@@ -256,8 +236,6 @@ namespace Graphics
         Texture tx = s_textureCollection.GetData(handle);
 
         cl.pGraphicsCommandList->SetGraphicsRootShaderResourceView(static_cast<UINT>(param), tx.GpuVirtualAddress);
-
-        m_txs[m_num_txs++] = handle;
     }
 
     void CommandStream::SetDescriptorTable(const u32 param, const GpuResourceHandle baseHandle)
@@ -271,16 +249,6 @@ namespace Graphics
         case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: descriptor = s_textureCollection.GetData(baseHandle).SrvHandle; break;
         case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
         case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: descriptor = s_depthStencilCollection.GetData(baseHandle).SrvHandle; break;
-        case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
-        default: LUZASSERT(false); break;
-        }
-
-        switch (eHandleType)
-        {
-        case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: m_cbs[m_num_cbs++] = baseHandle; break;
-        case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: m_txs[m_num_txs++] = baseHandle; break;
-        case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
-        case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: m_ds = baseHandle; break;
         case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
         default: LUZASSERT(false); break;
         }
@@ -312,16 +280,6 @@ namespace Graphics
             case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: dstHandle = s_textureCollection.GetData(handle).SrvHandle.CpuHandle; break;
             case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
             case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: dstHandle = s_depthStencilCollection.GetData(handle).SrvHandle.CpuHandle; break;
-            case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
-            default: LUZASSERT(false); break;
-            }
-
-            switch (eHandleType)
-            {
-            case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: m_cbs[m_num_cbs++] = handle; break;
-            case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: m_txs[m_num_txs++] = handle; break;
-            case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
-            case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: m_ds = handle; break;
             case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
             default: LUZASSERT(false); break;
             }
@@ -363,16 +321,6 @@ namespace Graphics
                 case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: dstHandle = s_textureCollection.GetData(handle).SrvHandle.CpuHandle; break;
                 case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
                 case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: dstHandle = s_depthStencilCollection.GetData(handle).SrvHandle.CpuHandle; break;
-                case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
-                default: LUZASSERT(false); break;
-                }
-
-                switch (eHandleType)
-                {
-                case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: m_cbs[m_num_cbs++] = handle; break;
-                case GFX_DESCRIPTOR_HANDLE_TYPE_SRV: m_txs[m_num_txs++] = handle; break;
-                case GFX_DESCRIPTOR_HANDLE_TYPE_UAV: LUZASSERT(false); break;
-                case GFX_DESCRIPTOR_HANDLE_TYPE_DSV: m_ds = handle; break;
                 case GFX_DESCRIPTOR_HANDLE_TYPE_RTV: LUZASSERT(false); break;
                 default: LUZASSERT(false); break;
                 }
@@ -438,25 +386,7 @@ namespace Graphics
 
     void CommandStream::SetExecution(const CommandQueueType eQueueType, const uint64_t execution)
     {
-        s_depthStencilCollection.GetData(m_ds).Execution[eQueueType] = execution;
-        for (unsigned int i = 0; i < m_num_rts; ++i) s_renderTargetCollection.GetData(m_rts[i]).Execution[eQueueType] = execution;
-        for (unsigned int i = 0; i < m_num_vbs; ++i) s_vertexBufferCollection.GetData(m_vbs[i]).Execution[eQueueType] = execution;
-        for (unsigned int i = 0; i < m_num_ibs; ++i) s_indexBufferCollection.GetData(m_ibs[i]).Execution[eQueueType] = execution;
-        for (unsigned int i = 0; i < m_num_cbs; ++i) s_constantBufferCollection.GetData(m_cbs[i]).Execution[eQueueType] = execution;
-        for (unsigned int i = 0; i < m_num_txs; ++i) s_textureCollection.GetData(m_txs[i]).Execution[eQueueType] = execution;
 
-        m_ds = 0;
-        ZeroMemory(m_rts, sizeof(GpuResourceHandle)*sm_max_rts);
-        ZeroMemory(m_vbs, sizeof(GpuResourceHandle)*sm_max_vbs);
-        ZeroMemory(m_ibs, sizeof(GpuResourceHandle)*sm_max_ibs);
-        ZeroMemory(m_cbs, sizeof(GpuResourceHandle)*sm_max_cbs);
-        ZeroMemory(m_txs, sizeof(GpuResourceHandle)*sm_max_txs);
-
-        m_num_rts = 0;
-        m_num_vbs = 0;
-        m_num_ibs = 0;
-        m_num_cbs = 0;
-        m_num_txs = 0;
     }
 }
 #endif
