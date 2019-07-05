@@ -77,6 +77,7 @@ struct EnvironmentParameters
     Graphics::ShaderHandle hIrradiancePixelShader;
     Graphics::ShaderHandle hDfgPixelShader;
     float AspectRatio;
+    u32 LightingMode;
 };
 
 struct TextureOverrides
@@ -308,8 +309,6 @@ bool SceneViewer::Initialize()
       success = Graphics::Initialize_Imgui(s_nSwapChainTargets);
       LUZASSERT(success);
     }
-
-	LoadScene("cerberus.scene", 0);
 
 	Platform::Window window;
 	Platform::GetDisplay(m_window, window);
@@ -609,23 +608,9 @@ bool SceneViewer::Initialize()
     Graphics::CommandStreamDesc csd;
     csd.QueueType = Graphics::GFX_COMMAND_QUEUE_TYPE_DRAW;
     Graphics::CreateCommandStream(csd, &m_commandStream);
-
-    EnvironmentParameters params;
-    params.hCubeTexture = m_txCubeMap;
-    params.hRenderTarget = m_txEnvMap;
-    params.hDfgRenderTarget = m_txLUT;
-    params.hCubeVertexBuffer = m_vbCubeMap;
-    params.hCubeIndexBuffer = m_ibCubeMap;
-    params.hTriIndexBuffer = m_ibFullScreen;
-    params.hCubeVertexShader = m_vsCubeMap;
-    params.hTriVertexShader = m_vsFullScreen;
-    params.hRadiancePixelShader = m_psRadianceMap;
-    params.hIrradiancePixelShader = m_psIrradianceMap;
-    params.hDfgPixelShader = m_psLUT;
-    params.AspectRatio = window.Aspect;
-    params.pCommandStream = &m_commandStream;
-    ProcessEnvironmentLighting(params);
     
+    LoadScene("sponza.scene", 0);
+
     return true;
 }
 
@@ -684,7 +669,6 @@ int SceneViewer::Shutdown()
 
     return 0;
 }
-static bool bShadows = false;
 
 void SceneViewer::Update(double dt)
 {
@@ -911,6 +895,9 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
         m_loadingThreads[threadID].join();
     }
 
+    Platform::Window window;
+    Platform::GetDisplay(m_window, window);
+
     s_loading.store(true);
 
     m_loadingThreads[threadID] = std::thread([&, filename]()
@@ -924,6 +911,25 @@ void SceneViewer::LoadScene(const std::string filename, const u32 threadID)
         {
             return;
         }
+
+        // Kick off environment mapping
+        // now that we have the shading mode
+        EnvironmentParameters params;
+        params.hCubeTexture = m_txCubeMap;
+        params.hRenderTarget = m_txEnvMap;
+        params.hDfgRenderTarget = m_txLUT;
+        params.hCubeVertexBuffer = m_vbCubeMap;
+        params.hCubeIndexBuffer = m_ibCubeMap;
+        params.hTriIndexBuffer = m_ibFullScreen;
+        params.hCubeVertexShader = m_vsCubeMap;
+        params.hTriVertexShader = m_vsFullScreen;
+        params.hRadiancePixelShader = m_psRadianceMap;
+        params.hIrradiancePixelShader = m_psIrradianceMap;
+        params.hDfgPixelShader = m_psLUT;
+        params.AspectRatio = window.Aspect;
+        params.LightingMode = pScene->GetShadingMode();
+        params.pCommandStream = &m_commandStream;
+        ProcessEnvironmentLighting(params);
 
         auto getExtension = [](const char* file) -> const char*
         {
@@ -1057,7 +1063,7 @@ void SceneViewer::FixedUpdate(double dt)
 void ProcessEnvironmentLighting(const EnvironmentParameters& params)
 {
     Graphics::PipelineDesc radiancePipe;
-    radiancePipe.Signature.SetName("Radiance")
+    radiancePipe.Signature.SetName("Split Sum LD")
         .AllowInputLayout()
         .DenyHS()
         .DenyDS()
@@ -1118,10 +1124,11 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
     Graphics::PipelineStateHandle hIrradiance = Graphics::CreateGraphicsPipelineState(irradiancePipe);
 
     Graphics::PipelineDesc brdfPipe;
-    brdfPipe.Signature.SetName("BRDF Integration")
+    brdfPipe.Signature.SetName("Split Sum DFG")
         .DenyHS()
         .DenyDS()
-        .DenyGS();
+        .DenyGS()
+        .AppendConstantView(1);
     brdfPipe.VertexShaderHandle = params.hTriVertexShader;
     brdfPipe.PixelShaderHandle = params.hDfgPixelShader;
     brdfPipe.Topology = Graphics::GFX_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -1172,21 +1179,28 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
         hCameras[i] = Graphics::CreateConstantBuffer(desc);
     }
 
-    float4 roughness[5];
+    struct SplitSumConstants
+    {
+        float4 Roughness;
+        unsigned int LightingMode;
+    };
 
-    Graphics::ConstantBufferHandle hRoughness[5];
+    SplitSumConstants pSplitSumConstants[5];
+
+    Graphics::ConstantBufferHandle hSplitSumConstants[5];
 
     for (int i = 0; i < 5; ++i)
     {
-        roughness[i].x = (float)i / 4.0f;
+        pSplitSumConstants[i].Roughness.x = (float)i / 4.0f;
+        pSplitSumConstants[i].LightingMode = params.LightingMode;
 
         Graphics::ConstantBufferDesc desc;
         desc.Alignment = 0;
-        desc.SizeInBytes = sizeof(float4);
-        desc.StrideInBytes = sizeof(float4);
+        desc.SizeInBytes = sizeof(SplitSumConstants);
+        desc.StrideInBytes = sizeof(SplitSumConstants);
         desc.AllocHeap = false;
-        desc.pData = &roughness[i];
-        hRoughness[i] = Graphics::CreateConstantBuffer(desc);
+        desc.pData = &pSplitSumConstants[i];
+        hSplitSumConstants[i] = Graphics::CreateConstantBuffer(desc);
     }
 
     Graphics::CommandStream* pCommandStream = params.pCommandStream;
@@ -1207,7 +1221,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
             pCommandStream->SetViewport(0.0f, 0.0f, w, h, 0.0, 1.0);
             pCommandStream->SetScissorRect(0, 0, static_cast<u32>(w), static_cast<u32>(h));
             pCommandStream->SetConstantBuffer(0, hCameras[face]);
-            pCommandStream->SetConstantBuffer(1, hRoughness[mip]);
+            pCommandStream->SetConstantBuffer(1, hSplitSumConstants[mip]);
 
             pCommandStream->SetVertexBuffer(params.hCubeVertexBuffer);
             pCommandStream->SetIndexBuffer(params.hCubeIndexBuffer);
@@ -1249,6 +1263,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
     pCommandStream->SetRenderTargets(1, &params.hDfgRenderTarget, nullptr, nullptr, 0);
     pCommandStream->SetViewport(0.0f, 0.0f, 512.0, 512.0, 0.0, 1.0);
     pCommandStream->SetScissorRect(0, 0, 512, 512);
+    pCommandStream->SetConstantBuffer(0, hSplitSumConstants[0]);
     pCommandStream->SetVertexBuffer(0);
     pCommandStream->SetIndexBuffer(params.hTriIndexBuffer);
     pCommandStream->DrawInstanceIndexed(params.hTriIndexBuffer);
@@ -1263,7 +1278,7 @@ void ProcessEnvironmentLighting(const EnvironmentParameters& params)
 
     for (int i = 0; i < 5; ++i)
     {
-        Graphics::ReleaseConstantBuffer(hRoughness[i]);
+        Graphics::ReleaseConstantBuffer(hSplitSumConstants[i]);
     }
     for (int i = 0; i < 6; ++i)
     {

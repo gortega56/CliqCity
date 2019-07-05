@@ -75,7 +75,6 @@ float3 SRGB_to_Linear(float3 color)
     return color;
 }
 
-
 float3 Reinhard_Simple(float3 color, float exposure)
 {
     return color * exposure / (1.0f + color / exposure);
@@ -142,7 +141,7 @@ float D_Blinn_Phong(float NoH, float roughness)
 float D_Beckmann(float NoH, float roughness)
 {
     float a = roughness * roughness;
-    float k = NoH * NoH;
+    float k = max(NoH * NoH, 0.0001f);
     return (1.0f / (PI * a * k * k)) * exp((k - 1.0) / (a * k));
 }
 
@@ -177,19 +176,13 @@ float G_Implicit(float NoV, float NoL)
 float G1_Smith_Beckmann(float NoS, float roughness)
 {
     // Karis http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
-    const float a = 3.535f;
-    const float b = 2.181f;
-    const float d = 2.276f;
-    const float e = 2.577f;
-
+    float a = roughness * roughness;
     float c = NoS / (roughness * sqrt(1.0f - NoS * NoS));
+    float g = 1.0f;
+
     if (c < 1.6f)
     {
-        c = (a * c + b * c * c) / (1.0f + d * c + e * c * c);
-    }
-    else
-    {
-        c = 1.0f;
+        g = (3.535f * c + 2.181f * c * c) / (1.0f + 2.276f * c + 2.577f * c * c);
     }
 
     //http://www.realtimerendering.com/#brdf
@@ -208,14 +201,19 @@ float G1_Smith_Beckmann(float NoS, float roughness)
     //    c = 0.0f;
     //}
 
-    return c;
+    return g;
 }
 
 // NoV clamped to zero
 // NoL clamped to zero
 float G_Smith_Beckmann(float NoV, float NoL, float roughness)
 {
-    return (G1_Smith_Beckmann(NoV, roughness) * G1_Smith_Beckmann(NoL, roughness)) / max((4.0 * NoV * NoL), 0.00001f);
+    float a = roughness * roughness;
+    float cv = NoV / (a * sqrt(1.0f - NoV * NoV));
+    float cl = NoL / (a * sqrt(1.0f - NoL * NoL));
+    float v = (cv < 1.6f) ? (3.535f * cv + 2.181f * cv * cv) / (1.0f + 2.276f * cv + 2.577f * cv * cv) : 1.0f;
+    float l = (cl < 1.6f) ? (3.535f * cl + 2.181f * cl * cl) / (1.0f + 2.276f * cl + 2.577f * cl * cl) : 1.0f;
+    return (v * l);
 }
 
 // NoV clamped to zero
@@ -236,51 +234,20 @@ float G_Smith_GGX(float NoV, float NoL, float roughness)
     //return rcp(v * l);
 }
 
+float G_Schlick_Beckmann(float NoV, float NoL, float roughness)
+{
+    float k = (roughness * roughness) * sqrt(2.0f / PI);
+    float v = NoV / (NoV * (1.0 - k) + k);
+    float l = NoL / (NoL * (1.0 - k) + k);
+    return v * l;
+}
+
 float G_Schlick_GGX(float NoV, float NoL, float roughness)
 {
     float k = (roughness * roughness) * 0.5f;
     float v = NoV / (NoV * (1.0 - k) + k);
     float l = NoL / (NoL * (1.0 - k) + k);
     return v * l;
-}
-
-// https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile
-float3 DFG_Env_Karis(float3 F0, float NoV, float roughness)
-{
-    const float4 c0 = float4(-1, -0.0275, -0.572, 0.022);
-    const float4 c1 = float4(1, 0.0425, 1.04, -0.04);
-    float4 r = roughness * c0 + c1;
-    float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
-    float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
-    return F0 * AB.x + AB.y;
-}
-
-//https://knarkowicz.wordpress.com/2014/12/27/analytical-dfg-term-for-ibl/
-float3 DFG_Env_Knarco(float3 F0, float NoV, float roughness)
-{
-    float x = 1.0 - roughness;
-    float y = NoV;
-
-    float b1 = -0.1688;
-    float b2 = 1.895;
-    float b3 = 0.9903;
-    float b4 = -4.853;
-    float b5 = 8.404;
-    float b6 = -5.069;
-    float bias = saturate(min(b1 * x + b2 * x * x, b3 + b4 * y + b5 * y * y + b6 * y * y * y));
-
-    float d0 = 0.6045;
-    float d1 = 1.699;
-    float d2 = -0.5228;
-    float d3 = -3.603;
-    float d4 = 1.404;
-    float d5 = 0.1939;
-    float d6 = 2.661;
-    float delta = saturate(d0 + d1 * x + d2 * y + d3 * x * x + d4 * x * y + d5 * y * y + d6 * x * x * x);
-    float scale = delta - bias;
-
-    bias *= saturate(50.0 * F0.y);
-    return F0 * scale + bias;
 }
 
 //https://learnopengl.com/PBR/IBL/Diffuse-irradiance
@@ -331,6 +298,48 @@ float2 hammersley(uint i, uint n)
     return float2(float(i) / float(n), radical_inverse_vdc(i));
 }
 
+float3 importance_sample_blinn_phong(float2 sequence, float3 N, float roughness)
+{
+    float a = roughness;
+    float phi = 2.0 * PI * sequence.x;
+    float cos_theta = pow(1.0f - sequence.y, 1.0f / (a + 2.0f));
+    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+    // spherical -> cartesian
+    float3 H;
+    H.x = cos(phi) * sin_theta;
+    H.y = sin(phi) * sin_theta;
+    H.z = cos_theta;
+
+    // tangent space -> world space
+    float3 normal = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 tangent = normalize(cross(normal, N));
+    float3 bitangent = cross(N, tangent);
+
+    return normalize(tangent * H.x + bitangent * H.y + N * H.z);
+}
+
+float3 importance_sample_beckmann(float2 sequence, float3 N, float roughness)
+{
+    float a = roughness * roughness;
+    float phi = 2.0 * PI * sequence.x;
+    float cos_theta = sqrt(1.0f / (1.0f - a * a * log(1.0f - sequence.y)));
+    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+    // spherical -> cartesian
+    float3 H;
+    H.x = cos(phi) * sin_theta;
+    H.y = sin(phi) * sin_theta;
+    H.z = cos_theta;
+
+    // tangent space -> world space
+    float3 normal = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 tangent = normalize(cross(normal, N));
+    float3 bitangent = cross(N, tangent);
+
+    return normalize(tangent * H.x + bitangent * H.y + N * H.z);
+}
+
 float3 importance_sample_ggx(float2 sequence, float3 N, float roughness)
 {
     float a = roughness * roughness;
@@ -352,8 +361,62 @@ float3 importance_sample_ggx(float2 sequence, float3 N, float roughness)
     return normalize(tangent * H.x + bitangent * H.y + N * H.z);
 }
 
+float3 LD_Blinn_Phong(TextureCube cube_texture, SamplerState cube_sampler, float3 normal, float roughness)
+{
+    float3 N = normal;
+    float3 R = N;
+    float3 V = R;
+
+    float3 radiance = float3(0, 0, 0);
+    float weight = 0.0;
+
+    const uint nSamples = 1024;
+    for (uint i = 0; i < nSamples; ++i)
+    {
+        float2 sequence = hammersley(i, nSamples);
+        float3 H = importance_sample_blinn_phong(sequence, N, roughness);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+        float NoL = saturate(dot(N, L));
+        if (NoL > 0.0)
+        {
+            radiance += cube_texture.SampleLevel(cube_sampler, L, 0).rgb * NoL;
+            weight += NoL;
+        }
+    }
+
+    return radiance / weight;
+}
+
+float3 LD_Beckmann(TextureCube cube_texture, SamplerState cube_sampler, float3 normal, float roughness)
+{
+    float3 N = normal;
+    float3 R = N;
+    float3 V = R;
+
+    float3 radiance = float3(0, 0, 0);
+    float weight = 0.0;
+
+    const uint nSamples = 1024;
+    for (uint i = 0; i < nSamples; ++i)
+    {
+        float2 sequence = hammersley(i, nSamples);
+        float3 H = importance_sample_beckmann(sequence, N, roughness);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+        float NoL = saturate(dot(N, L));
+        if (NoL > 0.0)
+        {
+            radiance += cube_texture.SampleLevel(cube_sampler, L, 0).rgb * NoL;
+            weight += NoL;
+        }
+    }
+
+    return radiance / weight;
+}
+
 //https://learnopengl.com/PBR/IBL/Specular-IBL
-float3 Environment_Radiance(TextureCube cube_texture, SamplerState cube_sampler, float3 normal, float roughness)
+float3 LD_GGX(TextureCube cube_texture, SamplerState cube_sampler, float3 normal, float roughness)
 {
     float3 N = normal;
     float3 R = N;
@@ -380,7 +443,79 @@ float3 Environment_Radiance(TextureCube cube_texture, SamplerState cube_sampler,
     return radiance / weight;
 }
 
-float2 environment_brdf(float NoV, float roughness)
+float2 DFG_Blinn_Phong(float NoV, float roughness)
+{
+    float3 V;
+    V.x = sqrt(1.0 - NoV * NoV);
+    V.y = 0.0;
+    V.z = NoV;
+
+    float3 N = float3(0, 0, 1);
+
+    float A = 0;
+    float B = 0;
+
+    const uint nSamples = 1024;
+    for (uint i = 0; i < nSamples; ++i)
+    {
+        float2 sequence = hammersley(i, nSamples);
+        float3 H = importance_sample_blinn_phong(sequence, N, roughness);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+        float NoL = saturate(L.z);
+        float NoH = saturate(H.z);
+        float VoH = saturate(dot(V, H));
+
+        if (NoL > 0)
+        {
+            float G = G_Schlick_GGX(NoV, NoL, roughness);
+            float G_Vis = G * VoH / (NoH * NoV);
+            float Fc = pow(1 - VoH, 5);
+            A += (1 - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+
+    return float2(A, B) / float(nSamples);
+}
+
+float2 DFG_Beckmann(float NoV, float roughness)
+{
+    float3 V;
+    V.x = sqrt(1.0 - NoV * NoV);
+    V.y = 0.0;
+    V.z = NoV;
+
+    float3 N = float3(0, 0, 1);
+
+    float A = 0;
+    float B = 0;
+
+    const uint nSamples = 1024;
+    for (uint i = 0; i < nSamples; ++i)
+    {
+        float2 sequence = hammersley(i, nSamples);
+        float3 H = importance_sample_beckmann(sequence, N, roughness);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+        float NoL = saturate(L.z);
+        float NoH = saturate(H.z);
+        float VoH = saturate(dot(V, H));
+
+        if (NoL > 0)
+        {
+            float G = G_Schlick_Beckmann(NoV, NoL, roughness);
+            float G_Vis = G * VoH / (NoH * NoV);
+            float Fc = pow(1 - VoH, 5);
+            A += (1 - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+
+    return float2(A, B) / float(nSamples);
+}
+
+float2 DFG_GGX(float NoV, float roughness)
 {
     float3 V;
     V.x = sqrt(1.0 - NoV * NoV);
@@ -412,6 +547,45 @@ float2 environment_brdf(float NoV, float roughness)
             B += Fc * G_Vis;
         }
     }
-        
+
     return float2(A, B) / float(nSamples);
+}
+
+// https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile
+float3 DFG_Env_Karis(float3 F0, float NoV, float roughness)
+{
+    const float4 c0 = float4(-1, -0.0275, -0.572, 0.022);
+    const float4 c1 = float4(1, 0.0425, 1.04, -0.04);
+    float4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
+    float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
+    return F0 * AB.x + AB.y;
+}
+
+//https://knarkowicz.wordpress.com/2014/12/27/analytical-dfg-term-for-ibl/
+float3 DFG_Env_Knarco(float3 F0, float NoV, float roughness)
+{
+    float x = 1.0 - roughness;
+    float y = NoV;
+
+    float b1 = -0.1688;
+    float b2 = 1.895;
+    float b3 = 0.9903;
+    float b4 = -4.853;
+    float b5 = 8.404;
+    float b6 = -5.069;
+    float bias = saturate(min(b1 * x + b2 * x * x, b3 + b4 * y + b5 * y * y + b6 * y * y * y));
+
+    float d0 = 0.6045;
+    float d1 = 1.699;
+    float d2 = -0.5228;
+    float d3 = -3.603;
+    float d4 = 1.404;
+    float d5 = 0.1939;
+    float d6 = 2.661;
+    float delta = saturate(d0 + d1 * x + d2 * y + d3 * x * x + d4 * x * y + d5 * y * y + d6 * x * x * x);
+    float scale = delta - bias;
+
+    bias *= saturate(50.0 * F0.y);
+    return F0 * scale + bias;
 }
