@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.15.2)
+
+project(CliqCity LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (NOT LUZ_ASSET_DIRECTORY)
+	set(LUZ_ASSET_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets)
+endif()
+
+add_compile_definitions(LUZ_ASSET_DIRECTORY="${LUZ_ASSET_DIRECTORY}/")
+
+set(APPLICATION_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/App)
+message(${APPLICATION_DIRECTORY})
+
+set(ENGINE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Luz/Luz)
+message(${ENGINE_DIRECTORY})
+
+set(LIBRARY_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Luz/Library)
+message(${LIBRARY_DIRECTORY})
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
+#add_subdirectory(${LIBRARY_DIRECTORY}/lina)
+add_subdirectory(${ENGINE_DIRECTORY})
+add_subdirectory(${APPLICATION_DIRECTORY}/SceneViewer)
+
+
+#add_dependencies(Luz lina)
+#add_dependencies(SceneViewer Luz)
+#add_dependencies(SceneViewer lina)
