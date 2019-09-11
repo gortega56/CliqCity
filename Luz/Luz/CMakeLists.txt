@@ -81,6 +81,13 @@ target_link_directories(${PROJECT_NAME} INTERFACE ${LIBRARY_DIRECTORY}/lina)
 target_link_libraries(${PROJECT_NAME} INTERFACE lina)
 add_dependencies(${PROJECT_NAME} lina)
 
+add_subdirectory(${LIBRARY_DIRECTORY}/integer_pool ${CMAKE_CURRENT_BINARY_DIR}/integer_pool)
+target_link_directories(${PROJECT_NAME} INTERFACE ${LIBRARY_DIRECTORY}/integer_pool)
+target_link_libraries(${PROJECT_NAME} INTERFACE integer_pool)
+add_dependencies(${PROJECT_NAME} integer_pool)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIRECTORY}/integer_pool/include)
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_DIRECTORY}/lina/src)
 
 # Libraries

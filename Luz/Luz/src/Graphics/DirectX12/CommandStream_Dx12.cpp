@@ -7,6 +7,8 @@
 
 namespace Graphics
 {
+    using DescriptorHandleCoder = ppg::integer_coder<GpuResourceHandle>;
+
     static void TransitionResource(ID3D12GraphicsCommandList* pCommandList, ID3D12Resource* pResource, const D3D12_RESOURCE_STATES before, const D3D12_RESOURCE_STATES after)
     {
         LUZASSERT(pCommandList);
@@ -242,7 +244,8 @@ namespace Graphics
     {
         Descriptor descriptor;
 
-        auto eHandleType = static_cast<DescriptorHandleType>(HandleEncoder<GpuResourceHandle>::DecodeHandleValue(baseHandle, s_nDescriptorTypeBits));
+        DescriptorHandleType eHandleType = DescriptorHandleCoder::extract<DescriptorHandleType>(baseHandle, s_nDescriptorTypeBits);
+        
         switch (eHandleType)
         {
         case GFX_DESCRIPTOR_HANDLE_TYPE_CBV: descriptor = s_constantBufferCollection.GetData(baseHandle).CbvHandle; break;
@@ -271,8 +274,9 @@ namespace Graphics
         for (u32 i = 0; i < nHandles; ++i)
         {
             auto handle = pHandles[i];
-            auto eHandleType = static_cast<DescriptorHandleType>(HandleEncoder<GpuResourceHandle>::DecodeHandleValue(handle, s_nDescriptorTypeBits));
-        
+            
+            DescriptorHandleType eHandleType = DescriptorHandleCoder::extract<DescriptorHandleType>(handle, s_nDescriptorTypeBits);
+
             D3D12_CPU_DESCRIPTOR_HANDLE dstHandle;
             switch (eHandleType)
             {
@@ -312,8 +316,9 @@ namespace Graphics
             for (u32 j = 0; j < range.nHandles; ++j)
             {
                 GpuResourceHandle handle = range.pHandles[j];
-                DescriptorHandleType eHandleType = static_cast<DescriptorHandleType>(HandleEncoder<GpuResourceHandle>::DecodeHandleValue(handle, s_nDescriptorTypeBits));
-            
+
+                DescriptorHandleType eHandleType = DescriptorHandleCoder::extract<DescriptorHandleType>(handle, s_nDescriptorTypeBits);
+
                 D3D12_CPU_DESCRIPTOR_HANDLE dstHandle;
                 switch (eHandleType)
                 {

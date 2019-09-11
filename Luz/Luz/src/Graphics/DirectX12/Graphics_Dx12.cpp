@@ -288,9 +288,11 @@ namespace Graphics
 
     CommandListCollection s_commandListCollection;
 
-    const uint32_t s_nDescriptorTypeBits = 3;
+    static const uint32_t s_nDescriptorTypeBits = 3;
 
     static const uint32_t s_nCommandQueueTypeBits = 2;
+
+    using HandleCoder = ppg::integer_coder<GpuResourceHandle>;
 
 	static void WaitOnFence(ID3D12Fence* pFence, UINT64 signal)
 	{
@@ -1697,7 +1699,7 @@ namespace Graphics
     {
         CommandStreamHandle handle = pCommandStream->GetHandle();
 
-        CommandQueueType eQueueType = (CommandQueueType)HandleEncoder<CommandStreamHandle>::DecodeHandleValue(handle, s_nCommandQueueTypeBits);
+        CommandQueueType eQueueType = HandleCoder::extract<CommandQueueType>(handle, s_nCommandQueueTypeBits);
         CommandQueue& cq = s_commandQueues[eQueueType];
         CommandList& cl = s_commandListCollection.GetData(handle);
 
@@ -1783,7 +1785,7 @@ namespace Graphics
 			pSignature = pipe.pSignature;
 		}
 
-		CommandQueueType eQueueType = (CommandQueueType)HandleEncoder<CommandStreamHandle>::DecodeHandleValue(handle, s_nCommandQueueTypeBits);
+        CommandQueueType eQueueType = HandleCoder::extract<CommandQueueType>(handle, s_nCommandQueueTypeBits);
 
 		CommandContext ctx = AllocateCommandContext(eQueueType);
 		LUZASSERT(ctx.pCommandAllocator);
